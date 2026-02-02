@@ -1,5 +1,5 @@
 import { createContext } from 'preact'
-import { useContext, useState, useCallback } from 'preact/hooks'
+import { useContext, useState } from 'preact/hooks'
 import { CheckCircle, XCircle, AlertCircle, X } from 'lucide-preact'
 
 type ToastType = 'success' | 'error' | 'info'
@@ -27,15 +27,15 @@ export function useToast() {
 export function ToastProvider({ children }: { children: preact.ComponentChildren }) {
   const [toasts, setToasts] = useState<Toast[]>([])
 
-  const removeToast = useCallback((id: string) => {
+  const removeToast = (id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id))
-  }, [])
+  }
 
-  const addToast = useCallback((message: string, type: ToastType = 'info') => {
+  const addToast = (message: string, type: ToastType = 'info') => {
     const id = crypto.randomUUID()
     setToasts((prev) => [...prev, { id, message, type }])
     setTimeout(() => removeToast(id), 3000)
-  }, [removeToast])
+  }
 
   const value: ToastContextValue = {
     toast: addToast,

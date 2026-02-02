@@ -1,19 +1,24 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import { Bell, Home, Plus, Settings, User, Users } from 'lucide-preact'
+import { Bell, Home, Plus, Settings, Shield, User, Users } from 'lucide-preact'
+import { useAuth } from '../hooks/useAuth'
 import { useUnreadCount } from '../hooks/useNotifications'
 import { useUIStore } from '../stores/ui'
-
-const navLinks = [
-  { to: '/' as const, label: 'Home', icon: Home },
-  { to: '/notifications' as const, label: 'Activity', icon: Bell, badge: true },
-  { to: '/members' as const, label: 'Members', icon: Users },
-  { to: '/profile/$id' as const, params: { id: 'me' }, label: 'Profile', icon: User },
-]
 
 export function Navigation() {
   const location = useLocation()
   const unreadCount = useUnreadCount()
   const openCreatePost = useUIStore((s) => s.openCreatePost)
+  const { user } = useAuth()
+
+  const navLinks = [
+    { to: '/' as const, label: 'Moments', icon: Home },
+    { to: '/notifications' as const, label: 'Activity', icon: Bell, badge: true },
+    { to: '/members' as const, label: 'Members', icon: Users },
+    { to: '/profile/$id' as const, params: { id: 'me' }, label: 'Profile', icon: User },
+    ...(user?.role === 'admin'
+      ? [{ to: '/admin' as const, label: 'Admin', icon: Shield }]
+      : []),
+  ]
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/'

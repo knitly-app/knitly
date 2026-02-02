@@ -12,7 +12,8 @@ import { useToast } from '../components/Toast'
 import { getAvatarUrl } from '../utils/avatar'
 
 export function PostRoute() {
-  const params = useParams({ strict: false }) as { id: string }
+  const params = useParams({ strict: false })
+  const postId = typeof params.id === 'string' ? params.id : ''
   const [commentText, setCommentText] = useState('')
   const navigate = useNavigate()
   const { user: currentUser } = useAuth()
@@ -20,45 +21,31 @@ export function PostRoute() {
   const toast = useToast()
   const reactionMutation = useReaction()
   const addCommentMutation = useAddComment()
-  const deletePost = useDeletePost()
+  const deletePost = useDeletePost({
+    onSuccess: () => {
+      void navigate({ to: '/' })
+    },
+  })
   const deleteComment = useDeleteComment()
   const editPost = useEditPost()
 
   const { data: post, isLoading } = useQuery({
-    queryKey: ['posts', params.id],
-    queryFn: () => postsApi.get(params.id),
+    queryKey: ['posts', postId],
+    queryFn: () => postsApi.get(postId),
+    enabled: !!postId,
   })
 
-  const { data: comments } = usePostComments(params.id)
+  const { data: comments } = usePostComments(postId)
 
   const handleSubmitComment = async (e: Event) => {
     e.preventDefault()
-    if (!commentText.trim()) return
+    if (!commentText.trim() || !postId) return
 
     try {
-      await addCommentMutation.mutateAsync({ postId: params.id, content: commentText })
+      await addCommentMutation.mutateAsync({ postId, content: commentText })
       setCommentText('')
     } catch {
       toast.error('Failed to add comment')
-    }
-  }
-
-  const handleDeletePost = async (id: string) => {
-    try {
-      await deletePost.mutateAsync(id)
-      toast.success('Post deleted')
-      void navigate({ to: '/' })
-    } catch {
-      toast.error('Failed to delete post')
-    }
-  }
-
-  const handleEditPost = async (id: string, content: string) => {
-    try {
-      await editPost.mutateAsync({ id, content })
-      toast.success('Post updated')
-    } catch {
-      toast.error('Failed to update post')
     }
   }
 
@@ -72,7 +59,7 @@ export function PostRoute() {
     if (!ok) return
 
     try {
-      await deleteComment.mutateAsync({ postId: params.id, commentId })
+      await deleteComment.mutateAsync({ postId, commentId })
       toast.success('Comment deleted')
     } catch {
       toast.error('Failed to delete comment')
@@ -108,17 +95,17 @@ export function PostRoute() {
       </div>
 
       <PostCard
-        post={post}
-        author={post.author}
-        currentUserId={currentUser?.id}
-        onReact={(id, type, currentReaction) => reactionMutation.mutate({ id, type, currentReaction })}
-        onDelete={(id) => {
-          void handleDeletePost(id)
-        }}
-        onEdit={(id, content) => {
-          void handleEditPost(id, content)
-        }}
-      />
+      post={post}
+      author={post.author}
+      currentUserId={currentUser?.id}
+      onReact={(id, type, currentReaction) => reactionMutation.mutate({ id, type, currentReaction })}
+      onDelete={(id) => {
+        deletePost.mutate(id)
+      }}
+      onEdit={(id, content) => {
+        editPost.mutate({ id, content })
+      }}
+    />
 
       <div className="mt-8 bg-white rounded-4xl p-6 shadow-sm border border-gray-50">
         <h3 className="font-bold text-gray-900 mb-6">Comments</h3>

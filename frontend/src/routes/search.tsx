@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks'
+import { useDeferredValue } from 'preact/compat'
 import { useQuery } from '@tanstack/react-query'
 import { Search as SearchIcon } from 'lucide-preact'
 import { search as searchApi } from '../api/endpoints'
@@ -10,19 +11,23 @@ import { useUIStore } from '../stores/ui'
 
 export function SearchRoute() {
   const [query, setQuery] = useState('')
+  const deferredQuery = useDeferredValue(query)
+  const normalizedQuery = deferredQuery.trim()
   const { searchMode: mode, setSearchMode: setMode } = useUIStore()
   const reactionMutation = useReaction()
 
   const { data: users, isLoading } = useQuery({
-    queryKey: ['search', 'users', query],
-    queryFn: () => searchApi.users(query),
-    enabled: query.length >= 2 && mode === 'people',
+    queryKey: ['search', 'users', normalizedQuery],
+    queryFn: () => searchApi.users(normalizedQuery),
+    enabled: normalizedQuery.length >= 2 && mode === 'people',
+    staleTime: 1000 * 30,
   })
 
   const { data: posts, isLoading: postsLoading } = useQuery({
-    queryKey: ['search', 'posts', query],
-    queryFn: () => searchApi.posts(query),
-    enabled: query.length >= 2 && mode === 'posts',
+    queryKey: ['search', 'posts', normalizedQuery],
+    queryFn: () => searchApi.posts(normalizedQuery),
+    enabled: normalizedQuery.length >= 2 && mode === 'posts',
+    staleTime: 1000 * 30,
   })
 
   return (
@@ -60,7 +65,7 @@ export function SearchRoute() {
         </button>
       </div>
 
-      {query.length >= 2 ? (
+      {normalizedQuery.length >= 2 ? (
         mode === 'people' ? (
           <div className="space-y-4">
             {isLoading ? (
@@ -69,7 +74,7 @@ export function SearchRoute() {
               </div>
             ) : users?.length === 0 ? (
               <div className="text-center py-10">
-                <p className="text-gray-400">No users found for "{query}"</p>
+                <p className="text-gray-400">No users found for "{normalizedQuery}"</p>
               </div>
             ) : (
               users?.map((user) => (
@@ -85,7 +90,7 @@ export function SearchRoute() {
               </div>
             ) : posts?.length === 0 ? (
               <div className="text-center py-10">
-                <p className="text-gray-400">No posts found for "{query}"</p>
+                <p className="text-gray-400">No posts found for "{normalizedQuery}"</p>
               </div>
             ) : (
               posts?.map((post) => (

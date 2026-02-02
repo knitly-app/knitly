@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef } from 'preact/hooks'
-import { useNavigate } from '@tanstack/react-router'
+import { useState, useRef } from 'preact/hooks'
+import { useNavigate, Link } from '@tanstack/react-router'
 import { ArrowLeft, LogOut, Camera } from 'lucide-preact'
 import { useAuth } from '../hooks/useAuth'
 import { users, media as mediaApi } from '../api/endpoints'
@@ -12,33 +12,43 @@ export function SettingsRoute() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const toast = useToast()
-  const [displayName, setDisplayName] = useState('')
-  const [username, setUsername] = useState('')
-  const [bio, setBio] = useState('')
-  const [avatar, setAvatar] = useState('')
-  const [location, setLocation] = useState('')
-  const [website, setWebsite] = useState('')
+  const [draft, setDraft] = useState<{
+    displayName?: string
+    username?: string
+    bio?: string
+    avatar?: string
+    location?: string
+    website?: string
+  }>({})
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    if (user) {
-      setDisplayName(user.displayName ?? '')
-      setUsername(user.username ?? '')
-      setBio(user.bio ?? '')
-      setAvatar(user.avatar ?? '')
-      setLocation(user.location ?? '')
-      setWebsite(user.website ?? '')
-    }
-  }, [user])
+  const formValues = {
+    displayName: draft.displayName ?? user?.displayName ?? '',
+    username: draft.username ?? user?.username ?? '',
+    bio: draft.bio ?? user?.bio ?? '',
+    avatar: draft.avatar ?? user?.avatar ?? '',
+    location: draft.location ?? user?.location ?? '',
+    website: draft.website ?? user?.website ?? '',
+  }
+
+  const profilePayload = {
+    displayName: formValues.displayName,
+    username: formValues.username,
+    bio: formValues.bio,
+    avatar: formValues.avatar,
+    location: formValues.location,
+    website: formValues.website,
+  }
 
   const updateProfile = useMutation({
-    mutationFn: () => users.update('me', { displayName, username, bio, avatar, location, website }),
+    mutationFn: (payload: typeof profilePayload) => users.update('me', payload),
     onSuccess: (updated) => {
       queryClient.setQueryData(['auth', 'me'], updated)
       void queryClient.invalidateQueries({ queryKey: ['users'] })
       void queryClient.invalidateQueries({ queryKey: ['feed'] })
       void queryClient.invalidateQueries({ queryKey: ['posts'] })
+      setDraft({})
       toast.success('Profile saved')
     },
     onError: () => {
@@ -72,7 +82,7 @@ export function SettingsRoute() {
       })
 
       const mediaItem = await mediaApi.complete({ key: presign.key })
-      setAvatar(mediaItem.url)
+      setDraft((prev) => ({ ...prev, avatar: mediaItem.url }))
       toast.success('Avatar uploaded')
     } catch {
       toast.error('Failed to upload avatar')
@@ -85,7 +95,9 @@ export function SettingsRoute() {
     <div className="w-full max-w-2xl mx-auto py-4 md:py-8 px-4 md:px-0">
       <div className="mb-6 flex items-center justify-between">
         <button
-          onClick={() => navigate({ to: '..', replace: false }) || window.history.back()}
+          onClick={() => {
+            void navigate({ to: '..', replace: false })
+          }}
           className="inline-flex items-center space-x-2 text-gray-400 hover:text-gray-600 transition-colors"
         >
           <ArrowLeft size={20} />
@@ -118,13 +130,18 @@ export function SettingsRoute() {
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
               Display Name
             </label>
-            <input
-              type="text"
-              value={displayName}
-              onInput={(e) => setDisplayName((e.target as HTMLInputElement).value)}
-              className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-4 focus:ring-accent-50 focus:border-accent-300 transition-all"
-              placeholder="Your name"
-            />
+          <input
+            type="text"
+            value={formValues.displayName}
+            onInput={(e) =>
+              setDraft((prev) => ({
+                ...prev,
+                displayName: (e.target as HTMLInputElement).value,
+              }))
+            }
+            className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-4 focus:ring-accent-50 focus:border-accent-300 transition-all"
+            placeholder="Your name"
+          />
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
@@ -132,8 +149,13 @@ export function SettingsRoute() {
             </label>
             <input
               type="text"
-              value={username}
-              onInput={(e) => setUsername((e.target as HTMLInputElement).value)}
+              value={formValues.username}
+              onInput={(e) =>
+                setDraft((prev) => ({
+                  ...prev,
+                  username: (e.target as HTMLInputElement).value,
+                }))
+              }
               className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-4 focus:ring-accent-50 focus:border-accent-300 transition-all"
               placeholder="username"
             />
@@ -143,8 +165,13 @@ export function SettingsRoute() {
               Bio
             </label>
             <textarea
-              value={bio}
-              onInput={(e) => setBio((e.target as HTMLTextAreaElement).value)}
+              value={formValues.bio}
+              onInput={(e) =>
+                setDraft((prev) => ({
+                  ...prev,
+                  bio: (e.target as HTMLTextAreaElement).value,
+                }))
+              }
               className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-4 focus:ring-accent-50 focus:border-accent-300 transition-all"
               rows={3}
               placeholder="A short bio"
@@ -160,7 +187,7 @@ export function SettingsRoute() {
                 className="relative w-20 h-20 rounded-full overflow-hidden cursor-pointer group"
               >
                 <img
-                  src={avatar || getAvatarUrl(user!)}
+                  src={formValues.avatar || (user ? getAvatarUrl(user) : '')}
                   alt="Avatar preview"
                   className="w-full h-full object-cover"
                 />
@@ -191,8 +218,13 @@ export function SettingsRoute() {
             </label>
             <input
               type="text"
-              value={location}
-              onInput={(e) => setLocation((e.target as HTMLInputElement).value)}
+              value={formValues.location}
+              onInput={(e) =>
+                setDraft((prev) => ({
+                  ...prev,
+                  location: (e.target as HTMLInputElement).value,
+                }))
+              }
               className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-4 focus:ring-accent-50 focus:border-accent-300 transition-all"
               placeholder="City, State"
             />
@@ -203,14 +235,19 @@ export function SettingsRoute() {
             </label>
             <input
               type="url"
-              value={website}
-              onInput={(e) => setWebsite((e.target as HTMLInputElement).value)}
+              value={formValues.website}
+              onInput={(e) =>
+                setDraft((prev) => ({
+                  ...prev,
+                  website: (e.target as HTMLInputElement).value,
+                }))
+              }
               className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-4 focus:ring-accent-50 focus:border-accent-300 transition-all"
               placeholder="https://yoursite.com"
             />
           </div>
           <button
-            onClick={() => updateProfile.mutate()}
+            onClick={() => updateProfile.mutate(profilePayload)}
             disabled={updateProfile.isPending}
             className="w-full py-3 bg-accent-500 text-white rounded-2xl font-bold shadow-lg shadow-accent-200 hover:bg-accent-600 transition-all disabled:opacity-50"
           >
@@ -218,6 +255,17 @@ export function SettingsRoute() {
           </button>
         </div>
       </div>
+
+      {user?.role === 'admin' && (
+        <div className="mt-8">
+          <Link
+            to="/admin"
+            className="w-full flex items-center justify-center space-x-2 p-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-colors"
+          >
+            <span>Admin Panel</span>
+          </Link>
+        </div>
+      )}
 
       <div className="mt-8">
         <button

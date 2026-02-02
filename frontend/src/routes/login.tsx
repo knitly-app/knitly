@@ -1,18 +1,12 @@
-import { useState, useEffect } from 'preact/hooks'
+import { useState } from 'preact/hooks'
 import { useNavigate } from '@tanstack/react-router'
 import { useAuth } from '../hooks/useAuth'
 
 export function LoginRoute() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const { login, isLoggingIn, loginError, isAuthenticated, isLoading } = useAuth()
+  const { login, isLoggingIn, loginError } = useAuth()
   const navigate = useNavigate()
-
-  useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      void navigate({ to: '/' })
-    }
-  }, [isLoading, isAuthenticated, navigate])
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault()

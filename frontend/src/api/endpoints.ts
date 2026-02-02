@@ -8,6 +8,8 @@ export interface User {
   bio?: string
   location?: string
   website?: string
+  role?: 'admin' | 'moderator' | 'member'
+  disabledAt?: string | null
   createdAt: string
 }
 
@@ -134,7 +136,19 @@ export const search = {
 export const invites = {
   validate: (token: string) => api.get<{ valid: boolean; inviter?: User }>(`/invites/${token}`),
   create: () => api.post<{ token: string; expiresAt: string }>('/invites'),
-  list: () => api.get<{ token: string; used: boolean; usedBy?: User }[]>('/invites'),
+  list: () =>
+    api.get<
+      {
+        token: string
+        used: boolean
+        createdAt: string
+        expiresAt?: string
+        revokedAt?: string | null
+        invitedBy?: User
+        usedBy?: User
+      }[]
+    >('/invites'),
+  revoke: (token: string) => api.post<{ token: string; revokedAt: string }>(`/invites/${token}/revoke`),
 }
 
 export const media = {
@@ -146,4 +160,40 @@ export const media = {
 export const admin = {
   users: () => api.get<User[]>('/admin/users'),
   stats: () => api.get<{ users: number; posts: number; invites: number }>('/admin/stats'),
+  content: (params?: { cursor?: string; q?: string }) => {
+    const queryParams: Record<string, string> = {}
+    if (params?.cursor) queryParams.cursor = params.cursor
+    if (params?.q) queryParams.q = params.q
+    return api.get<{
+      items: {
+        type: 'post' | 'comment'
+        id: string
+        content: string
+        createdAt: string
+        author: {
+          id: string
+          username: string
+          displayName: string
+          avatar?: string
+        }
+        postId?: string
+        postContent?: string
+        postAuthor?: { username: string; displayName: string }
+        commentsCount?: number
+        mediaCount?: number
+      }[]
+      nextCursor?: string
+    }>('/admin/content', { params: queryParams })
+  },
+  deleteContent: (id: string, type: 'post' | 'comment') =>
+    api.post<{ success: true; type: 'post' | 'comment'; id: string; postId?: string }>(
+      `/admin/content/${id}/delete`,
+      { type }
+    ),
+  disableUser: (id: string) => api.post<{ id: string; disabledAt: string }>(`/admin/users/${id}/disable`),
+  enableUser: (id: string) => api.post<{ id: string; disabledAt: null }>(`/admin/users/${id}/enable`),
+  promoteUser: (id: string) => api.post<{ id: string; role: 'moderator' }>(`/admin/users/${id}/promote`),
+  demoteUser: (id: string) => api.post<{ id: string; role: 'member' }>(`/admin/users/${id}/demote`),
+  transferOwnership: (id: string) => api.post<{ id: string; role: 'admin' }>(`/admin/users/${id}/transfer`),
+  removeUser: (id: string) => api.delete<{ success: true }>(`/admin/users/${id}`),
 }

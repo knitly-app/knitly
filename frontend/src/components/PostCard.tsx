@@ -6,6 +6,7 @@ import { useConfirm } from './ConfirmModal'
 import { getAvatarUrl } from '../utils/avatar'
 import { useUIStore } from '../stores/ui'
 import { useToast } from './Toast'
+import { formatTimeAgo } from '../utils/time'
 
 const REACTIONS: { type: ReactionType; emoji: string; label: string }[] = [
   { type: 'love', emoji: '❤️', label: 'Love' },
@@ -23,23 +24,8 @@ interface PostCardProps {
   onEdit?: (postId: string, content: string) => void
 }
 
-function formatTimeAgo(dateString: string): string {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-
-  if (diffMins < 1) return 'now'
-  if (diffMins < 60) return `${diffMins}m`
-  const diffHours = Math.floor(diffMins / 60)
-  if (diffHours < 24) return `${diffHours}h`
-  const diffDays = Math.floor(diffHours / 24)
-  if (diffDays < 7) return `${diffDays}d`
-  return date.toLocaleDateString()
-}
-
 function getTotalReactions(reactions: ReactionCounts): number {
-  return Object.values(reactions).reduce((sum, count) => sum + (count || 0), 0)
+  return REACTIONS.reduce((sum, reaction) => sum + (reactions[reaction.type] ?? 0), 0)
 }
 
 function ReactionButton({
@@ -208,7 +194,7 @@ export function PostCard({ post, author, currentUserId, onReact, onDelete, onEdi
               <span className="text-gray-400 text-sm ml-2">@{postAuthor?.username || 'user'}</span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="text-xs text-gray-400">{formatTimeAgo(post.createdAt)}</span>
+              <span className="text-xs text-gray-400">{formatTimeAgo(post.createdAt, { maxDays: 7 })}</span>
               {canEdit && !isEditing && (
                 <button
                   onClick={handleEdit}

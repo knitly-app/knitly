@@ -1,9 +1,6 @@
-import { Outlet, useLocation, useNavigate } from '@tanstack/react-router'
-import { useEffect } from 'preact/hooks'
+import { Outlet, useLocation } from '@tanstack/react-router'
 import { CreatePostModal } from './components/CreatePostModal'
 import { Navigation } from './components/Navigation'
-import { Spinner } from './components/Spinner'
-import { useAuth } from './hooks/useAuth'
 import { useUIStore } from './stores/ui'
 
 const publicRoutes = ['/login', '/signup', '/invite']
@@ -11,25 +8,9 @@ const publicRoutes = ['/login', '/signup', '/invite']
 export function App() {
   const { showCreatePost, closeCreatePost } = useUIStore()
   const location = useLocation()
-  const navigate = useNavigate()
-  const { isAuthenticated, isLoading } = useAuth()
 
   const isPublicRoute = publicRoutes.some((r) => location.pathname.startsWith(r))
   const showNavigation = !isPublicRoute
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated && !isPublicRoute) {
-      void navigate({ to: '/login' })
-    }
-  }, [isLoading, isAuthenticated, isPublicRoute, navigate])
-
-  if (isLoading && !isPublicRoute) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Spinner size="lg" />
-      </div>
-    )
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">

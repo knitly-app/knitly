@@ -40,7 +40,15 @@ test('create post from feed', async ({ page }) => {
   })
 
   await page.route('**/api/posts', async (route) => {
-    const payload = (await route.request().postDataJSON().catch(() => ({}))) as unknown
+    const postData = route.request().postData()
+    let payload: unknown = {}
+    if (postData) {
+      try {
+        payload = JSON.parse(postData) as unknown
+      } catch {
+        payload = {}
+      }
+    }
     const content =
       typeof payload === 'object' && payload && 'content' in payload
         ? String((payload as { content: unknown }).content)

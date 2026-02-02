@@ -2,20 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { useNotifications, useMarkNotificationRead } from '../hooks/useNotifications'
 import { Spinner } from '../components/Spinner'
 import { getAvatarUrl } from '../utils/avatar'
-
-function formatTimeAgo(dateString: string): string {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-
-  if (diffMins < 1) return 'now'
-  if (diffMins < 60) return `${diffMins}m ago`
-  const diffHours = Math.floor(diffMins / 60)
-  if (diffHours < 24) return `${diffHours}h ago`
-  const diffDays = Math.floor(diffHours / 24)
-  return `${diffDays}d ago`
-}
+import { formatTimeAgo } from '../utils/time'
 
 function getNotificationText(type: string): string {
   switch (type) {
@@ -80,7 +67,7 @@ export function NotificationsRoute() {
                 <p className="text-sm text-gray-800 leading-snug">
                   <span className="font-bold">{notif.fromDisplayName || notif.fromUsername}</span> {getNotificationText(notif.type)}.
                 </p>
-                <p className="text-xs text-gray-400 mt-1.5">{formatTimeAgo(notif.createdAt)}</p>
+                <p className="text-xs text-gray-400 mt-1.5">{formatTimeAgo(notif.createdAt, { includeAgo: true })}</p>
               </div>
               {!notif.read && (
                 <div className="w-2.5 h-2.5 bg-accent-500 rounded-full ml-4 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />

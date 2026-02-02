@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import { posts, type Post, type Comment, type User, type ReactionType } from '../api/endpoints'
+import { useToast } from '../components/Toast'
 
 export function useFeed() {
   return useInfiniteQuery({
@@ -140,8 +141,9 @@ export function useAddComment() {
   })
 }
 
-export function useDeletePost() {
+export function useDeletePost(options?: { onSuccess?: (postId: string) => void }) {
   const queryClient = useQueryClient()
+  const toast = useToast()
 
   return useMutation({
     mutationFn: (postId: string) => posts.delete(postId),
@@ -150,12 +152,18 @@ export function useDeletePost() {
       void queryClient.invalidateQueries({ queryKey: ['users'] })
       void queryClient.invalidateQueries({ queryKey: ['posts'] })
       queryClient.removeQueries({ queryKey: ['posts', postId] })
+      toast.success('Post deleted')
+      options?.onSuccess?.(postId)
+    },
+    onError: () => {
+      toast.error('Failed to delete post')
     },
   })
 }
 
 export function useEditPost() {
   const queryClient = useQueryClient()
+  const toast = useToast()
 
   return useMutation({
     mutationFn: ({ id, content }: { id: string; content: string }) => posts.update(id, content),
@@ -163,6 +171,10 @@ export function useEditPost() {
       queryClient.setQueryData(['posts', updated.id], updated)
       void queryClient.invalidateQueries({ queryKey: ['feed'] })
       void queryClient.invalidateQueries({ queryKey: ['users'] })
+      toast.success('Post updated')
+    },
+    onError: () => {
+      toast.error('Failed to update post')
     },
   })
 }

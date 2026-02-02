@@ -3,14 +3,16 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import {
   createRouter,
   createRoute,
-  createRootRoute,
+  createRootRouteWithContext,
   RouterProvider,
+  redirect,
 } from '@tanstack/react-router'
 import './index.css'
 import { App } from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import { ConfirmProvider } from './components/ConfirmModal'
+import { auth, posts, users, type User } from './api/endpoints'
 import {
   FeedRoute,
   LoginRoute,
@@ -34,8 +36,44 @@ const queryClient = new QueryClient({
   },
 })
 
-const rootRoute = createRootRoute({
+type RouterContext = {
+  queryClient: QueryClient
+}
+
+const authQueryOptions = {
+  queryKey: ['auth', 'me'],
+  queryFn: auth.me,
+  retry: false,
+  staleTime: 1000 * 60 * 5,
+}
+
+const publicRoutePrefixes = ['/login', '/signup', '/invite']
+
+async function getAuthUser(client: QueryClient) {
+  const cached = client.getQueryData<User | null>(authQueryOptions.queryKey)
+  if (cached) return cached
+  if (cached === null) return null
+  try {
+    return await client.ensureQueryData(authQueryOptions)
+  } catch {
+    return null
+  }
+}
+
+const rootRoute = createRootRouteWithContext<RouterContext>()({
   component: App,
+  beforeLoad: async ({ context, location }) => {
+    const isPublicRoute = publicRoutePrefixes.some((route) =>
+      location.pathname.startsWith(route)
+    )
+
+    if (isPublicRoute) return
+
+    const user = await getAuthUser(context.queryClient)
+    if (!user) {
+      return redirect({ to: '/login', throw: true })
+    }
+  },
 })
 
 const indexRoute = createRoute({
@@ -48,6 +86,12 @@ const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
   component: LoginRoute,
+  beforeLoad: async ({ context }) => {
+    const user = await getAuthUser(context.queryClient)
+    if (user) {
+      return redirect({ to: '/', throw: true })
+    }
+  },
 })
 
 const signupRoute = createRoute({
@@ -57,6 +101,12 @@ const signupRoute = createRoute({
   validateSearch: (search: Record<string, unknown>) => ({
     invite: search.invite as string | undefined,
   }),
+  beforeLoad: async ({ context }) => {
+    const user = await getAuthUser(context.queryClient)
+    if (user) {
+      return redirect({ to: '/', throw: true })
+    }
+  },
 })
 
 const inviteRoute = createRoute({
@@ -69,18 +119,54 @@ const profileRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/profile/$id',
   component: ProfileRoute,
+  loader: async ({ context, params }) => {
+    const userId =
+      params.id === 'me' ? (await getAuthUser(context.queryClient))?.id : params.id
+
+    if (!userId) return
+
+    await Promise.all([
+      context.queryClient.ensureQueryData({
+        queryKey: ['users', userId],
+        queryFn: () => users.get(userId),
+      }),
+      context.queryClient.ensureQueryData({
+        queryKey: ['users', userId, 'posts'],
+        queryFn: () => posts.userPosts(userId),
+      }),
+    ])
+  },
 })
+
+const loadPost = async (context: RouterContext, postId: string) => {
+  await Promise.all([
+    context.queryClient.ensureQueryData({
+      queryKey: ['posts', postId],
+      queryFn: () => posts.get(postId),
+    }),
+    context.queryClient.prefetchQuery({
+      queryKey: ['posts', postId, 'comments'],
+      queryFn: () => posts.comments(postId),
+    }),
+  ])
+}
 
 const postRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/post/$id',
   component: PostRoute,
+  loader: async ({ context, params }) => {
+    await loadPost(context, params.id)
+  },
 })
 
 const momentRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/m/$id',
   component: PostRoute,
+  loader: async ({ context, params }) => {
+    await loadPost(context, params.id)
+  },
 })
 
 const searchRoute = createRoute({
@@ -111,6 +197,15 @@ const adminRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/admin',
   component: AdminRoute,
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: typeof search.tab === 'string' ? search.tab : undefined,
+  }),
+  beforeLoad: async ({ context }) => {
+    const user = await getAuthUser(context.queryClient)
+    if (!user || user.role !== 'admin') {
+      return redirect({ to: '/', throw: true })
+    }
+  },
 })
 
 const routeTree = rootRoute.addChildren([
@@ -128,7 +223,7 @@ const routeTree = rootRoute.addChildren([
   adminRoute,
 ])
 
-const router = createRouter({ routeTree })
+const router = createRouter({ routeTree, context: { queryClient } })
 
 declare module '@tanstack/react-router' {
   interface Register {

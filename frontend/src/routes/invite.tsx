@@ -56,12 +56,9 @@ export function InviteRoute() {
 
           <h1 className="text-2xl font-bold text-gray-900 mb-2">You're Invited!</h1>
 
-          {data.inviter && (
-            <p className="text-gray-500 mb-8">
-              <span className="font-bold text-gray-700">{data.inviter.displayName}</span> has invited
-              you to join Knitly.
-            </p>
-          )}
+          <p className="text-gray-500 mb-8">
+            You're invited to join Knitly.
+          </p>
 
           <button
             onClick={handleAccept}

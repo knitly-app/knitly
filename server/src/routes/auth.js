@@ -28,6 +28,7 @@ function formatUser(user) {
     displayName: user.display_name,
     avatar: user.avatar || undefined,
     bio: user.bio || undefined,
+    role: user.role,
     createdAt: user.created_at,
   };
 }
@@ -49,6 +50,10 @@ authRouter.post("/signup", async (c) => {
       const invite = dbUtils.getInviteByToken(inviteToken);
       if (!invite) return c.json({ error: "Invalid invite token" }, 400);
       if (invite.used) return c.json({ error: "Invite already used" }, 400);
+      if (invite.revoked_at) return c.json({ error: "Invite revoked" }, 400);
+      if (invite.expires_at && new Date(invite.expires_at).getTime() < Date.now()) {
+        return c.json({ error: "Invite expired" }, 400);
+      }
     }
 
     if (dbUtils.getUserByEmail(normalizedEmail)) {
@@ -95,6 +100,7 @@ authRouter.post("/login", async (c) => {
 
     const user = dbUtils.getUserByEmail(normalizedEmail);
     if (!user) return c.json({ error: "Invalid credentials" }, 401);
+    if (user.disabled_at) return c.json({ error: "Account disabled" }, 403);
 
     const valid = await verifyPassword(user.password_hash, password);
     if (!valid) return c.json({ error: "Invalid credentials" }, 401);

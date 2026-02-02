@@ -18,7 +18,7 @@ export default [
     files: tsFiles,
     languageOptions: {
       parserOptions: {
-        project: ["./tsconfig.app.json", "./tsconfig.node.json"],
+        project: ["./tsconfig.eslint.json", "./tsconfig.node.json"],
         tsconfigRootDir: __dirname,
       },
     },

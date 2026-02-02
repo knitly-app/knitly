@@ -62,7 +62,14 @@ describe('api client', () => {
       } as Response)
     )
 
-    expect(api.get('/auth/me')).rejects.toThrow(ApiError)
+    let error: unknown
+    try {
+      await api.get('/auth/me')
+    } catch (err) {
+      error = err
+    }
+
+    expect(error).toBeInstanceOf(ApiError)
   })
 
   it('handles 204 No Content', async () => {

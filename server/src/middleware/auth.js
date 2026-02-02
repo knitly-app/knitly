@@ -15,6 +15,11 @@ export async function ensureSession(c, next) {
     return c.json({ error: "Session expired" }, 401);
   }
 
+  if (session.disabled_at) {
+    dbUtils.deleteSession(sessionId);
+    return c.json({ error: "Account disabled" }, 403);
+  }
+
   c.set("user", {
     id: session.user_id,
     email: session.email,
@@ -23,6 +28,7 @@ export async function ensureSession(c, next) {
     bio: session.bio,
     avatar: session.avatar,
     role: session.role,
+    disabledAt: session.disabled_at,
   });
 
   await next();
@@ -50,7 +56,7 @@ export async function optionalAuth(c, next) {
   if (sessionId) {
     const session = dbUtils.getSession(sessionId);
 
-    if (session) {
+    if (session && !session.disabled_at) {
       c.set("user", {
         id: session.user_id,
         email: session.email,
@@ -59,6 +65,7 @@ export async function optionalAuth(c, next) {
         bio: session.bio,
         avatar: session.avatar,
         role: session.role,
+        disabledAt: session.disabled_at,
       });
     }
   }

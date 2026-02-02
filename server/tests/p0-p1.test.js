@@ -56,6 +56,13 @@ async function seedTwoUsers() {
   return { userAId, userBId, sessionA, sessionB };
 }
 
+async function seedAdminUser() {
+  const passwordHash = await hashPassword("password123");
+  const adminId = dbUtils.createUser("owner@test.com", "owner", "Owner", passwordHash, "admin");
+  const { sessionId } = dbUtils.createSession(adminId);
+  return { adminId, sessionId };
+}
+
 beforeEach(() => {
   resetDb();
 });
@@ -122,11 +129,11 @@ describe("P0 unit", () => {
     db.prepare("UPDATE posts SET created_at = ? WHERE id = ?").run("2024-01-01 11:00:00", postB.id);
     db.prepare("UPDATE posts SET created_at = ? WHERE id = ?").run("2024-01-01 12:00:00", postC.id);
 
-    const first = dbUtils.getFeed(userId, 2);
+    const first = dbUtils.getFeed(2);
     expect(first[0].content).toBe("C");
     expect(first[1].content).toBe("B");
 
-    const page = dbUtils.getFeed(userId, 2, "2024-01-01 11:30:00");
+    const page = dbUtils.getFeed(2, "2024-01-01 11:30:00");
     expect(page[0].content).toBe("B");
     expect(page[1].content).toBe("A");
   });
@@ -580,13 +587,13 @@ describe("P1 integration", () => {
   });
 
   test("invites flow", async () => {
-    const { sessionA } = await seedTwoUsers();
+    const { sessionId: adminSession } = await seedAdminUser();
 
-    const createRes = await jsonReq("/api/invites", { method: "POST", cookie: sessionA });
+    const createRes = await jsonReq("/api/invites", { method: "POST", cookie: adminSession });
     expect(createRes.status).toBe(201);
     const createBody = await createRes.json();
 
-    const listRes = await jsonReq("/api/invites", { cookie: sessionA });
+    const listRes = await jsonReq("/api/invites", { cookie: adminSession });
     const listBody = await listRes.json();
     expect(listBody.length).toBe(1);
 

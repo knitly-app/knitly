@@ -13,7 +13,16 @@ function formatUser(user) {
     bio: user.bio || undefined,
     location: user.location || undefined,
     website: user.website || undefined,
+    role: user.role,
     createdAt: user.created_at,
+  };
+}
+
+function formatUserWithCounts(user) {
+  return {
+    ...formatUser(user),
+    followers: dbUtils.getFollowerCount(user.id),
+    following: dbUtils.getFollowingCount(user.id),
   };
 }
 
@@ -50,7 +59,13 @@ usersRouter.get("/:id", optionalAuth, async (c) => {
   const user = dbUtils.getUserById(userId);
   if (!user) return c.json({ error: "Not found" }, 404);
 
-  return c.json(formatUser(user));
+  const isFollowing =
+    currentUser && currentUser.id !== userId ? dbUtils.isFollowing(currentUser.id, userId) : false;
+
+  return c.json({
+    ...formatUserWithCounts(user),
+    isFollowing,
+  });
 });
 
 usersRouter.patch("/:id", ensureSession, async (c) => {
@@ -66,7 +81,7 @@ usersRouter.patch("/:id", ensureSession, async (c) => {
   dbUtils.updateUser(userId, body);
 
   const user = dbUtils.getUserById(userId);
-  return c.json(formatUser(user));
+  return c.json(formatUserWithCounts(user));
 });
 
 usersRouter.get("/:id/followers", optionalAuth, async (c) => {

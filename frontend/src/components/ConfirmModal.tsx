@@ -1,5 +1,5 @@
 import { createContext } from 'preact'
-import { useContext, useState, useCallback } from 'preact/hooks'
+import { useContext, useState } from 'preact/hooks'
 import { AlertTriangle } from 'lucide-preact'
 
 interface ConfirmOptions {
@@ -33,11 +33,10 @@ export function ConfirmProvider({ children }: { children: preact.ComponentChildr
     resolve: null,
   })
 
-  const confirm = useCallback((options: ConfirmOptions): Promise<boolean> => {
-    return new Promise((resolve) => {
+  const confirm = (options: ConfirmOptions): Promise<boolean> =>
+    new Promise((resolve) => {
       setState({ open: true, options, resolve })
     })
-  }, [])
 
   const handleClose = (result: boolean) => {
     state.resolve?.(result)
