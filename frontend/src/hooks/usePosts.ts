@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
-import { posts, type Post, type Comment, type User } from '../api/endpoints'
+import { posts, type Post, type Comment, type User, type ReactionType } from '../api/endpoints'
 
 export function useFeed() {
   return useInfiniteQuery({
@@ -37,20 +37,31 @@ export function useCreatePost() {
   })
 }
 
-export function useLikePost() {
+export function useReaction() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, liked }: { id: string; liked: boolean }) =>
-      liked ? posts.unlike(id) : posts.like(id),
-    onMutate: async ({ id, liked }) => {
+    mutationFn: ({ id, type, currentReaction }: { id: string; type: ReactionType; currentReaction: ReactionType | null }) =>
+      currentReaction === type ? posts.unreact(id) : posts.react(id, type),
+    onMutate: async ({ id, type, currentReaction }) => {
       await queryClient.cancelQueries({ queryKey: ['posts', id] })
       const previous = queryClient.getQueryData<Post>(['posts', id])
       if (previous) {
+        const newReactions = { ...previous.reactions }
+        // Remove old reaction count
+        if (currentReaction && newReactions[currentReaction]) {
+          newReactions[currentReaction] = (newReactions[currentReaction] || 1) - 1
+          if (newReactions[currentReaction] === 0) delete newReactions[currentReaction]
+        }
+        // Add new reaction count (unless toggling off)
+        const isToggleOff = currentReaction === type
+        if (!isToggleOff) {
+          newReactions[type] = (newReactions[type] || 0) + 1
+        }
         queryClient.setQueryData<Post>(['posts', id], {
           ...previous,
-          liked: !liked,
-          likes: liked ? previous.likes - 1 : previous.likes + 1,
+          reactions: newReactions,
+          userReaction: isToggleOff ? null : type,
         })
       }
       return { previous }
@@ -139,6 +150,19 @@ export function useDeletePost() {
       void queryClient.invalidateQueries({ queryKey: ['users'] })
       void queryClient.invalidateQueries({ queryKey: ['posts'] })
       queryClient.removeQueries({ queryKey: ['posts', postId] })
+    },
+  })
+}
+
+export function useEditPost() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, content }: { id: string; content: string }) => posts.update(id, content),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['posts', updated.id], updated)
+      void queryClient.invalidateQueries({ queryKey: ['feed'] })
+      void queryClient.invalidateQueries({ queryKey: ['users'] })
     },
   })
 }

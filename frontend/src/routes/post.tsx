@@ -1,27 +1,28 @@
 import { useState } from 'preact/hooks'
 import { useQuery } from '@tanstack/react-query'
-import { useParams, Link, useNavigate } from '@tanstack/react-router'
+import { useParams, useNavigate, Link } from '@tanstack/react-router'
 import { ArrowLeft, Send, Trash2 } from 'lucide-preact'
 import { posts as postsApi } from '../api/endpoints'
 import { PostCard } from '../components/PostCard'
 import { Spinner } from '../components/Spinner'
-import { useLikePost, useAddComment, usePostComments, useDeletePost, useDeleteComment } from '../hooks/usePosts'
+import { useReaction, useAddComment, usePostComments, useDeletePost, useDeleteComment, useEditPost } from '../hooks/usePosts'
 import { useAuth } from '../hooks/useAuth'
 import { useConfirm } from '../components/ConfirmModal'
 import { useToast } from '../components/Toast'
 import { getAvatarUrl } from '../utils/avatar'
 
 export function PostRoute() {
-  const params = useParams({ from: '/post/$id' })
+  const params = useParams({ strict: false }) as { id: string }
   const [commentText, setCommentText] = useState('')
   const navigate = useNavigate()
   const { user: currentUser } = useAuth()
   const confirm = useConfirm()
   const toast = useToast()
-  const likeMutation = useLikePost()
+  const reactionMutation = useReaction()
   const addCommentMutation = useAddComment()
   const deletePost = useDeletePost()
   const deleteComment = useDeleteComment()
+  const editPost = useEditPost()
 
   const { data: post, isLoading } = useQuery({
     queryKey: ['posts', params.id],
@@ -49,6 +50,15 @@ export function PostRoute() {
       void navigate({ to: '/' })
     } catch {
       toast.error('Failed to delete post')
+    }
+  }
+
+  const handleEditPost = async (id: string, content: string) => {
+    try {
+      await editPost.mutateAsync({ id, content })
+      toast.success('Post updated')
+    } catch {
+      toast.error('Failed to update post')
     }
   }
 
@@ -88,22 +98,25 @@ export function PostRoute() {
   return (
     <div className="w-full max-w-2xl mx-auto py-4 md:py-8 px-4 md:px-0">
       <div className="mb-6">
-        <Link
-          to="/"
+        <button
+          onClick={() => window.history.back()}
           className="inline-flex items-center space-x-2 text-gray-400 hover:text-gray-600 transition-colors"
         >
           <ArrowLeft size={20} />
           <span className="font-medium">Back</span>
-        </Link>
+        </button>
       </div>
 
       <PostCard
         post={post}
         author={post.author}
         currentUserId={currentUser?.id}
-        onLike={(id, liked) => likeMutation.mutate({ id, liked })}
+        onReact={(id, type, currentReaction) => reactionMutation.mutate({ id, type, currentReaction })}
         onDelete={(id) => {
           void handleDeletePost(id)
+        }}
+        onEdit={(id, content) => {
+          void handleEditPost(id, content)
         }}
       />
 

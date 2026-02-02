@@ -31,8 +31,13 @@ searchRouter.get("/posts", optionalAuth, async (c) => {
     content: p.content,
     media: p.media || [],
     createdAt: p.created_at,
-    likes: p.likes,
+    reactions: p.reactions || {},
+    userReaction: currentUser ? dbUtils.getUserReaction(currentUser.id, p.id) : null,
     comments: p.comments,
-    liked: currentUser ? dbUtils.isLiked(currentUser.id, p.id) : false,
+    author: {
+      username: p.username,
+      displayName: p.display_name,
+      avatar: p.avatar || undefined,
+    },
   })));
 });

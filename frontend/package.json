@@ -21,7 +21,8 @@
     "lucide-preact": "^0.563.0",
     "postcss": "^8.5.6",
     "preact": "^10.27.2",
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "^4.1.18",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.2",

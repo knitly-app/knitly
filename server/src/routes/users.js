@@ -4,28 +4,34 @@ import { ensureSession, optionalAuth } from "../middleware/auth.js";
 
 export const usersRouter = new Hono();
 
-function formatUser(user, extras = {}) {
+function formatUser(user) {
   return {
     id: String(user.id),
     username: user.username,
     displayName: user.display_name,
     avatar: user.avatar || undefined,
     bio: user.bio || undefined,
+    location: user.location || undefined,
+    website: user.website || undefined,
     createdAt: user.created_at,
-    ...extras,
   };
 }
 
-function formatPost(post, liked = false) {
+function formatPost(post, userReaction = null) {
   return {
     id: String(post.id),
     userId: String(post.user_id),
     content: post.content,
     media: post.media || [],
     createdAt: post.created_at,
-    likes: post.likes,
+    reactions: post.reactions || {},
+    userReaction,
     comments: post.comments,
-    liked,
+    author: {
+      username: post.username,
+      displayName: post.display_name,
+      avatar: post.avatar || undefined,
+    },
   };
 }
 
@@ -44,11 +50,7 @@ usersRouter.get("/:id", optionalAuth, async (c) => {
   const user = dbUtils.getUserById(userId);
   if (!user) return c.json({ error: "Not found" }, 404);
 
-  const followers = dbUtils.getFollowerCount(userId);
-  const following = dbUtils.getFollowingCount(userId);
-  const isFollowing = currentUser ? dbUtils.isFollowing(currentUser.id, userId) : false;
-
-  return c.json(formatUser(user, { followers, following, isFollowing }));
+  return c.json(formatUser(user));
 });
 
 usersRouter.patch("/:id", ensureSession, async (c) => {
@@ -117,5 +119,5 @@ usersRouter.get("/:id/posts", optionalAuth, async (c) => {
   if (!userId) return c.json({ error: "Not found" }, 404);
 
   const posts = dbUtils.getUserPosts(userId);
-  return c.json(posts.map(p => formatPost(p, currentUser ? dbUtils.isLiked(currentUser.id, p.id) : false)));
+  return c.json(posts.map(p => formatPost(p, currentUser ? dbUtils.getUserReaction(currentUser.id, p.id) : null)));
 });

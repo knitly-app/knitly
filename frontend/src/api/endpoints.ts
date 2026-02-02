@@ -6,10 +6,9 @@ export interface User {
   displayName: string
   avatar?: string
   bio?: string
+  location?: string
+  website?: string
   createdAt: string
-  followers?: number
-  following?: number
-  isFollowing?: boolean
 }
 
 export interface MediaItem {
@@ -26,6 +25,15 @@ export interface PostAuthor {
   avatar?: string
 }
 
+export type ReactionType = 'love' | 'haha' | 'hugs' | 'celebrate'
+
+export interface ReactionCounts {
+  love?: number
+  haha?: number
+  hugs?: number
+  celebrate?: number
+}
+
 export interface Post {
   id: string
   userId: string
@@ -33,9 +41,9 @@ export interface Post {
   media?: MediaItem[]
   mediaUrl?: string
   createdAt: string
-  likes: number
+  reactions: ReactionCounts
+  userReaction: ReactionType | null
   comments: number
-  liked: boolean
   author?: PostAuthor
 }
 
@@ -52,7 +60,7 @@ export interface Comment {
 
 export interface Notification {
   id: string
-  type: 'like' | 'comment' | 'follow' | 'invite'
+  type: 'reaction' | 'comment' | 'follow' | 'invite'
   fromUserId: string
   fromUsername: string
   fromDisplayName: string
@@ -92,13 +100,20 @@ export const users = {
   list: () => api.get<User[]>('/users'),
 }
 
+export interface ReactionResponse {
+  success: boolean
+  reactions: ReactionCounts
+  userReaction: ReactionType | null
+}
+
 export const posts = {
   feed: (cursor?: string) => api.get<{ posts: Post[]; nextCursor?: string }>('/feed', { params: cursor ? { cursor } : undefined }),
   get: (id: string) => api.get<Post>(`/posts/${id}`),
   create: (data: { content: string; media?: MediaItem[] }) => api.post<Post>('/posts', data),
   delete: (id: string) => api.delete(`/posts/${id}`),
-  like: (id: string) => api.post(`/posts/${id}/like`),
-  unlike: (id: string) => api.delete(`/posts/${id}/like`),
+  update: (id: string, content: string) => api.patch<Post>(`/posts/${id}`, { content }),
+  react: (id: string, type: ReactionType) => api.post<ReactionResponse>(`/posts/${id}/reactions`, { type }),
+  unreact: (id: string) => api.delete<ReactionResponse>(`/posts/${id}/reactions`),
   comments: (id: string) => api.get<Comment[]>(`/posts/${id}/comments`),
   addComment: (id: string, content: string) => api.post<Comment>(`/posts/${id}/comments`, { content }),
   deleteComment: (postId: string, commentId: string) => api.delete(`/posts/${postId}/comments/${commentId}`),

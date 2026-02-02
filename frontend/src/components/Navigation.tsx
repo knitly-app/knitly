@@ -1,22 +1,19 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import { Home, Bell, Search, User, Users, Plus, Settings } from 'lucide-preact'
+import { Bell, Home, Plus, Settings, User, Users } from 'lucide-preact'
 import { useUnreadCount } from '../hooks/useNotifications'
-
-interface NavigationProps {
-  onCreatePost?: () => void
-}
+import { useUIStore } from '../stores/ui'
 
 const navLinks = [
   { to: '/' as const, label: 'Home', icon: Home },
   { to: '/notifications' as const, label: 'Activity', icon: Bell, badge: true },
-  { to: '/search' as const, label: 'Explore', icon: Search },
   { to: '/members' as const, label: 'Members', icon: Users },
   { to: '/profile/$id' as const, params: { id: 'me' }, label: 'Profile', icon: User },
 ]
 
-export function Navigation({ onCreatePost }: NavigationProps) {
+export function Navigation() {
   const location = useLocation()
   const unreadCount = useUnreadCount()
+  const openCreatePost = useUIStore((s) => s.openCreatePost)
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/'
@@ -40,15 +37,15 @@ export function Navigation({ onCreatePost }: NavigationProps) {
 
         <div className="relative -mt-12">
           <button
-            onClick={onCreatePost}
+            onClick={openCreatePost}
             className="w-14 h-14 bg-accent-500 rounded-full shadow-xl flex items-center justify-center transition-transform transform active:scale-90 hover:bg-accent-600"
           >
             <Plus size={32} className="text-white" />
           </button>
         </div>
 
-        <Link to="/search" className={`p-2 transition-colors ${isActive('/search') ? 'text-accent-500' : 'text-gray-400'}`}>
-          <Search size={24} strokeWidth={isActive('/search') ? 2.5 : 2} />
+        <Link to="/members" className={`p-2 transition-colors ${isActive('/members') ? 'text-accent-500' : 'text-gray-400'}`}>
+          <Users size={24} strokeWidth={isActive('/members') ? 2.5 : 2} />
         </Link>
 
         <Link to="/profile/$id" params={{ id: 'me' }} className={`p-2 transition-colors ${isActive('/profile') ? 'text-accent-500' : 'text-gray-400'}`}>
@@ -91,7 +88,7 @@ export function Navigation({ onCreatePost }: NavigationProps) {
 
         <div className="mt-10 w-full">
           <button
-            onClick={onCreatePost}
+            onClick={openCreatePost}
             className="w-full flex items-center justify-center lg:justify-start space-x-4 p-3 bg-accent-500 text-white rounded-2xl transition-all shadow-sm hover:bg-accent-600"
           >
             <Plus size={24} />
@@ -108,15 +105,6 @@ export function Navigation({ onCreatePost }: NavigationProps) {
             <span className="hidden lg:inline font-semibold text-gray-700">Settings</span>
           </Link>
 
-          <div className="hidden lg:block bg-gray-50 rounded-2xl p-4 border border-gray-100">
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full" />
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Small Network</span>
-            </div>
-            <p className="text-xs text-gray-500 font-medium leading-relaxed">
-              Private network for your 100 closest people.
-            </p>
-          </div>
         </div>
       </aside>
     </>

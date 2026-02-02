@@ -4,12 +4,9 @@ import { getAvatarUrl } from '../utils/avatar'
 
 interface ProfileCardProps {
   user: User
-  showFollow?: boolean
-  isFollowing?: boolean
-  onFollow?: () => void
 }
 
-export function ProfileCard({ user, showFollow = false, isFollowing = false, onFollow }: ProfileCardProps) {
+export function ProfileCard({ user }: ProfileCardProps) {
   return (
     <div className="bg-white rounded-4xl p-6 shadow-sm border border-gray-50">
       <div className="flex items-center space-x-4">
@@ -30,18 +27,6 @@ export function ProfileCard({ user, showFollow = false, isFollowing = false, onF
           </Link>
           <p className="text-gray-400 text-sm truncate">@{user.username}</p>
         </div>
-        {showFollow && (
-          <button
-            onClick={onFollow}
-            className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
-              isFollowing
-                ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                : 'bg-accent-500 text-white hover:bg-accent-600 shadow-lg shadow-accent-200'
-            }`}
-          >
-            {isFollowing ? 'Following' : 'Follow'}
-          </button>
-        )}
       </div>
       {user.bio && (
         <p className="mt-4 text-gray-600 text-sm leading-relaxed">{user.bio}</p>

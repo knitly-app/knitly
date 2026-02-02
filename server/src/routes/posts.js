@@ -4,16 +4,23 @@ import { ensureSession } from "../middleware/auth.js";
 
 export const postsRouter = new Hono();
 
-function formatPost(post, liked = false) {
+const VALID_REACTIONS = ["love", "haha", "hugs", "celebrate"];
+
+function formatPost(post, userReaction = null) {
   return {
     id: String(post.id),
     userId: String(post.user_id),
     content: post.content,
     media: post.media || [],
     createdAt: post.created_at,
-    likes: post.likes,
+    reactions: post.reactions || {},
+    userReaction,
     comments: post.comments,
-    liked,
+    author: {
+      username: post.username,
+      displayName: post.display_name,
+      avatar: post.avatar || undefined,
+    },
   };
 }
 
@@ -24,8 +31,8 @@ postsRouter.get("/:id", ensureSession, async (c) => {
   const post = dbUtils.getPost(postId);
   if (!post) return c.json({ error: "Not found" }, 404);
 
-  const liked = currentUser ? dbUtils.isLiked(currentUser.id, postId) : false;
-  return c.json(formatPost(post, liked));
+  const userReaction = currentUser ? dbUtils.getUserReaction(currentUser.id, postId) : null;
+  return c.json(formatPost(post, userReaction));
 });
 
 postsRouter.post("/", ensureSession, async (c) => {
@@ -60,8 +67,30 @@ postsRouter.post("/", ensureSession, async (c) => {
   }
 
   const post = dbUtils.createPost(currentUser.id, content, media);
-  const liked = dbUtils.isLiked(currentUser.id, post.id);
-  return c.json(formatPost(post, liked), 201);
+  const userReaction = dbUtils.getUserReaction(currentUser.id, post.id);
+  return c.json(formatPost(post, userReaction), 201);
+});
+
+postsRouter.patch("/:id", ensureSession, async (c) => {
+  const postId = parseInt(c.req.param("id"));
+  const currentUser = c.get("user");
+  const body = await c.req.json();
+
+  const post = dbUtils.getPost(postId);
+  if (!post) return c.json({ error: "Not found" }, 404);
+
+  if (post.user_id !== currentUser.id) {
+    return c.json({ error: "Forbidden" }, 403);
+  }
+
+  const content = typeof body.content === "string" ? body.content.trim() : "";
+  if (!content && (!post.media || post.media.length === 0)) {
+    return c.json({ error: "Content required" }, 400);
+  }
+
+  const updated = dbUtils.updatePost(postId, content);
+  const userReaction = dbUtils.getUserReaction(currentUser.id, postId);
+  return c.json(formatPost(updated, userReaction));
 });
 
 postsRouter.delete("/:id", ensureSession, async (c) => {
@@ -79,28 +108,45 @@ postsRouter.delete("/:id", ensureSession, async (c) => {
   return c.json({ success: true });
 });
 
-postsRouter.post("/:id/like", ensureSession, async (c) => {
+// Add or change reaction
+postsRouter.post("/:id/reactions", ensureSession, async (c) => {
   const postId = parseInt(c.req.param("id"));
   const currentUser = c.get("user");
+  const body = await c.req.json();
+
+  const reactionType = body.type;
+  if (!VALID_REACTIONS.includes(reactionType)) {
+    return c.json({ error: "Invalid reaction type" }, 400);
+  }
 
   const post = dbUtils.getPost(postId);
   if (!post) return c.json({ error: "Not found" }, 404);
 
-  dbUtils.likePost(currentUser.id, postId);
+  dbUtils.addReaction(currentUser.id, postId, reactionType);
 
   if (post.user_id !== currentUser.id) {
-    dbUtils.createNotification(post.user_id, "like", currentUser.id, postId);
+    dbUtils.createNotification(post.user_id, "reaction", currentUser.id, postId);
   }
 
-  return c.json({ success: true });
+  return c.json({
+    success: true,
+    reactions: dbUtils.getReactionCounts(postId),
+    userReaction: reactionType,
+  });
 });
 
-postsRouter.delete("/:id/like", ensureSession, async (c) => {
+// Remove reaction
+postsRouter.delete("/:id/reactions", ensureSession, async (c) => {
   const postId = parseInt(c.req.param("id"));
   const currentUser = c.get("user");
 
-  dbUtils.unlikePost(currentUser.id, postId);
-  return c.json({ success: true });
+  dbUtils.removeReaction(currentUser.id, postId);
+
+  return c.json({
+    success: true,
+    reactions: dbUtils.getReactionCounts(postId),
+    userReaction: null,
+  });
 });
 
 postsRouter.get("/:id/comments", ensureSession, async (c) => {

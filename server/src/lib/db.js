@@ -22,6 +22,8 @@ db.exec(`
     password_hash TEXT,
     bio TEXT DEFAULT '',
     avatar TEXT DEFAULT '',
+    location TEXT DEFAULT '',
+    website TEXT DEFAULT '',
     role TEXT NOT NULL DEFAULT 'member',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
@@ -41,9 +43,10 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
-  CREATE TABLE IF NOT EXISTS likes (
+  CREATE TABLE IF NOT EXISTS reactions (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    reaction_type TEXT NOT NULL DEFAULT 'love',
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (user_id, post_id)
   );
@@ -100,7 +103,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
   CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id);
   CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at);
-  CREATE INDEX IF NOT EXISTS idx_likes_post_id ON likes(post_id);
+  CREATE INDEX IF NOT EXISTS idx_reactions_post_id ON reactions(post_id);
   CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id);
   CREATE INDEX IF NOT EXISTS idx_post_media_post_id ON post_media(post_id);
   CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows(follower_id);
@@ -108,27 +111,35 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
 `);
 
+// Migrations for existing databases
+try {
+  db.exec(`ALTER TABLE users ADD COLUMN location TEXT DEFAULT ''`);
+} catch {}
+try {
+  db.exec(`ALTER TABLE users ADD COLUMN website TEXT DEFAULT ''`);
+} catch {}
+
 const SESSION_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const dbUtils = {
   // USER
   getUserById(id) {
     return db.prepare(`
-      SELECT id, email, username, display_name, bio, avatar, role, created_at
+      SELECT id, email, username, display_name, bio, avatar, location, website, role, created_at
       FROM users WHERE id = ?
     `).get(id) || null;
   },
 
   getUserByEmail(email) {
     return db.prepare(`
-      SELECT id, email, username, display_name, bio, avatar, password_hash, role, created_at
+      SELECT id, email, username, display_name, bio, avatar, location, website, password_hash, role, created_at
       FROM users WHERE email = ?
     `).get(email) || null;
   },
 
   getUserByUsername(username) {
     return db.prepare(`
-      SELECT id, email, username, display_name, bio, avatar, password_hash, role, created_at
+      SELECT id, email, username, display_name, bio, avatar, location, website, password_hash, role, created_at
       FROM users WHERE username = ?
     `).get(username) || null;
   },
@@ -161,6 +172,14 @@ export const dbUtils = {
       fields.push("avatar = ?");
       values.push(updates.avatar);
     }
+    if (updates.location !== undefined) {
+      fields.push("location = ?");
+      values.push(updates.location);
+    }
+    if (updates.website !== undefined) {
+      fields.push("website = ?");
+      values.push(updates.website);
+    }
 
     if (fields.length === 0) return;
 
@@ -170,7 +189,7 @@ export const dbUtils = {
 
   getAllUsers() {
     return db.prepare(`
-      SELECT id, email, username, display_name, bio, avatar, role, created_at
+      SELECT id, email, username, display_name, bio, avatar, location, website, role, created_at
       FROM users ORDER BY created_at DESC
     `).all();
   },
@@ -207,6 +226,8 @@ export const dbUtils = {
         u.display_name,
         u.bio,
         u.avatar,
+        u.location,
+        u.website,
         u.role
       FROM sessions s
       JOIN users u ON s.user_id = u.id
@@ -234,7 +255,6 @@ export const dbUtils = {
       SELECT
         p.id, p.user_id, p.content, p.media_url, p.created_at,
         u.username, u.display_name, u.avatar,
-        (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as likes,
         (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments
       FROM posts p
       JOIN users u ON p.user_id = u.id
@@ -248,34 +268,38 @@ export const dbUtils = {
     return {
       ...post,
       media: media.length ? media : fallback,
+      reactions: this.getReactionCounts(post.id),
     };
   },
 
-  getFeed(userId, limit = 50, cursor = null) {
+  getFeed(limit = 50, cursor = null) {
     let query = `
       SELECT
         p.id, p.user_id, p.content, p.media_url, p.created_at,
         u.username, u.display_name, u.avatar,
-        (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as likes,
         (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments
       FROM posts p
       JOIN users u ON p.user_id = u.id
-      WHERE (p.user_id = ? OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?))
     `;
 
     if (cursor) {
-      query += ` AND p.created_at < ? ORDER BY p.created_at DESC LIMIT ?`;
-      const rows = db.prepare(query).all(userId, userId, cursor, limit + 1);
-      return this.attachMedia(rows);
+      query += ` WHERE p.created_at < ? ORDER BY p.created_at DESC LIMIT ?`;
+      const rows = db.prepare(query).all(cursor, limit + 1);
+      return this.attachMediaAndReactions(rows);
     }
 
     query += ` ORDER BY p.created_at DESC LIMIT ?`;
-    const rows = db.prepare(query).all(userId, userId, limit + 1);
-    return this.attachMedia(rows);
+    const rows = db.prepare(query).all(limit + 1);
+    return this.attachMediaAndReactions(rows);
   },
 
   deletePost(id) {
     db.prepare("DELETE FROM posts WHERE id = ?").run(id);
+  },
+
+  updatePost(id, content) {
+    db.prepare("UPDATE posts SET content = ? WHERE id = ?").run(content, id);
+    return this.getPost(id);
   },
 
   getUserPosts(userId, limit = 50) {
@@ -283,7 +307,6 @@ export const dbUtils = {
       SELECT
         p.id, p.user_id, p.content, p.media_url, p.created_at,
         u.username, u.display_name, u.avatar,
-        (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as likes,
         (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments
       FROM posts p
       JOIN users u ON p.user_id = u.id
@@ -291,7 +314,7 @@ export const dbUtils = {
       ORDER BY p.created_at DESC
       LIMIT ?
     `).all(userId, limit);
-    return this.attachMedia(rows);
+    return this.attachMediaAndReactions(rows);
   },
 
   addPostMedia(postId, media = []) {
@@ -359,17 +382,80 @@ export const dbUtils = {
     });
   },
 
-  // LIKE
-  likePost(userId, postId) {
-    db.prepare(`INSERT OR IGNORE INTO likes (user_id, post_id) VALUES (?, ?)`).run(userId, postId);
+  attachMediaAndReactions(posts = []) {
+    if (!posts.length) return posts;
+    const ids = posts.map((p) => p.id);
+    const mediaMap = this.getPostMediaMap(ids);
+    const reactionsMap = this.getReactionCountsMap(ids);
+
+    return posts.map((post) => {
+      const media = mediaMap.get(post.id) || [];
+      const fallback = post.media_url ? [{ url: post.media_url, type: "image", sortOrder: 0 }] : [];
+      return {
+        ...post,
+        media: media.length ? media : fallback,
+        reactions: reactionsMap.get(post.id) || {},
+      };
+    });
   },
 
-  unlikePost(userId, postId) {
-    db.prepare("DELETE FROM likes WHERE user_id = ? AND post_id = ?").run(userId, postId);
+  // REACTIONS
+  addReaction(userId, postId, reactionType) {
+    db.prepare(`
+      INSERT INTO reactions (user_id, post_id, reaction_type) VALUES (?, ?, ?)
+      ON CONFLICT(user_id, post_id) DO UPDATE SET reaction_type = excluded.reaction_type
+    `).run(userId, postId, reactionType);
   },
 
-  isLiked(userId, postId) {
-    return !!db.prepare(`SELECT 1 FROM likes WHERE user_id = ? AND post_id = ?`).get(userId, postId);
+  removeReaction(userId, postId) {
+    db.prepare("DELETE FROM reactions WHERE user_id = ? AND post_id = ?").run(userId, postId);
+  },
+
+  getUserReaction(userId, postId) {
+    const row = db.prepare("SELECT reaction_type FROM reactions WHERE user_id = ? AND post_id = ?").get(userId, postId);
+    return row ? row.reaction_type : null;
+  },
+
+  getReactionCounts(postId) {
+    const rows = db.prepare(`
+      SELECT reaction_type, COUNT(*) as count
+      FROM reactions WHERE post_id = ?
+      GROUP BY reaction_type
+    `).all(postId);
+    return Object.fromEntries(rows.map(r => [r.reaction_type, r.count]));
+  },
+
+  getReactionCountsMap(postIds = []) {
+    if (!postIds.length) return new Map();
+    const placeholders = postIds.map(() => "?").join(", ");
+    const rows = db.prepare(`
+      SELECT post_id, reaction_type, COUNT(*) as count
+      FROM reactions
+      WHERE post_id IN (${placeholders})
+      GROUP BY post_id, reaction_type
+    `).all(...postIds);
+
+    const map = new Map();
+    postIds.forEach(id => map.set(id, {}));
+    rows.forEach(row => {
+      if (!map.has(row.post_id)) map.set(row.post_id, {});
+      map.get(row.post_id)[row.reaction_type] = row.count;
+    });
+    return map;
+  },
+
+  getUserReactionsMap(userId, postIds = []) {
+    if (!postIds.length) return new Map();
+    const placeholders = postIds.map(() => "?").join(", ");
+    const rows = db.prepare(`
+      SELECT post_id, reaction_type
+      FROM reactions
+      WHERE user_id = ? AND post_id IN (${placeholders})
+    `).all(userId, ...postIds);
+
+    const map = new Map();
+    rows.forEach(row => map.set(row.post_id, row.reaction_type));
+    return map;
   },
 
   // COMMENT
@@ -509,7 +595,7 @@ export const dbUtils = {
   searchUsers(query, limit = 20) {
     const pattern = `%${query}%`;
     return db.prepare(`
-      SELECT id, email, username, display_name, bio, avatar
+      SELECT id, email, username, display_name, bio, avatar, location, website
       FROM users
       WHERE username LIKE ? OR display_name LIKE ? OR email LIKE ?
       LIMIT ?
@@ -522,7 +608,6 @@ export const dbUtils = {
       SELECT
         p.id, p.user_id, p.content, p.media_url, p.created_at,
         u.username, u.display_name, u.avatar,
-        (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as likes,
         (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments
       FROM posts p
       JOIN users u ON p.user_id = u.id
@@ -530,7 +615,7 @@ export const dbUtils = {
       ORDER BY p.created_at DESC
       LIMIT ?
     `).all(pattern, limit);
-    return this.attachMedia(rows);
+    return this.attachMediaAndReactions(rows);
   },
 
   // STATS

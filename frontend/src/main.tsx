@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-router'
 import './index.css'
 import { App } from './App'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import { ConfirmProvider } from './components/ConfirmModal'
 import {
@@ -76,6 +77,12 @@ const postRoute = createRoute({
   component: PostRoute,
 })
 
+const momentRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/m/$id',
+  component: PostRoute,
+})
+
 const searchRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/search',
@@ -113,6 +120,7 @@ const routeTree = rootRoute.addChildren([
   inviteRoute,
   profileRoute,
   postRoute,
+  momentRoute,
   searchRoute,
   notificationsRoute,
   membersRoute,
@@ -129,12 +137,14 @@ declare module '@tanstack/react-router' {
 }
 
 render(
-  <QueryClientProvider client={queryClient}>
-    <ToastProvider>
-      <ConfirmProvider>
-        <RouterProvider router={router} />
-      </ConfirmProvider>
-    </ToastProvider>
-  </QueryClientProvider>,
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <ToastProvider>
+        <ConfirmProvider>
+          <RouterProvider router={router} />
+        </ConfirmProvider>
+      </ToastProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>,
   document.getElementById('app')!
 )

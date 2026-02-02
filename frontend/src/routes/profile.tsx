@@ -1,20 +1,20 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams, Link } from '@tanstack/react-router'
-import { MapPin, Calendar, Link as LinkIcon, Settings } from 'lucide-preact'
+import { MapPin, Link as LinkIcon, Settings } from 'lucide-preact'
 import { users, posts as postsApi } from '../api/endpoints'
 import { useAuth } from '../hooks/useAuth'
-import { useFollow } from '../hooks/useFollow'
 import { PostCard } from '../components/PostCard'
 import { Spinner } from '../components/Spinner'
-import { useLikePost, useDeletePost } from '../hooks/usePosts'
+import { useReaction, useDeletePost, useEditPost } from '../hooks/usePosts'
 import { useToast } from '../components/Toast'
 import { getAvatarUrl } from '../utils/avatar'
 
 export function ProfileRoute() {
   const params = useParams({ from: '/profile/$id' })
   const { user: currentUser } = useAuth()
-  const likeMutation = useLikePost()
+  const reactionMutation = useReaction()
   const deletePost = useDeletePost()
+  const editPost = useEditPost()
   const toast = useToast()
 
   const handleDelete = async (id: string) => {
@@ -26,6 +26,15 @@ export function ProfileRoute() {
     }
   }
 
+  const handleEdit = async (id: string, content: string) => {
+    try {
+      await editPost.mutateAsync({ id, content })
+      toast.success('Post updated')
+    } catch {
+      toast.error('Failed to update post')
+    }
+  }
+
   const userId = params.id === 'me' ? currentUser?.id : params.id
   const isOwnProfile = params.id === 'me' || params.id === currentUser?.id
 
@@ -34,10 +43,6 @@ export function ProfileRoute() {
     queryFn: () => users.get(userId!),
     enabled: !!userId,
   })
-
-  const { toggle: toggleFollow, isPending: followPending } = useFollow(userId)
-
-  const handleFollowClick = () => toggleFollow(!!user?.isFollowing)
 
   const { data: posts, isLoading: postsLoading } = useQuery({
     queryKey: ['users', userId, 'posts'],
@@ -73,7 +78,7 @@ export function ProfileRoute() {
               alt={user.displayName}
               className="w-24 h-24 rounded-full border-4 border-white shadow-lg"
             />
-            {isOwnProfile ? (
+            {isOwnProfile && (
               <Link
                 to="/settings"
                 className="px-6 py-2 bg-white rounded-full text-sm font-bold text-gray-600 shadow-sm border border-gray-200 hover:border-gray-300 transition-colors flex items-center space-x-2"
@@ -81,18 +86,6 @@ export function ProfileRoute() {
                 <Settings size={16} />
                 <span>Edit Profile</span>
               </Link>
-            ) : (
-              <button
-                onClick={handleFollowClick}
-                disabled={followPending}
-                className={`px-6 py-2 rounded-full text-sm font-bold transition-colors disabled:opacity-50 ${
-                  user?.isFollowing
-                    ? 'bg-white text-gray-600 border border-gray-200 hover:border-red-300 hover:text-red-500'
-                    : 'bg-accent-500 text-white shadow-lg shadow-accent-200 hover:bg-accent-600'
-                }`}
-              >
-                {user?.isFollowing ? 'Following' : 'Follow'}
-              </button>
             )}
           </div>
 
@@ -105,33 +98,29 @@ export function ProfileRoute() {
             <p className="text-gray-600 mb-4 leading-relaxed">{user.bio}</p>
           )}
 
-          <div className="flex flex-wrap gap-4 text-sm text-gray-400">
-            <div className="flex items-center space-x-1">
-              <MapPin size={14} />
-              <span>Somewhere</span>
+          {(user.location || user.website) && (
+            <div className="flex flex-wrap gap-4 text-sm text-gray-400">
+              {user.location && (
+                <div className="flex items-center space-x-1">
+                  <MapPin size={14} />
+                  <span>{user.location}</span>
+                </div>
+              )}
+              {user.website && (
+                <div className="flex items-center space-x-1">
+                  <LinkIcon size={14} />
+                  <a href={user.website.startsWith('http') ? user.website : `https://${user.website}`} target="_blank" rel="noopener noreferrer" className="text-accent-500 hover:underline">
+                    {user.website.replace(/^https?:\/\//, '')}
+                  </a>
+                </div>
+              )}
             </div>
-            <div className="flex items-center space-x-1">
-              <LinkIcon size={14} />
-              <a href="#" className="text-accent-500 hover:underline">example.com</a>
-            </div>
-            <div className="flex items-center space-x-1">
-              <Calendar size={14} />
-              <span>Joined {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
-            </div>
-          </div>
+          )}
 
           <div className="flex gap-6 mt-6 pt-6 border-t border-gray-100">
             <div>
               <span className="font-bold text-gray-900">{posts?.length ?? 0}</span>
-              <span className="text-gray-400 ml-1">posts</span>
-            </div>
-            <div className="cursor-pointer hover:underline">
-              <span className="font-bold text-gray-900">{user?.following ?? 0}</span>
-              <span className="text-gray-400 ml-1">following</span>
-            </div>
-            <div className="cursor-pointer hover:underline">
-              <span className="font-bold text-gray-900">{user?.followers ?? 0}</span>
-              <span className="text-gray-400 ml-1">followers</span>
+              <span className="text-gray-400 ml-1">moments</span>
             </div>
           </div>
         </div>
@@ -153,9 +142,12 @@ export function ProfileRoute() {
               post={post}
               author={user}
               currentUserId={currentUser?.id}
-              onLike={(id, liked) => likeMutation.mutate({ id, liked })}
+              onReact={(id, type, currentReaction) => reactionMutation.mutate({ id, type, currentReaction })}
               onDelete={(id) => {
                 void handleDelete(id)
+              }}
+              onEdit={(id, content) => {
+                void handleEdit(id, content)
               }}
             />
           ))

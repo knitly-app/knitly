@@ -20,7 +20,7 @@ const app = createApp();
 function resetDb() {
   db.exec("DELETE FROM notifications");
   db.exec("DELETE FROM comments");
-  db.exec("DELETE FROM likes");
+  db.exec("DELETE FROM reactions");
   db.exec("DELETE FROM post_media");
   db.exec("DELETE FROM follows");
   db.exec("DELETE FROM posts");
@@ -181,24 +181,25 @@ describe("P0 unit", () => {
 });
 
 describe("P1 unit", () => {
-  test("like/unlike idempotent", async () => {
+  test("reactions add/remove", async () => {
     const passwordHash = await hashPassword("password123");
-    const userId = dbUtils.createUser("like@test.com", "like", "Like", passwordHash);
+    const userId = dbUtils.createUser("react@test.com", "react", "React", passwordHash);
     const post = dbUtils.createPost(userId, "Hello");
 
-    dbUtils.likePost(userId, post.id);
-    dbUtils.likePost(userId, post.id);
+    dbUtils.addReaction(userId, post.id, "love");
+    const reaction = dbUtils.getUserReaction(userId, post.id);
+    expect(reaction).toBe("love");
 
-    const likeCount = db.prepare("SELECT COUNT(*) as count FROM likes WHERE user_id = ? AND post_id = ?")
-      .get(userId, post.id).count;
-    expect(likeCount).toBe(1);
+    dbUtils.addReaction(userId, post.id, "haha");
+    const changed = dbUtils.getUserReaction(userId, post.id);
+    expect(changed).toBe("haha");
 
-    dbUtils.unlikePost(userId, post.id);
-    dbUtils.unlikePost(userId, post.id);
+    const counts = dbUtils.getReactionCounts(post.id);
+    expect(counts.haha).toBe(1);
 
-    const afterCount = db.prepare("SELECT COUNT(*) as count FROM likes WHERE user_id = ? AND post_id = ?")
-      .get(userId, post.id).count;
-    expect(afterCount).toBe(0);
+    dbUtils.removeReaction(userId, post.id);
+    const removed = dbUtils.getUserReaction(userId, post.id);
+    expect(removed).toBeNull();
   });
 
   test("comments crud", async () => {
@@ -354,20 +355,52 @@ describe("P0 integration", () => {
     const getBody = await getRes.json();
     expect(getBody.content).toBe("Hello world");
 
-    const likeRes = await jsonReq(`/api/posts/${postBody.id}/like`, { method: "POST", cookie });
-    expect(likeRes.status).toBe(200);
+    const reactRes = await jsonReq(`/api/posts/${postBody.id}/reactions`, { method: "POST", cookie, body: { type: "love" } });
+    expect(reactRes.status).toBe(200);
 
     const feedRes = await jsonReq("/api/feed", { cookie });
     expect(feedRes.status).toBe(200);
     const feedBody = await feedRes.json();
     expect(feedBody.posts.length).toBe(1);
-    expect(feedBody.posts[0].liked).toBe(true);
+    expect(feedBody.posts[0].userReaction).toBe("love");
     expect(feedBody.nextCursor).toBeUndefined();
 
     const delRes = await jsonReq(`/api/posts/${postBody.id}`, { method: "DELETE", cookie });
     expect(delRes.status).toBe(200);
     const delBody = await delRes.json();
     expect(delBody.success).toBe(true);
+  });
+
+  test("edit post", async () => {
+    const passwordHash = await hashPassword("password123");
+    const userId = dbUtils.createUser("editor@test.com", "editor", "Editor", passwordHash);
+    const otherUserId = dbUtils.createUser("other@test.com", "other", "Other", passwordHash);
+    const { sessionId: cookie } = dbUtils.createSession(userId);
+    const { sessionId: otherCookie } = dbUtils.createSession(otherUserId);
+
+    const postRes = await jsonReq("/api/posts", {
+      method: "POST",
+      cookie,
+      body: { content: "Original content" },
+    });
+    expect(postRes.status).toBe(201);
+    const postBody = await postRes.json();
+
+    const editRes = await jsonReq(`/api/posts/${postBody.id}`, {
+      method: "PATCH",
+      cookie,
+      body: { content: "Edited content" },
+    });
+    expect(editRes.status).toBe(200);
+    const editBody = await editRes.json();
+    expect(editBody.content).toBe("Edited content");
+
+    const forbiddenRes = await jsonReq(`/api/posts/${postBody.id}`, {
+      method: "PATCH",
+      cookie: otherCookie,
+      body: { content: "Hacked!" },
+    });
+    expect(forbiddenRes.status).toBe(403);
   });
 });
 
@@ -422,44 +455,44 @@ describe("P1 integration", () => {
     expect(unfollowRes.status).toBe(200);
   });
 
-  test("user posts liked flag", async () => {
+  test("user posts reaction flag", async () => {
     const { userBId, sessionA } = await seedTwoUsers();
     const post = dbUtils.createPost(userBId, "Hello");
 
-    const likeRes = await jsonReq(`/api/posts/${post.id}/like`, { method: "POST", cookie: sessionA });
-    expect(likeRes.status).toBe(200);
+    const reactRes = await jsonReq(`/api/posts/${post.id}/reactions`, { method: "POST", cookie: sessionA, body: { type: "love" } });
+    expect(reactRes.status).toBe(200);
 
     const postsRes = await jsonReq(`/api/users/${userBId}/posts`, { cookie: sessionA });
     const posts = await postsRes.json();
-    expect(posts[0].liked).toBe(true);
+    expect(posts[0].userReaction).toBe("love");
 
     const postsAnon = await jsonReq(`/api/users/${userBId}/posts`);
     const postsAnonBody = await postsAnon.json();
-    expect(postsAnonBody[0].liked).toBe(false);
+    expect(postsAnonBody[0].userReaction).toBeNull();
   });
 
-  test("like/unlike and notifications", async () => {
+  test("react/unreact and notifications", async () => {
     const { userAId, sessionA, sessionB } = await seedTwoUsers();
     const post = dbUtils.createPost(userAId, "Hello");
 
-    const likeRes = await jsonReq(`/api/posts/${post.id}/like`, { method: "POST", cookie: sessionB });
-    expect(likeRes.status).toBe(200);
+    const reactRes = await jsonReq(`/api/posts/${post.id}/reactions`, { method: "POST", cookie: sessionB, body: { type: "love" } });
+    expect(reactRes.status).toBe(200);
 
     const getRes = await jsonReq(`/api/posts/${post.id}`, { cookie: sessionB });
     const getBody = await getRes.json();
-    expect(getBody.liked).toBe(true);
+    expect(getBody.userReaction).toBe("love");
 
-    const unlikeRes = await jsonReq(`/api/posts/${post.id}/like`, { method: "DELETE", cookie: sessionB });
-    expect(unlikeRes.status).toBe(200);
+    const unreactRes = await jsonReq(`/api/posts/${post.id}/reactions`, { method: "DELETE", cookie: sessionB });
+    expect(unreactRes.status).toBe(200);
 
     const getAfter = await jsonReq(`/api/posts/${post.id}`, { cookie: sessionB });
     const getAfterBody = await getAfter.json();
-    expect(getAfterBody.liked).toBe(false);
+    expect(getAfterBody.userReaction).toBeNull();
 
     const notificationsRes = await jsonReq("/api/notifications", { cookie: sessionA });
     const notifications = await notificationsRes.json();
     expect(notifications.length).toBe(1);
-    expect(notifications[0].type).toBe("like");
+    expect(notifications[0].type).toBe("reaction");
   });
 
   test("comments create/delete and notifications", async () => {
@@ -500,7 +533,7 @@ describe("P1 integration", () => {
     const { userAId, sessionA, sessionB } = await seedTwoUsers();
     const post = dbUtils.createPost(userAId, "Hello");
 
-    await jsonReq(`/api/posts/${post.id}/like`, { method: "POST", cookie: sessionB });
+    await jsonReq(`/api/posts/${post.id}/reactions`, { method: "POST", cookie: sessionB, body: { type: "love" } });
     await jsonReq(`/api/posts/${post.id}/comments`, {
       method: "POST",
       cookie: sessionB,
@@ -543,7 +576,7 @@ describe("P1 integration", () => {
     const postsRes = await jsonReq("/api/search/posts?q=Hello", { cookie: sessionA });
     const posts = await postsRes.json();
     expect(posts.length).toBe(1);
-    expect(posts[0].liked).toBe(false);
+    expect(posts[0].userReaction).toBeNull();
   });
 
   test("invites flow", async () => {

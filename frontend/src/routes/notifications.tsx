@@ -19,12 +19,11 @@ function formatTimeAgo(dateString: string): string {
 
 function getNotificationText(type: string): string {
   switch (type) {
+    case 'reaction':
     case 'like':
-      return 'loved your moment'
+      return 'reacted to your moment'
     case 'comment':
       return 'commented on your post'
-    case 'follow':
-      return 'started following you'
     case 'invite':
       return 'joined via your invite'
     default:

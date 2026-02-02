@@ -2,12 +2,13 @@ import { PostCard } from '../components/PostCard'
 import { Spinner } from '../components/Spinner'
 import { useToast } from '../components/Toast'
 import { useAuth } from '../hooks/useAuth'
-import { useDeletePost, useFeed, useLikePost } from '../hooks/usePosts'
+import { useDeletePost, useEditPost, useFeed, useReaction } from '../hooks/usePosts'
 
 export function FeedRoute() {
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useFeed()
-  const likeMutation = useLikePost()
+  const reactionMutation = useReaction()
   const deletePost = useDeletePost()
+  const editPost = useEditPost()
   const { user } = useAuth()
   const toast = useToast()
 
@@ -17,6 +18,15 @@ export function FeedRoute() {
       toast.success('Post deleted')
     } catch {
       toast.error('Failed to delete post')
+    }
+  }
+
+  const handleEdit = async (id: string, content: string) => {
+    try {
+      await editPost.mutateAsync({ id, content })
+      toast.success('Post updated')
+    } catch {
+      toast.error('Failed to update post')
     }
   }
 
@@ -51,9 +61,12 @@ export function FeedRoute() {
               key={post.id}
               post={post}
               currentUserId={user?.id}
-              onLike={(id, liked) => likeMutation.mutate({ id, liked })}
+              onReact={(id, type, currentReaction) => reactionMutation.mutate({ id, type, currentReaction })}
               onDelete={(id) => {
                 void handleDelete(id)
+              }}
+              onEdit={(id, content) => {
+                void handleEdit(id, content)
               }}
             />
           ))
