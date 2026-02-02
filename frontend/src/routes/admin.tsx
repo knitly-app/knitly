@@ -1,8 +1,8 @@
-import { useState } from 'preact/hooks'
+import { useState, useMemo } from 'preact/hooks'
 import { useDeferredValue } from 'preact/compat'
 import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import { Link, useSearch } from '@tanstack/react-router'
-import { ArrowLeft, Users, FileText, Mail, TrendingUp, Copy, Ban, Plus, Search, Trash2 } from 'lucide-preact'
+import { ArrowLeft, Users, FileText, Mail, TrendingUp, Copy, Ban, Plus, Search, Trash2, ShieldOff } from 'lucide-preact'
 import { admin, invites as invitesApi } from '../api/endpoints'
 import { Spinner } from '../components/Spinner'
 import { getAvatarUrl } from '../utils/avatar'
@@ -10,6 +10,7 @@ import { useToast } from '../components/Toast'
 import { useConfirm } from '../components/ConfirmModal'
 import { useAuth } from '../hooks/useAuth'
 import { formatTimeAgo } from '../utils/time'
+import { getInviteStatus } from '../utils/invites'
 
 export function AdminRoute() {
   const queryClient = useQueryClient()
@@ -17,12 +18,13 @@ export function AdminRoute() {
   const confirm = useConfirm()
   const { user: currentUser } = useAuth()
   const search = useSearch({ from: '/admin' })
-  const currentTab = search.tab === 'moderation' ? 'moderation' : 'overview'
+  const currentTab = search.tab === 'moderation' ? 'moderation' : search.tab === 'audit' ? 'audit' : 'overview'
   const [inviteFilter, setInviteFilter] = useState<'all' | 'active' | 'used' | 'revoked' | 'expired'>('active')
   const [inviteQuery, setInviteQuery] = useState('')
   const [memberFilter, setMemberFilter] = useState<'all' | 'active' | 'disabled' | 'moderators'>('active')
   const [memberQuery, setMemberQuery] = useState('')
   const [moderationQuery, setModerationQuery] = useState('')
+  const [transferQuery, setTransferQuery] = useState('')
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['admin', 'stats'],
@@ -57,6 +59,20 @@ export function AdminRoute() {
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     enabled: currentTab === 'moderation',
+  })
+
+  const {
+    data: auditPages,
+    isLoading: auditLoading,
+    hasNextPage: auditHasNextPage,
+    fetchNextPage: fetchMoreAudit,
+    isFetchingNextPage: isFetchingMoreAudit,
+  } = useInfiniteQuery({
+    queryKey: ['admin', 'audit'],
+    queryFn: ({ pageParam }) => admin.auditLog({ cursor: pageParam }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    enabled: currentTab === 'audit',
   })
 
   const createInvite = useMutation({
@@ -155,6 +171,29 @@ export function AdminRoute() {
     },
   })
 
+  const transferOwnership = useMutation({
+    mutationFn: admin.transferOwnership,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+      void queryClient.invalidateQueries({ queryKey: ['auth', 'me'] })
+      toast.success('Ownership transferred')
+    },
+    onError: () => {
+      toast.error('Failed to transfer ownership')
+    },
+  })
+
+  const revokeUserSessions = useMutation({
+    mutationFn: admin.revokeUserSessions,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'audit'] })
+      toast.success('Sessions revoked')
+    },
+    onError: () => {
+      toast.error('Failed to revoke sessions')
+    },
+  })
+
   const handleCopyInvite = (token: string) => {
     void (async () => {
       const url = `${window.location.origin}/invite/${token}`
@@ -203,7 +242,48 @@ export function AdminRoute() {
     })()
   }
 
+  const handleTransferOwnership = (userId: string, username: string) => {
+    void (async () => {
+      const ok = await confirm({
+        title: 'Transfer Ownership',
+        message: `This will make @${username} the owner and demote you to member. This cannot be undone.`,
+        confirmText: 'Transfer',
+        danger: true,
+      })
+      if (ok) transferOwnership.mutate(userId)
+    })()
+  }
+
+  const handleRevokeUserSessions = (userId: string, username: string) => {
+    void (async () => {
+      const ok = await confirm({
+        title: 'Revoke All Sessions',
+        message: `This will immediately log out @${username} from all devices.`,
+        confirmText: 'Revoke',
+        danger: true,
+      })
+      if (ok) revokeUserSessions.mutate(userId)
+    })()
+  }
+
   const moderationItems = moderationPages?.pages.flatMap((page) => page.items) ?? []
+  const auditItems = auditPages?.pages.flatMap((page) => page.items) ?? []
+
+  const formatActionType = (action: string) => {
+    const map: Record<string, string> = {
+      USER_DISABLED: 'Disabled user',
+      USER_ENABLED: 'Enabled user',
+      USER_PROMOTED_MODERATOR: 'Promoted to moderator',
+      USER_DEMOTED_MODERATOR: 'Demoted from moderator',
+      OWNERSHIP_TRANSFERRED: 'Transferred ownership',
+      USER_REMOVED: 'Removed user',
+      CONTENT_DELETED: 'Deleted content',
+      INVITE_CREATED: 'Created invite',
+      INVITE_REVOKED: 'Revoked invite',
+      SESSIONS_REVOKED: 'Revoked sessions',
+    }
+    return map[action] || action
+  }
 
   const statCards = [
     { icon: Users, label: 'Total Users', value: stats?.users ?? 0, color: 'bg-blue-500' },
@@ -213,26 +293,22 @@ export function AdminRoute() {
 
   const inviteItems = invites ?? []
   const normalizedInviteQuery = inviteQuery.trim().toLowerCase()
-  const inviteCounts = {
-    all: 0,
-    active: 0,
-    used: 0,
-    revoked: 0,
-    expired: 0,
-  }
 
-  const getInviteStatus = (invite: (typeof inviteItems)[number]) => {
-    if (invite.used) return 'used'
-    if (invite.revokedAt) return 'revoked'
-    if (invite.expiresAt && new Date(invite.expiresAt).getTime() < Date.now()) return 'expired'
-    return 'active'
-  }
-
-  inviteItems.forEach((invite) => {
-    const status = getInviteStatus(invite)
-    inviteCounts.all += 1
-    inviteCounts[status] += 1
-  })
+  const inviteCounts = useMemo(
+    () =>
+      inviteItems.reduce(
+        (counts, invite) => {
+          const status = getInviteStatus(invite)
+          return {
+            ...counts,
+            all: counts.all + 1,
+            [status]: counts[status] + 1,
+          }
+        },
+        { all: 0, active: 0, used: 0, revoked: 0, expired: 0 }
+      ),
+    [inviteItems]
+  )
 
   const filteredInvites = inviteItems.filter((invite) => {
     const status = getInviteStatus(invite)
@@ -246,24 +322,21 @@ export function AdminRoute() {
 
   const memberItems = users ?? []
   const normalizedMemberQuery = memberQuery.trim().toLowerCase()
-  const memberCounts = {
-    all: 0,
-    active: 0,
-    disabled: 0,
-    moderators: 0,
-  }
 
-  memberItems.forEach((member) => {
-    memberCounts.all += 1
-    if (member.disabledAt) {
-      memberCounts.disabled += 1
-    } else {
-      memberCounts.active += 1
-    }
-    if (member.role === 'moderator') {
-      memberCounts.moderators += 1
-    }
-  })
+  const memberCounts = useMemo(
+    () =>
+      memberItems.reduce(
+        (counts, member) => ({
+          ...counts,
+          all: counts.all + 1,
+          disabled: counts.disabled + (member.disabledAt ? 1 : 0),
+          active: counts.active + (member.disabledAt ? 0 : 1),
+          moderators: counts.moderators + (member.role === 'moderator' ? 1 : 0),
+        }),
+        { all: 0, active: 0, disabled: 0, moderators: 0 }
+      ),
+    [memberItems]
+  )
 
   const filteredMembers = memberItems.filter((member) => {
     if (memberFilter === 'disabled' && !member.disabledAt) return false
@@ -293,6 +366,7 @@ export function AdminRoute() {
         {[
           { id: 'overview', label: 'Overview' },
           { id: 'moderation', label: 'Moderation' },
+          { id: 'audit', label: 'Audit Log' },
         ].map((tab) => (
           <Link
             key={tab.id}
@@ -352,6 +426,7 @@ export function AdminRoute() {
               value={inviteQuery}
               onInput={(e) => setInviteQuery((e.target as HTMLInputElement).value)}
               placeholder="Search by token or user..."
+              aria-label="Search invites"
               className="w-full rounded-2xl border border-gray-100 bg-gray-50 px-10 py-3 text-sm text-gray-700 focus:outline-none focus:ring-4 focus:ring-accent-50 transition-all"
             />
           </div>
@@ -470,6 +545,7 @@ export function AdminRoute() {
               value={memberQuery}
               onInput={(e) => setMemberQuery((e.target as HTMLInputElement).value)}
               placeholder="Search members..."
+              aria-label="Search members"
               className="w-full rounded-2xl border border-gray-100 bg-gray-50 px-10 py-3 text-sm text-gray-700 focus:outline-none focus:ring-4 focus:ring-accent-50 transition-all"
             />
           </div>
@@ -599,6 +675,15 @@ export function AdminRoute() {
                         >
                           Remove
                         </button>
+
+                        <button
+                          onClick={() => handleRevokeUserSessions(member.id, member.username)}
+                          disabled={revokeUserSessions.isPending}
+                          className="px-3 py-2 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50"
+                        >
+                          <ShieldOff size={14} className="inline mr-1" />
+                          Revoke Sessions
+                        </button>
                       </>
                     )}
                   </div>
@@ -612,20 +697,75 @@ export function AdminRoute() {
           <div className="mt-10 rounded-4xl border border-red-100 bg-red-50/60 p-6 shadow-sm">
             <h2 className="text-lg font-bold text-red-700 mb-2">Danger Zone</h2>
             <p className="text-sm text-red-600 mb-4">
-              High-risk actions live here. These will be gated with extra confirmation.
+              High-risk actions. Use with caution.
             </p>
-            <div className="space-y-2 text-sm text-red-600">
-              <div>• Transfer ownership</div>
-              <div>• Export archive</div>
-              <div>• Delete network</div>
-            </div>
-            <div className="mt-4">
-              <button
-                disabled
-                className="px-4 py-2 rounded-full text-sm font-semibold bg-red-100 text-red-400 cursor-not-allowed"
-              >
-                Coming soon
-              </button>
+
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-red-700 mb-2">Transfer Ownership</h3>
+                <p className="text-xs text-red-600 mb-3">
+                  Enter a username to transfer ownership. You will be demoted to member.
+                </p>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={transferQuery}
+                    onInput={(e) => setTransferQuery((e.target as HTMLInputElement).value)}
+                    placeholder="Search by username..."
+                    aria-label="Search users for ownership transfer"
+                    className="w-full rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-300 transition-all"
+                  />
+                  {transferQuery.trim() && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-gray-200 shadow-lg max-h-48 overflow-y-auto z-10">
+                      {memberItems
+                        .filter(m =>
+                          m.role !== 'admin' &&
+                          !m.disabledAt &&
+                          (m.username.toLowerCase().includes(transferQuery.toLowerCase()) ||
+                           m.displayName.toLowerCase().includes(transferQuery.toLowerCase()))
+                        )
+                        .slice(0, 8)
+                        .map((member) => (
+                          <button
+                            key={member.id}
+                            onClick={() => {
+                              handleTransferOwnership(member.id, member.username)
+                              setTransferQuery('')
+                            }}
+                            disabled={transferOwnership.isPending}
+                            className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-red-50 transition-colors text-left disabled:opacity-50"
+                          >
+                            <img
+                              src={getAvatarUrl(member)}
+                              alt={member.displayName}
+                              className="w-8 h-8 rounded-full"
+                            />
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">{member.displayName}</p>
+                              <p className="text-xs text-gray-500 truncate">@{member.username}</p>
+                            </div>
+                          </button>
+                        ))}
+                      {memberItems.filter(m =>
+                        m.role !== 'admin' &&
+                        !m.disabledAt &&
+                        (m.username.toLowerCase().includes(transferQuery.toLowerCase()) ||
+                         m.displayName.toLowerCase().includes(transferQuery.toLowerCase()))
+                      ).length === 0 && (
+                        <div className="px-4 py-3 text-sm text-gray-400">No matching members</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-red-200">
+                <h3 className="text-sm font-semibold text-red-700 mb-2">Coming Soon</h3>
+                <div className="space-y-1 text-xs text-red-500">
+                  <div>• Export archive (download all data)</div>
+                  <div>• Delete network (permanent)</div>
+                </div>
+              </div>
             </div>
           </div>
         </>
@@ -649,6 +789,7 @@ export function AdminRoute() {
                 value={moderationQuery}
                 onInput={(e) => setModerationQuery((e.target as HTMLInputElement).value)}
                 placeholder="Search members or words..."
+                aria-label="Search content for moderation"
                 className="w-full rounded-2xl border border-gray-100 bg-gray-50 px-10 py-3 text-sm text-gray-700 focus:outline-none focus:ring-4 focus:ring-accent-50 transition-all"
               />
             </div>
@@ -742,6 +883,71 @@ export function AdminRoute() {
                     className="px-4 py-2 rounded-full text-sm font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors disabled:opacity-50"
                   >
                     {isFetchingMoreModeration ? 'Loading...' : 'Load more'}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {currentTab === 'audit' && (
+        <div className="bg-white rounded-4xl shadow-sm border border-gray-50 overflow-hidden">
+          <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-gray-900">Audit Log</h2>
+            <span className="text-xs text-gray-400">All admin actions</span>
+          </div>
+
+          {auditLoading ? (
+            <div className="flex items-center justify-center py-10">
+              <Spinner size="sm" />
+            </div>
+          ) : auditItems.length === 0 ? (
+            <div className="py-10 text-center text-gray-400 text-sm">No audit entries</div>
+          ) : (
+            <>
+              <div className="divide-y divide-gray-100">
+                {auditItems.map((entry) => (
+                  <div key={entry.id} className="p-4 flex flex-col gap-2">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="font-semibold text-gray-900">
+                          {entry.actor.displayName}
+                        </span>
+                        <span className="text-sm text-gray-400">@{entry.actor.username}</span>
+                      </div>
+                      <span className="text-xs text-gray-400">
+                        {formatTimeAgo(entry.createdAt, { includeAgo: true })}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-700">
+                      {formatActionType(entry.actionType)}
+                      {entry.targetId && (
+                        <span className="text-gray-400"> (ID: {entry.targetId})</span>
+                      )}
+                    </div>
+                    {entry.metadata && (
+                      <div className="text-xs text-gray-400">
+                        {Object.entries(entry.metadata).map(([key, value]) => (
+                          <span key={key} className="mr-3">
+                            {key}: {String(value)}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {auditHasNextPage && (
+                <div className="p-4 flex justify-center">
+                  <button
+                    onClick={() => {
+                      void fetchMoreAudit()
+                    }}
+                    disabled={isFetchingMoreAudit}
+                    className="px-4 py-2 rounded-full text-sm font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  >
+                    {isFetchingMoreAudit ? 'Loading...' : 'Load more'}
                   </button>
                 </div>
               )}

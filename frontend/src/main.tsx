@@ -67,12 +67,13 @@ const rootRoute = createRootRouteWithContext<RouterContext>()({
       location.pathname.startsWith(route)
     )
 
-    if (isPublicRoute) return
+    if (isPublicRoute) return undefined
 
     const user = await getAuthUser(context.queryClient)
     if (!user) {
       return redirect({ to: '/login', throw: true })
     }
+    return undefined
   },
 })
 
@@ -91,6 +92,7 @@ const loginRoute = createRoute({
     if (user) {
       return redirect({ to: '/', throw: true })
     }
+    return undefined
   },
 })
 
@@ -106,6 +108,7 @@ const signupRoute = createRoute({
     if (user) {
       return redirect({ to: '/', throw: true })
     }
+    return undefined
   },
 })
 
@@ -202,9 +205,10 @@ const adminRoute = createRoute({
   }),
   beforeLoad: async ({ context }) => {
     const user = await getAuthUser(context.queryClient)
-    if (!user || user.role !== 'admin') {
+    if (!user || (user.role !== 'admin' && user.role !== 'moderator')) {
       return redirect({ to: '/', throw: true })
     }
+    return undefined
   },
 })
 

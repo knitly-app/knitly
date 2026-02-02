@@ -99,6 +99,16 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    actor_user_id INTEGER NOT NULL REFERENCES users(id),
+    action_type TEXT NOT NULL,
+    target_type TEXT NOT NULL,
+    target_id INTEGER,
+    metadata_json TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
   CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
   CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id);
@@ -109,6 +119,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows(follower_id);
   CREATE INDEX IF NOT EXISTS idx_follows_following ON follows(following_id);
   CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+  CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log(created_at);
 `);
 
 const addColumnIfMissing = (statement) => {
@@ -759,6 +770,39 @@ export const dbUtils = {
         AND (expires_at IS NULL OR expires_at > ?)
     `).get(nowIso).count;
     return { users, posts, invites };
+  },
+
+  // AUDIT LOG
+  createAuditEntry(actorId, actionType, targetType, targetId = null, metadata = null) {
+    db.prepare(`
+      INSERT INTO audit_log (actor_user_id, action_type, target_type, target_id, metadata_json)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(actorId, actionType, targetType, targetId, metadata ? JSON.stringify(metadata) : null);
+  },
+
+  getAuditLog({ limit = 50, cursor = null } = {}) {
+    let query = `
+      SELECT
+        a.id, a.action_type, a.target_type, a.target_id, a.metadata_json, a.created_at,
+        u.id as actor_id, u.username as actor_username, u.display_name as actor_display_name
+      FROM audit_log a
+      JOIN users u ON a.actor_user_id = u.id
+    `;
+
+    const params = [];
+    if (cursor) {
+      const [cursorCreatedAt, cursorIdRaw] = String(cursor).split("|");
+      const cursorId = Number.parseInt(cursorIdRaw ?? "", 10);
+      if (cursorCreatedAt && Number.isFinite(cursorId)) {
+        query += " WHERE (a.created_at < ? OR (a.created_at = ? AND a.id < ?)) ";
+        params.push(cursorCreatedAt, cursorCreatedAt, cursorId);
+      }
+    }
+
+    query += " ORDER BY a.created_at DESC, a.id DESC LIMIT ?";
+    params.push(limit + 1);
+
+    return db.prepare(query).all(...params);
   },
 };
 

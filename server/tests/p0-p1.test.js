@@ -18,6 +18,7 @@ const { COOKIE_NAME } = await import("../src/lib/constants.js");
 const app = createApp();
 
 function resetDb() {
+  db.exec("DELETE FROM audit_log");
   db.exec("DELETE FROM notifications");
   db.exec("DELETE FROM comments");
   db.exec("DELETE FROM reactions");
@@ -614,5 +615,132 @@ describe("P1 integration", () => {
 
     const usedRes = await jsonReq(`/api/invites/${createBody.token}`);
     expect(usedRes.status).toBe(400);
+  });
+});
+
+describe("Admin panel", () => {
+  async function seedModeratorUser() {
+    const passwordHash = await hashPassword("password123");
+    const modId = dbUtils.createUser("mod@test.com", "mod", "Moderator", passwordHash);
+    dbUtils.updateUserRole(modId, "moderator");
+    const { sessionId } = dbUtils.createSession(modId);
+    return { modId, sessionId };
+  }
+
+  test("admin can disable/enable user", async () => {
+    const { sessionId: adminSession } = await seedAdminUser();
+    const passwordHash = await hashPassword("password123");
+    const userId = dbUtils.createUser("user@test.com", "user", "User", passwordHash);
+
+    const disableRes = await jsonReq(`/api/admin/users/${userId}/disable`, { method: "POST", cookie: adminSession });
+    expect(disableRes.status).toBe(200);
+    const disableBody = await disableRes.json();
+    expect(disableBody.disabledAt).toBeTruthy();
+
+    const enableRes = await jsonReq(`/api/admin/users/${userId}/enable`, { method: "POST", cookie: adminSession });
+    expect(enableRes.status).toBe(200);
+    const enableBody = await enableRes.json();
+    expect(enableBody.disabledAt).toBeNull();
+  });
+
+  test("moderator can disable/enable user", async () => {
+    const { sessionId: modSession } = await seedModeratorUser();
+    const passwordHash = await hashPassword("password123");
+    const userId = dbUtils.createUser("user@test.com", "user", "User", passwordHash);
+
+    const disableRes = await jsonReq(`/api/admin/users/${userId}/disable`, { method: "POST", cookie: modSession });
+    expect(disableRes.status).toBe(200);
+
+    const enableRes = await jsonReq(`/api/admin/users/${userId}/enable`, { method: "POST", cookie: modSession });
+    expect(enableRes.status).toBe(200);
+  });
+
+  test("moderator cannot promote/demote users", async () => {
+    const { sessionId: modSession } = await seedModeratorUser();
+    const passwordHash = await hashPassword("password123");
+    const userId = dbUtils.createUser("user@test.com", "user", "User", passwordHash);
+
+    const promoteRes = await jsonReq(`/api/admin/users/${userId}/promote`, { method: "POST", cookie: modSession });
+    expect(promoteRes.status).toBe(403);
+
+    const demoteRes = await jsonReq(`/api/admin/users/${userId}/demote`, { method: "POST", cookie: modSession });
+    expect(demoteRes.status).toBe(403);
+  });
+
+  test("moderator cannot create invites", async () => {
+    const { sessionId: modSession } = await seedModeratorUser();
+
+    const createRes = await jsonReq("/api/invites", { method: "POST", cookie: modSession });
+    expect(createRes.status).toBe(403);
+  });
+
+  test("moderator cannot remove users", async () => {
+    const { sessionId: modSession } = await seedModeratorUser();
+    const passwordHash = await hashPassword("password123");
+    const userId = dbUtils.createUser("user@test.com", "user", "User", passwordHash);
+
+    const removeRes = await jsonReq(`/api/admin/users/${userId}`, { method: "DELETE", cookie: modSession });
+    expect(removeRes.status).toBe(403);
+  });
+
+  test("admin can transfer ownership", async () => {
+    const { adminId, sessionId: adminSession } = await seedAdminUser();
+    const passwordHash = await hashPassword("password123");
+    const userId = dbUtils.createUser("user@test.com", "user", "User", passwordHash);
+
+    const transferRes = await jsonReq(`/api/admin/users/${userId}/transfer`, { method: "POST", cookie: adminSession });
+    expect(transferRes.status).toBe(200);
+    const transferBody = await transferRes.json();
+    expect(transferBody.role).toBe("admin");
+
+    const oldAdmin = dbUtils.getUserById(adminId);
+    expect(oldAdmin.role).toBe("member");
+
+    const newAdmin = dbUtils.getUserById(userId);
+    expect(newAdmin.role).toBe("admin");
+  });
+
+  test("audit log records actions", async () => {
+    const { sessionId: adminSession } = await seedAdminUser();
+    const passwordHash = await hashPassword("password123");
+    const userId = dbUtils.createUser("user@test.com", "user", "User", passwordHash);
+
+    await jsonReq(`/api/admin/users/${userId}/disable`, { method: "POST", cookie: adminSession });
+
+    const auditLog = dbUtils.getAuditLog({ limit: 10 });
+    expect(auditLog.length).toBeGreaterThan(0);
+    const disableEntry = auditLog.find(e => e.action_type === "USER_DISABLED");
+    expect(disableEntry).toBeTruthy();
+    expect(disableEntry.target_id).toBe(userId);
+  });
+
+  test("audit log endpoint returns entries", async () => {
+    const { sessionId: adminSession } = await seedAdminUser();
+    const passwordHash = await hashPassword("password123");
+    const userId = dbUtils.createUser("user@test.com", "user", "User", passwordHash);
+
+    await jsonReq(`/api/admin/users/${userId}/disable`, { method: "POST", cookie: adminSession });
+
+    const auditRes = await jsonReq("/api/admin/audit", { cookie: adminSession });
+    expect(auditRes.status).toBe(200);
+    const auditBody = await auditRes.json();
+    expect(auditBody.items.length).toBeGreaterThan(0);
+    expect(auditBody.items[0].actionType).toBe("USER_DISABLED");
+  });
+
+  test("session revocation works", async () => {
+    const { sessionId: adminSession } = await seedAdminUser();
+    const passwordHash = await hashPassword("password123");
+    const userId = dbUtils.createUser("user@test.com", "user", "User", passwordHash);
+    const { sessionId: userSession } = dbUtils.createSession(userId);
+
+    const sessionBefore = dbUtils.getSession(userSession);
+    expect(sessionBefore).toBeTruthy();
+
+    const revokeRes = await jsonReq(`/api/admin/users/${userId}/revoke-sessions`, { method: "POST", cookie: adminSession });
+    expect(revokeRes.status).toBe(200);
+
+    const sessionAfter = dbUtils.getSession(userSession);
+    expect(sessionAfter).toBeNull();
   });
 });

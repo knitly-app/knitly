@@ -256,10 +256,11 @@ export function SettingsRoute() {
         </div>
       </div>
 
-      {user?.role === 'admin' && (
+      {(user?.role === 'admin' || user?.role === 'moderator') && (
         <div className="mt-8">
           <Link
             to="/admin"
+            search={{ tab: undefined }}
             className="w-full flex items-center justify-center space-x-2 p-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-colors"
           >
             <span>Admin Panel</span>

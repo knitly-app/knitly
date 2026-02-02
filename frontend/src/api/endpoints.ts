@@ -72,6 +72,20 @@ export interface Notification {
   createdAt: string
 }
 
+export interface AuditEntry {
+  id: string
+  actionType: string
+  targetType: string
+  targetId: string | null
+  metadata: Record<string, unknown> | null
+  createdAt: string
+  actor: {
+    id: string
+    username: string
+    displayName: string
+  }
+}
+
 export interface LoginRequest {
   email: string
   password: string
@@ -196,4 +210,14 @@ export const admin = {
   demoteUser: (id: string) => api.post<{ id: string; role: 'member' }>(`/admin/users/${id}/demote`),
   transferOwnership: (id: string) => api.post<{ id: string; role: 'admin' }>(`/admin/users/${id}/transfer`),
   removeUser: (id: string) => api.delete<{ success: true }>(`/admin/users/${id}`),
+  auditLog: (params?: { cursor?: string; limit?: number }) => {
+    const queryParams: Record<string, string> = {}
+    if (params?.cursor) queryParams.cursor = params.cursor
+    if (params?.limit) queryParams.limit = String(params.limit)
+    return api.get<{
+      items: AuditEntry[]
+      nextCursor?: string
+    }>('/admin/audit', { params: queryParams })
+  },
+  revokeUserSessions: (id: string) => api.post<{ success: true; id: string }>(`/admin/users/${id}/revoke-sessions`),
 }

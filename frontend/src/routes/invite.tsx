@@ -57,7 +57,14 @@ export function InviteRoute() {
           <h1 className="text-2xl font-bold text-gray-900 mb-2">You're Invited!</h1>
 
           <p className="text-gray-500 mb-8">
-            You're invited to join Knitly.
+            {data.inviter ? (
+              <>
+                <span className="font-semibold text-gray-700">{data.inviter.displayName}</span>
+                {' '}invited you to join Knitly.
+              </>
+            ) : (
+              "You're invited to join Knitly."
+            )}
           </p>
 
           <button
