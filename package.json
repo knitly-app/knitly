@@ -1,0 +1,26 @@
+{
+  "name": "knitly",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "frontend",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently \"bun run dev:frontend\" \"bun run dev:server\"",
+    "dev:frontend": "cd frontend && bun run dev",
+    "dev:server": "cd server && bun run dev",
+    "build": "cd frontend && bun run build",
+    "lint": "bun --cwd frontend run lint && bun --cwd server run lint",
+    "lint:fix": "bun --cwd frontend run lint:fix && bun --cwd server run lint:fix",
+    "test": "cd frontend && bun run test && cd ../server && bun test",
+    "test:unit": "cd frontend && bun test src/test/unit",
+    "test:e2e": "bun --cwd frontend run test:e2e",
+    "start": "cd server && bun run start",
+    "clean": "rm -rf frontend/dist server/node_modules frontend/node_modules node_modules"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
