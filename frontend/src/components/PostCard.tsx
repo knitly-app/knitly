@@ -5,6 +5,7 @@ import type { Post, ReactionType, ReactionCounts } from '../api/endpoints'
 import { useConfirm } from './ConfirmModal'
 import { getAvatarUrl } from '../utils/avatar'
 import { useUIStore } from '../stores/ui'
+import { useLightbox } from '../stores/lightbox'
 import { useToast } from './Toast'
 import { formatTimeAgo } from '../utils/time'
 
@@ -245,39 +246,55 @@ export function PostCard({ post, author, currentUserId, onReact, onDelete, onEdi
           </div>
         </div>
       ) : (
-        <Link to="/post/$id" params={{ id: post.id }} className="block">
+        <>
           {post.content?.trim() && (
-            <p className="text-gray-800 text-base leading-relaxed mb-4 whitespace-pre-wrap">
-              {post.content}
-            </p>
+            <Link to="/post/$id" params={{ id: post.id }} className="block">
+              <p className="text-gray-800 text-base leading-relaxed mb-4 whitespace-pre-wrap">
+                {post.content}
+              </p>
+            </Link>
           )}
 
           {mediaItems.length === 1 && (
             <div className="rounded-3xl overflow-hidden mb-4 -mx-2">
-              <img
-                src={mediaItems[0].url}
-                alt="Post media"
-                className="w-full h-auto object-cover max-h-96"
-              />
+              <button
+                type="button"
+                onClick={() => useLightbox.getState().open(
+                  mediaItems.map((m) => ({ url: m.url, alt: "Post media" })),
+                  0
+                )}
+                className="w-full cursor-zoom-in"
+              >
+                <img
+                  src={mediaItems[0].url}
+                  alt="Post media"
+                  className="w-full h-auto object-cover max-h-96"
+                />
+              </button>
             </div>
           )}
           {mediaItems.length > 1 && (
             <div className="grid grid-cols-2 gap-2 rounded-3xl overflow-hidden mb-4 -mx-2">
               {mediaItems.map((item, idx) => (
-                <div
+                <button
+                  type="button"
                   key={`${item.url}-${idx}`}
-                  className="relative w-full aspect-square bg-gray-100 overflow-hidden"
+                  onClick={() => useLightbox.getState().open(
+                    mediaItems.map((m) => ({ url: m.url, alt: "Post media" })),
+                    idx
+                  )}
+                  className="relative w-full aspect-square bg-gray-100 overflow-hidden cursor-zoom-in"
                 >
                   <img
                     src={item.url}
                     alt={`Post media ${idx + 1}`}
                     className="w-full h-full object-cover"
                   />
-                </div>
+                </button>
               ))}
             </div>
           )}
-        </Link>
+        </>
       )}
 
       <div className="flex items-center justify-between pt-2 border-t border-gray-50">

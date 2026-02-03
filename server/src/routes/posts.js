@@ -16,6 +16,7 @@ function formatPost(post, userReaction = null) {
     reactions: post.reactions || {},
     userReaction,
     comments: post.comments,
+    circleIds: dbUtils.getPostCircles(post.id).map(String),
     author: {
       username: post.username,
       displayName: post.display_name,
@@ -30,6 +31,10 @@ postsRouter.get("/:id", ensureSession, async (c) => {
 
   const post = dbUtils.getPost(postId);
   if (!post) return c.json({ error: "Not found" }, 404);
+
+  if (!dbUtils.canUserViewPost(currentUser.id, postId)) {
+    return c.json({ error: "Not found" }, 404);
+  }
 
   const userReaction = currentUser ? dbUtils.getUserReaction(currentUser.id, postId) : null;
   return c.json(formatPost(post, userReaction));
@@ -66,7 +71,16 @@ postsRouter.post("/", ensureSession, async (c) => {
     return c.json({ error: "Content or media required" }, 400);
   }
 
+  const circleIds = Array.isArray(body.circleIds)
+    ? body.circleIds.map(Number).filter(Number.isFinite)
+    : [];
+
   const post = dbUtils.createPost(currentUser.id, content, media);
+
+  if (circleIds.length) {
+    dbUtils.setPostCircles(post.id, circleIds);
+  }
+
   const userReaction = dbUtils.getUserReaction(currentUser.id, post.id);
   return c.json(formatPost(post, userReaction), 201);
 });

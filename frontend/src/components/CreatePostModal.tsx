@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'preact/hooks'
 import { X, ImagePlus } from 'lucide-preact'
 import { useCreatePost } from '../hooks/usePosts'
+import { useCircles } from '../hooks/useCircles'
 import { media as mediaApi, type MediaItem } from '../api/endpoints'
 import { useToast } from './Toast'
+import { CirclePills } from './CirclePills'
 
 interface CreatePostModalProps {
   onClose: () => void
@@ -14,9 +16,11 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
   const [previews, setPreviews] = useState<string[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const [selectedCircleId, setSelectedCircleId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const createPost = useCreatePost()
+  const { data: circles = [] } = useCircles()
   const toast = useToast()
 
   useEffect(() => {
@@ -89,7 +93,11 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
         )
       }
 
-      await createPost.mutateAsync({ content: content.trim(), media: uploadedMedia })
+      await createPost.mutateAsync({
+        content: content.trim(),
+        media: uploadedMedia,
+        circleIds: selectedCircleId ? [selectedCircleId] : undefined,
+      })
       toast.success('Moment shared')
       onClose()
     } catch {
@@ -124,6 +132,16 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
         </div>
 
         <div className="p-4">
+          <div className="mb-3">
+            <CirclePills
+              circles={circles}
+              selectedId={selectedCircleId}
+              onSelect={setSelectedCircleId}
+              showAdd={circles.length < 4}
+              onAdd={() => window.open('/circles', '_blank')}
+            />
+          </div>
+
           <textarea
             ref={textareaRef}
             value={content}

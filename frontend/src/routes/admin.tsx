@@ -11,6 +11,7 @@ import { useConfirm } from '../components/ConfirmModal'
 import { useAuth } from '../hooks/useAuth'
 import { formatTimeAgo } from '../utils/time'
 import { getInviteStatus } from '../utils/invites'
+import { CustomizeTab } from '../components/CustomizeTab'
 
 export function AdminRoute() {
   const queryClient = useQueryClient()
@@ -18,7 +19,7 @@ export function AdminRoute() {
   const confirm = useConfirm()
   const { user: currentUser } = useAuth()
   const search = useSearch({ from: '/admin' })
-  const currentTab = search.tab === 'moderation' ? 'moderation' : search.tab === 'audit' ? 'audit' : 'overview'
+  const currentTab = search.tab === 'moderation' ? 'moderation' : search.tab === 'audit' ? 'audit' : search.tab === 'customize' ? 'customize' : 'overview'
   const [inviteFilter, setInviteFilter] = useState<'all' | 'active' | 'used' | 'revoked' | 'expired'>('active')
   const [inviteQuery, setInviteQuery] = useState('')
   const [memberFilter, setMemberFilter] = useState<'all' | 'active' | 'disabled' | 'moderators'>('active')
@@ -367,6 +368,7 @@ export function AdminRoute() {
           { id: 'overview', label: 'Overview' },
           { id: 'moderation', label: 'Moderation' },
           { id: 'audit', label: 'Audit Log' },
+          { id: 'customize', label: 'Customize' },
         ].map((tab) => (
           <Link
             key={tab.id}
@@ -954,6 +956,10 @@ export function AdminRoute() {
             </>
           )}
         </div>
+      )}
+
+      {currentTab === 'customize' && (
+        <CustomizeTab />
       )}
     </div>
   )

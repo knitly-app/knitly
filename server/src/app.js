@@ -14,6 +14,8 @@ import { searchRouter } from "./routes/search.js";
 import { invitesRouter } from "./routes/invites.js";
 import { adminRouter } from "./routes/admin.js";
 import { mediaRouter } from "./routes/media.js";
+import { circlesRouter } from "./routes/circles.js";
+import { settingsRouter } from "./routes/settings.js";
 
 export function createApp() {
   const app = new Hono();
@@ -43,6 +45,8 @@ export function createApp() {
   app.route("/api/invites", invitesRouter);
   app.route("/api/admin", adminRouter);
   app.route("/api/media", mediaRouter);
+  app.route("/api/circles", circlesRouter);
+  app.route("/api/settings", settingsRouter);
 
   if (useLocalStorage) {
     app.use("/uploads/*", serveStatic({ root: "../" }));

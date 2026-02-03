@@ -5,6 +5,7 @@ export interface User {
   username: string
   displayName: string
   avatar?: string
+  header?: string
   bio?: string
   location?: string
   website?: string
@@ -47,6 +48,7 @@ export interface Post {
   userReaction: ReactionType | null
   comments: number
   author?: PostAuthor
+  circleIds?: string[]
 }
 
 export interface Comment {
@@ -86,6 +88,31 @@ export interface AuditEntry {
   }
 }
 
+export interface Circle {
+  id: string
+  userId: string
+  name: string
+  color: string
+  createdAt: string
+  memberCount?: number
+}
+
+export interface CircleWithMembers extends Circle {
+  owner?: {
+    username: string
+    displayName: string
+    avatar?: string
+  }
+  members?: {
+    id: string
+    username: string
+    displayName: string
+    avatar?: string
+    bio?: string
+    joinedAt: string
+  }[]
+}
+
 export interface LoginRequest {
   email: string
   password: string
@@ -123,9 +150,14 @@ export interface ReactionResponse {
 }
 
 export const posts = {
-  feed: (cursor?: string) => api.get<{ posts: Post[]; nextCursor?: string }>('/feed', { params: cursor ? { cursor } : undefined }),
+  feed: (cursor?: string, circleId?: string) => {
+    const params: Record<string, string> = {}
+    if (cursor) params.cursor = cursor
+    if (circleId) params.circleId = circleId
+    return api.get<{ posts: Post[]; nextCursor?: string }>('/feed', { params })
+  },
   get: (id: string) => api.get<Post>(`/posts/${id}`),
-  create: (data: { content: string; media?: MediaItem[] }) => api.post<Post>('/posts', data),
+  create: (data: { content: string; media?: MediaItem[]; circleIds?: string[] }) => api.post<Post>('/posts', data),
   delete: (id: string) => api.delete(`/posts/${id}`),
   update: (id: string, content: string) => api.patch<Post>(`/posts/${id}`, { content }),
   react: (id: string, type: ReactionType) => api.post<ReactionResponse>(`/posts/${id}/reactions`, { type }),
@@ -169,6 +201,16 @@ export const media = {
   presign: (data: { contentType: string; size: number }) =>
     api.post<{ uploadUrl: string; key: string; expiresIn: number }>('/media/presign', data),
   complete: (data: { key: string }) => api.post<MediaItem>('/media/complete', data),
+}
+
+export const circles = {
+  list: () => api.get<Circle[]>('/circles'),
+  get: (id: string) => api.get<CircleWithMembers>(`/circles/${id}`),
+  create: (data: { name: string; color?: string }) => api.post<CircleWithMembers>('/circles', data),
+  update: (id: string, data: { name?: string; color?: string }) => api.patch<CircleWithMembers>(`/circles/${id}`, data),
+  delete: (id: string) => api.delete(`/circles/${id}`),
+  addMembers: (id: string, userIds: number[]) => api.post<{ success: boolean; added: number }>(`/circles/${id}/members`, { userIds }),
+  removeMember: (id: string, userId: string) => api.delete(`/circles/${id}/members/${userId}`),
 }
 
 export const admin = {
@@ -220,4 +262,26 @@ export const admin = {
     }>('/admin/audit', { params: queryParams })
   },
   revokeUserSessions: (id: string) => api.post<{ success: true; id: string }>(`/admin/users/${id}/revoke-sessions`),
+}
+
+export const settings = {
+  get: async (): Promise<{ appName: string; logoIcon: string }> => {
+    const res = await fetch("/api/settings");
+    if (!res.ok) throw new Error("Failed to fetch settings");
+    return res.json();
+  },
+
+  update: async (data: { appName?: string; logoIcon?: string }): Promise<{ appName: string; logoIcon: string }> => {
+    const res = await fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.error || "Failed to update settings");
+    }
+    return res.json();
+  },
 }

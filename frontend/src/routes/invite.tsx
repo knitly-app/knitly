@@ -2,11 +2,13 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useParams, useNavigate } from '@tanstack/react-router'
 import { invites } from '../api/endpoints'
 import { useAuth } from '../hooks/useAuth'
+import { useAppSettings } from '../hooks/useAppSettings'
 
 export function InviteRoute() {
   const params = useParams({ from: '/invite/$token' })
   const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
+  const appName = useAppSettings((s) => s.appName)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['invite', params.token],
@@ -60,10 +62,10 @@ export function InviteRoute() {
             {data.inviter ? (
               <>
                 <span className="font-semibold text-gray-700">{data.inviter.displayName}</span>
-                {' '}invited you to join Knitly.
+                {' '}invited you to join {appName}.
               </>
             ) : (
-              "You're invited to join Knitly."
+              `You're invited to join ${appName}.`
             )}
           </p>
 
@@ -71,11 +73,11 @@ export function InviteRoute() {
             onClick={handleAccept}
             className="w-full py-4 bg-accent-500 text-white rounded-2xl font-bold shadow-lg shadow-accent-200 hover:bg-accent-600 transition-all"
           >
-            {isAuthenticated ? 'Accept Invite' : 'Join Knitly'}
+            {isAuthenticated ? 'Accept Invite' : `Join ${appName}`}
           </button>
 
           <p className="mt-6 text-sm text-gray-400">
-            Knitly is an intimate social network limited to 100 members per cluster.
+            {appName} is an intimate social network limited to 100 members per cluster.
           </p>
         </div>
       </div>

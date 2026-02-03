@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
-import { posts, type Post, type Comment, type User, type ReactionType } from '../api/endpoints'
+import { posts, type Post, type Comment, type User, type ReactionType, type MediaItem } from '../api/endpoints'
 import { useToast } from '../components/Toast'
 
-export function useFeed() {
+export function useFeed(circleId?: string) {
   return useInfiniteQuery({
-    queryKey: ['feed'],
-    queryFn: ({ pageParam }) => posts.feed(pageParam),
+    queryKey: circleId ? ['feed', circleId] : ['feed'],
+    queryFn: ({ pageParam }) => posts.feed(pageParam, circleId),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
   })
@@ -31,7 +31,7 @@ export function useCreatePost() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: posts.create,
+    mutationFn: (data: { content: string; media?: MediaItem[]; circleIds?: string[] }) => posts.create(data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['feed'] })
     },

@@ -1,12 +1,14 @@
 import { useState } from 'preact/hooks'
 import { useNavigate } from '@tanstack/react-router'
 import { useAuth } from '../hooks/useAuth'
+import { useAppSettings } from '../hooks/useAppSettings'
 
 export function LoginRoute() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const { login, isLoggingIn, loginError } = useAuth()
   const navigate = useNavigate()
+  const appName = useAppSettings((s) => s.appName)
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault()
@@ -22,8 +24,8 @@ export function LoginRoute() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-black text-accent-500 tracking-tighter mb-2">Knitly</h1>
-          <p className="text-gray-500">Welcome back to Knitly</p>
+          <h1 className="text-4xl font-black text-accent-500 tracking-tighter mb-2">{appName}</h1>
+          <p className="text-gray-500">Welcome back to {appName}</p>
         </div>
 
         <form
@@ -73,7 +75,7 @@ export function LoginRoute() {
           </button>
 
           <p className="mt-6 text-center text-gray-400 text-sm">
-            Knitly is invite-only. Ask a member for an invite link.
+            {appName} is invite-only. Ask a member for an invite link.
           </p>
         </form>
       </div>

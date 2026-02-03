@@ -109,6 +109,32 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  CREATE TABLE IF NOT EXISTS circles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    color TEXT NOT NULL DEFAULT 'blue',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS circle_members (
+    circle_id INTEGER NOT NULL REFERENCES circles(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (circle_id, user_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS post_circles (
+    post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    circle_id INTEGER NOT NULL REFERENCES circles(id) ON DELETE CASCADE,
+    PRIMARY KEY (post_id, circle_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
+
   CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
   CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
   CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id);
@@ -120,6 +146,11 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_follows_following ON follows(following_id);
   CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
   CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log(created_at);
+  CREATE INDEX IF NOT EXISTS idx_circles_user_id ON circles(user_id);
+  CREATE INDEX IF NOT EXISTS idx_circle_members_circle ON circle_members(circle_id);
+  CREATE INDEX IF NOT EXISTS idx_circle_members_user ON circle_members(user_id);
+  CREATE INDEX IF NOT EXISTS idx_post_circles_post ON post_circles(post_id);
+  CREATE INDEX IF NOT EXISTS idx_post_circles_circle ON post_circles(circle_id);
 `);
 
 const addColumnIfMissing = (statement) => {
@@ -139,6 +170,7 @@ addColumnIfMissing(`ALTER TABLE users ADD COLUMN disabled_at TEXT NULL`);
 addColumnIfMissing(`ALTER TABLE invites ADD COLUMN revoked_at TEXT NULL`);
 addColumnIfMissing(`ALTER TABLE posts ADD COLUMN deleted_at TEXT NULL`);
 addColumnIfMissing(`ALTER TABLE comments ADD COLUMN deleted_at TEXT NULL`);
+addColumnIfMissing(`ALTER TABLE users ADD COLUMN header TEXT DEFAULT ''`);
 
 const SESSION_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -146,21 +178,21 @@ export const dbUtils = {
   // USER
   getUserById(id) {
     return db.prepare(`
-      SELECT id, email, username, display_name, bio, avatar, location, website, role, disabled_at, created_at
+      SELECT id, email, username, display_name, bio, avatar, header, location, website, role, disabled_at, created_at
       FROM users WHERE id = ?
     `).get(id) || null;
   },
 
   getUserByEmail(email) {
     return db.prepare(`
-      SELECT id, email, username, display_name, bio, avatar, location, website, password_hash, role, disabled_at, created_at
+      SELECT id, email, username, display_name, bio, avatar, header, location, website, password_hash, role, disabled_at, created_at
       FROM users WHERE email = ?
     `).get(email) || null;
   },
 
   getUserByUsername(username) {
     return db.prepare(`
-      SELECT id, email, username, display_name, bio, avatar, location, website, password_hash, role, disabled_at, created_at
+      SELECT id, email, username, display_name, bio, avatar, header, location, website, password_hash, role, disabled_at, created_at
       FROM users WHERE username = ?
     `).get(username) || null;
   },
@@ -201,6 +233,10 @@ export const dbUtils = {
       fields.push("website = ?");
       values.push(updates.website);
     }
+    if (updates.header !== undefined) {
+      fields.push("header = ?");
+      values.push(updates.header);
+    }
 
     if (fields.length === 0) return;
 
@@ -210,7 +246,7 @@ export const dbUtils = {
 
   getAllUsers() {
     return db.prepare(`
-      SELECT id, email, username, display_name, bio, avatar, location, website, role, disabled_at, created_at
+      SELECT id, email, username, display_name, bio, avatar, header, location, website, role, disabled_at, created_at
       FROM users ORDER BY created_at DESC
     `).all();
   },
@@ -324,25 +360,39 @@ export const dbUtils = {
     };
   },
 
-  getFeed(limit = 50, cursor = null) {
+  getFeed(limit = 50, cursor = null, viewerId = null, circleId = null) {
     let query = `
-      SELECT
+      SELECT DISTINCT
         p.id, p.user_id, p.content, p.media_url, p.created_at,
         u.username, u.display_name, u.avatar,
         (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND deleted_at IS NULL) as comments
       FROM posts p
       JOIN users u ON p.user_id = u.id
+      LEFT JOIN post_circles pc ON p.id = pc.post_id
+      LEFT JOIN circle_members cm ON pc.circle_id = cm.circle_id AND cm.user_id = ?
       WHERE p.deleted_at IS NULL
+        AND (
+          pc.post_id IS NULL
+          OR p.user_id = ?
+          OR cm.user_id IS NOT NULL
+        )
     `;
+    const params = [viewerId, viewerId];
+
+    if (circleId) {
+      query += ` AND pc.circle_id = ?`;
+      params.push(circleId);
+    }
 
     if (cursor) {
-      query += ` AND p.created_at < ? ORDER BY p.created_at DESC LIMIT ?`;
-      const rows = db.prepare(query).all(cursor, limit + 1);
-      return this.attachMediaAndReactions(rows);
+      query += ` AND p.created_at < ?`;
+      params.push(cursor);
     }
 
     query += ` ORDER BY p.created_at DESC LIMIT ?`;
-    const rows = db.prepare(query).all(limit + 1);
+    params.push(limit + 1);
+
+    const rows = db.prepare(query).all(...params);
     return this.attachMediaAndReactions(rows);
   },
 
@@ -357,18 +407,39 @@ export const dbUtils = {
     return this.getPost(id);
   },
 
-  getUserPosts(userId, limit = 50) {
+  getUserPosts(userId, limit = 50, viewerId = null) {
+    if (viewerId === userId) {
+      const rows = db.prepare(`
+        SELECT
+          p.id, p.user_id, p.content, p.media_url, p.created_at,
+          u.username, u.display_name, u.avatar,
+          (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND deleted_at IS NULL) as comments
+        FROM posts p
+        JOIN users u ON p.user_id = u.id
+        WHERE p.user_id = ? AND p.deleted_at IS NULL
+        ORDER BY p.created_at DESC
+        LIMIT ?
+      `).all(userId, limit);
+      return this.attachMediaAndReactions(rows);
+    }
+
     const rows = db.prepare(`
-      SELECT
+      SELECT DISTINCT
         p.id, p.user_id, p.content, p.media_url, p.created_at,
         u.username, u.display_name, u.avatar,
         (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND deleted_at IS NULL) as comments
       FROM posts p
       JOIN users u ON p.user_id = u.id
+      LEFT JOIN post_circles pc ON p.id = pc.post_id
+      LEFT JOIN circle_members cm ON pc.circle_id = cm.circle_id AND cm.user_id = ?
       WHERE p.user_id = ? AND p.deleted_at IS NULL
+        AND (
+          pc.post_id IS NULL
+          OR cm.user_id IS NOT NULL
+        )
       ORDER BY p.created_at DESC
       LIMIT ?
-    `).all(userId, limit);
+    `).all(viewerId, userId, limit);
     return this.attachMediaAndReactions(rows);
   },
 
@@ -672,7 +743,7 @@ export const dbUtils = {
   },
 
   getNotifications(userId, limit = 50) {
-    return db.prepare(`
+    const rows = db.prepare(`
       SELECT
         n.id, n.type, n.post_id, n.read, n.created_at,
         n.actor_id as from_user_id,
@@ -685,6 +756,11 @@ export const dbUtils = {
       ORDER BY n.created_at DESC
       LIMIT ?
     `).all(userId, limit);
+
+    return rows.filter(n => {
+      if (!n.post_id) return true;
+      return this.canUserViewPost(userId, n.post_id);
+    });
   },
 
   markNotificationRead(id, userId) {
@@ -803,6 +879,169 @@ export const dbUtils = {
     params.push(limit + 1);
 
     return db.prepare(query).all(...params);
+  },
+
+  // CIRCLE MANAGEMENT
+  createCircle(userId, name, color = "blue") {
+    const result = db.prepare(`
+      INSERT INTO circles (user_id, name, color) VALUES (?, ?, ?)
+    `).run(userId, name, color);
+    return this.getCircle(result.lastInsertRowid);
+  },
+
+  updateCircle(id, { name, color }) {
+    const fields = [];
+    const values = [];
+
+    if (name !== undefined) {
+      fields.push("name = ?");
+      values.push(name);
+    }
+    if (color !== undefined) {
+      fields.push("color = ?");
+      values.push(color);
+    }
+
+    if (fields.length === 0) return this.getCircle(id);
+
+    values.push(id);
+    db.prepare(`UPDATE circles SET ${fields.join(", ")} WHERE id = ?`).run(...values);
+    return this.getCircle(id);
+  },
+
+  deleteCircle(id) {
+    db.prepare("DELETE FROM circles WHERE id = ?").run(id);
+  },
+
+  getCircle(id) {
+    return db.prepare(`
+      SELECT c.id, c.user_id, c.name, c.color, c.created_at,
+             u.username as owner_username, u.display_name as owner_display_name, u.avatar as owner_avatar
+      FROM circles c
+      JOIN users u ON c.user_id = u.id
+      WHERE c.id = ?
+    `).get(id) || null;
+  },
+
+  getUserCircles(userId) {
+    return db.prepare(`
+      SELECT c.id, c.user_id, c.name, c.color, c.created_at,
+             (SELECT COUNT(*) FROM circle_members WHERE circle_id = c.id) as member_count
+      FROM circles c
+      WHERE c.user_id = ?
+      ORDER BY c.name ASC
+    `).all(userId);
+  },
+
+  // CIRCLE MEMBER MANAGEMENT
+  addCircleMember(circleId, userId) {
+    db.prepare(`
+      INSERT OR IGNORE INTO circle_members (circle_id, user_id) VALUES (?, ?)
+    `).run(circleId, userId);
+  },
+
+  removeCircleMember(circleId, userId) {
+    db.prepare("DELETE FROM circle_members WHERE circle_id = ? AND user_id = ?").run(circleId, userId);
+  },
+
+  getCircleMembers(circleId) {
+    return db.prepare(`
+      SELECT u.id, u.username, u.display_name, u.avatar, u.bio, cm.created_at as joined_at
+      FROM circle_members cm
+      JOIN users u ON cm.user_id = u.id
+      WHERE cm.circle_id = ?
+      ORDER BY cm.created_at ASC
+    `).all(circleId);
+  },
+
+  getUserCircleMemberships(userId) {
+    return db.prepare(`
+      SELECT c.id, c.name, c.color, c.created_at,
+             u.id as owner_id, u.username as owner_username, u.display_name as owner_display_name, u.avatar as owner_avatar
+      FROM circle_members cm
+      JOIN circles c ON cm.circle_id = c.id
+      JOIN users u ON c.user_id = u.id
+      WHERE cm.user_id = ?
+      ORDER BY c.name ASC
+    `).all(userId);
+  },
+
+  isCircleMember(circleId, userId) {
+    return !!db.prepare("SELECT 1 FROM circle_members WHERE circle_id = ? AND user_id = ?").get(circleId, userId);
+  },
+
+  // POST-CIRCLE LINKING
+  setPostCircles(postId, circleIds = []) {
+    const tx = db.transaction((pId, cIds) => {
+      db.prepare("DELETE FROM post_circles WHERE post_id = ?").run(pId);
+      if (cIds.length > 0) {
+        const insert = db.prepare("INSERT INTO post_circles (post_id, circle_id) VALUES (?, ?)");
+        cIds.forEach(circleId => insert.run(pId, circleId));
+      }
+    });
+    tx(postId, circleIds);
+  },
+
+  getPostCircles(postId) {
+    return db.prepare("SELECT circle_id FROM post_circles WHERE post_id = ?")
+      .all(postId)
+      .map(row => row.circle_id);
+  },
+
+  getPostCirclesWithDetails(postId) {
+    return db.prepare(`
+      SELECT c.id, c.name, c.color
+      FROM post_circles pc
+      JOIN circles c ON pc.circle_id = c.id
+      WHERE pc.post_id = ?
+    `).all(postId);
+  },
+
+  // VISIBILITY
+  canUserViewPost(viewerId, postId) {
+    const post = db.prepare("SELECT user_id FROM posts WHERE id = ? AND deleted_at IS NULL").get(postId);
+    if (!post) return false;
+
+    if (post.user_id === viewerId) return true;
+
+    const circleCount = db.prepare("SELECT COUNT(*) as count FROM post_circles WHERE post_id = ?").get(postId).count;
+    if (circleCount === 0) return true;
+
+    const isMember = db.prepare(`
+      SELECT 1 FROM post_circles pc
+      JOIN circle_members cm ON pc.circle_id = cm.circle_id
+      WHERE pc.post_id = ? AND cm.user_id = ?
+      LIMIT 1
+    `).get(postId, viewerId);
+
+    return !!isMember;
+  },
+
+  // SETTINGS
+  getSetting(key) {
+    const row = db.prepare("SELECT value FROM settings WHERE key = ?").get(key);
+    return row ? row.value : null;
+  },
+
+  setSetting(key, value) {
+    db.prepare(`
+      INSERT INTO settings (key, value) VALUES (?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value
+    `).run(key, value);
+  },
+
+  getAllSettings() {
+    const appName = this.getSetting("appName") || "Knitly";
+    const logoIcon = this.getSetting("logoIcon") || "Zap";
+    return { appName, logoIcon };
+  },
+
+  setSettings(updates) {
+    const tx = db.transaction((data) => {
+      if (data.appName !== undefined) this.setSetting("appName", data.appName);
+      if (data.logoIcon !== undefined) this.setSetting("logoIcon", data.logoIcon);
+    });
+    tx(updates);
   },
 };
 

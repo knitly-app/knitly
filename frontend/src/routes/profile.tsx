@@ -49,7 +49,13 @@ export function ProfileRoute() {
   return (
     <div className="w-full max-w-2xl mx-auto py-4 md:py-8 px-4 md:px-0">
       <div className="bg-white rounded-5xl overflow-hidden shadow-sm border border-gray-50 mb-8">
-        <div className="h-32 bg-gradient-to-r from-accent-400 to-accent-600" />
+        {user.header ? (
+          <div className="h-32 overflow-hidden">
+            <img src={user.header} alt="" className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <div className="h-32 bg-gradient-to-r from-accent-400 to-accent-600" />
+        )}
 
         <div className="px-8 pb-8">
           <div className="flex items-end justify-between -mt-12 mb-6">

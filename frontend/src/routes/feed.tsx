@@ -1,10 +1,19 @@
+import { useState } from 'preact/hooks'
+import { useNavigate } from '@tanstack/react-router'
 import { PostCard } from '../components/PostCard'
 import { Spinner } from '../components/Spinner'
+import { CirclePills } from '../components/CirclePills'
 import { useAuth } from '../hooks/useAuth'
 import { useDeletePost, useEditPost, useFeed, useReaction } from '../hooks/usePosts'
+import { useCircles } from '../hooks/useCircles'
+import { useAppSettings } from '../hooks/useAppSettings'
 
 export function FeedRoute() {
-  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useFeed()
+  const [circleFilter, setCircleFilter] = useState<string | undefined>(undefined)
+  const { data: circles } = useCircles()
+  const navigate = useNavigate()
+  const appName = useAppSettings((s) => s.appName)
+  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useFeed(circleFilter)
   const reactionMutation = useReaction()
   const deletePost = useDeletePost()
   const editPost = useEditPost()
@@ -22,18 +31,38 @@ export function FeedRoute() {
 
   return (
     <div className="flex flex-col w-full max-w-2xl mx-auto py-4 md:py-8">
-      <div className="md:hidden flex items-center justify-between px-5 mb-6">
-        <h1 className="text-2xl font-black text-accent-500 tracking-tighter">Knitly</h1>
+      <div className="md:hidden px-5 mb-6">
+        <h1 className="text-2xl font-black text-accent-500 tracking-tighter mb-4">{appName}</h1>
+        {circles && (
+          <CirclePills
+            circles={circles}
+            selectedId={circleFilter ?? null}
+            onSelect={(id) => setCircleFilter(id ?? undefined)}
+            showAdd
+            onAdd={() => void navigate({ to: '/circles' })}
+          />
+        )}
       </div>
 
-      <div className="hidden md:flex items-center justify-between px-2 mb-8">
-        <h2 className="text-2xl font-bold text-gray-900">Your Network</h2>
+      <div className="hidden md:block px-2 mb-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Your Network</h2>
+        {circles && (
+          <CirclePills
+            circles={circles}
+            selectedId={circleFilter ?? null}
+            onSelect={(id) => setCircleFilter(id ?? undefined)}
+            showAdd
+            onAdd={() => void navigate({ to: '/circles' })}
+          />
+        )}
       </div>
 
       <div className="space-y-6 px-4 md:px-0">
         {posts.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-gray-400 text-lg">No posts yet. Be the first to share!</p>
+            <p className="text-gray-400 text-lg">
+              {circleFilter ? 'No posts in this circle yet.' : 'No posts yet. Be the first to share!'}
+            </p>
           </div>
         ) : (
           posts.map((post) => (

@@ -10,6 +10,7 @@ function formatUser(user) {
     username: user.username,
     displayName: user.display_name,
     avatar: user.avatar || undefined,
+    header: user.header || undefined,
     bio: user.bio || undefined,
     location: user.location || undefined,
     website: user.website || undefined,
@@ -133,6 +134,6 @@ usersRouter.get("/:id/posts", optionalAuth, async (c) => {
   const userId = id === "me" ? currentUser?.id : parseInt(id);
   if (!userId) return c.json({ error: "Not found" }, 404);
 
-  const posts = dbUtils.getUserPosts(userId);
+  const posts = dbUtils.getUserPosts(userId, 50, currentUser?.id ?? null);
   return c.json(posts.map(p => formatPost(p, currentUser ? dbUtils.getUserReaction(currentUser.id, p.id) : null)));
 });

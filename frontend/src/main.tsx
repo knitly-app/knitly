@@ -9,9 +9,11 @@ import {
 } from '@tanstack/react-router'
 import './index.css'
 import { App } from './App'
+import { useAppSettings } from './hooks/useAppSettings'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import { ConfirmProvider } from './components/ConfirmModal'
+import { Lightbox } from './components/Lightbox'
 import { auth, posts, users, type User } from './api/endpoints'
 import {
   FeedRoute,
@@ -25,6 +27,7 @@ import {
   MembersRoute,
   SettingsRoute,
   AdminRoute,
+  CirclesRoute,
 } from './routes'
 
 const queryClient = new QueryClient({
@@ -196,6 +199,12 @@ const settingsRoute = createRoute({
   component: SettingsRoute,
 })
 
+const circlesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/circles',
+  component: CirclesRoute,
+})
+
 const adminRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/admin',
@@ -224,10 +233,13 @@ const routeTree = rootRoute.addChildren([
   notificationsRoute,
   membersRoute,
   settingsRoute,
+  circlesRoute,
   adminRoute,
 ])
 
 const router = createRouter({ routeTree, context: { queryClient } })
+
+useAppSettings.getState().fetchSettings()
 
 declare module '@tanstack/react-router' {
   interface Register {
@@ -241,6 +253,7 @@ render(
       <ToastProvider>
         <ConfirmProvider>
           <RouterProvider router={router} />
+          <Lightbox />
         </ConfirmProvider>
       </ToastProvider>
     </QueryClientProvider>

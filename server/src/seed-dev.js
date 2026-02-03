@@ -89,6 +89,33 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows(follower_id);
   CREATE INDEX IF NOT EXISTS idx_follows_following ON follows(following_id);
   CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+
+  CREATE TABLE IF NOT EXISTS circles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    color TEXT NOT NULL DEFAULT 'blue',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS circle_members (
+    circle_id INTEGER NOT NULL REFERENCES circles(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (circle_id, user_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS post_circles (
+    post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    circle_id INTEGER NOT NULL REFERENCES circles(id) ON DELETE CASCADE,
+    PRIMARY KEY (post_id, circle_id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_circles_user_id ON circles(user_id);
+  CREATE INDEX IF NOT EXISTS idx_circle_members_circle ON circle_members(circle_id);
+  CREATE INDEX IF NOT EXISTS idx_circle_members_user ON circle_members(user_id);
+  CREATE INDEX IF NOT EXISTS idx_post_circles_post ON post_circles(post_id);
+  CREATE INDEX IF NOT EXISTS idx_post_circles_circle ON post_circles(circle_id);
 `);
 
 const USERS = [
@@ -101,6 +128,23 @@ const USERS = [
   { email: "casey@example.com", username: "casey", displayName: "Casey Morgan", role: "member", bio: "Marketing @ startup. Dog parent." },
   { email: "riley@example.com", username: "riley", displayName: "Riley Johnson", role: "member", bio: "Music producer. Night owl." },
   { email: "quinn@example.com", username: "quinn", displayName: "Quinn Thompson", role: "member", bio: "Fitness junkie. Plant-based life." },
+];
+
+const CIRCLES = [
+  { userIdx: 0, name: "Family", color: "blue" },
+  { userIdx: 0, name: "Close Friends", color: "green" },
+];
+
+const CIRCLE_MEMBERS = [
+  // Family circle (index 0): sarah, alex, jamie
+  { circleIdx: 0, userIdx: 1 },
+  { circleIdx: 0, userIdx: 2 },
+  { circleIdx: 0, userIdx: 3 },
+  // Close Friends circle (index 1): taylor, jordan, casey, riley
+  { circleIdx: 1, userIdx: 4 },
+  { circleIdx: 1, userIdx: 5 },
+  { circleIdx: 1, userIdx: 6 },
+  { circleIdx: 1, userIdx: 7 },
 ];
 
 const POSTS = [
@@ -122,6 +166,11 @@ const POSTS = [
   { userIdx: 6, content: "Pro tip: your dog doesn't care about your quarterly goals. They just want belly rubs.", mediaUrl: "https://picsum.photos/seed/dog1/800/600" },
   { userIdx: 7, content: "Late night studio session. The creative energy hits different at 2am.", mediaUrl: null },
   { userIdx: 8, content: "Rest days are just as important as training days. Taking my own advice today.", mediaUrl: null },
+  // Circle-specific posts from mike
+  { userIdx: 0, content: "Family dinner this Sunday! Who's bringing what? I'll handle the main course.", mediaUrl: null, circleIdx: 0 },
+  { userIdx: 0, content: "Mom's birthday is coming up. Any gift ideas? She said she doesn't want anything but we all know that's not true.", mediaUrl: null, circleIdx: 0 },
+  { userIdx: 0, content: "Real talk: anyone else feeling burned out lately? Been pushing hard and need to hear I'm not alone.", mediaUrl: null, circleIdx: 1 },
+  { userIdx: 0, content: "Planning a camping trip next month. You're all invited. No phones, just nature and good company.", mediaUrl: "https://picsum.photos/seed/camping1/800/600", circleIdx: 1 },
 ];
 
 const COMMENTS = [
@@ -168,6 +217,10 @@ async function seed() {
   const existingCount = db.prepare("SELECT COUNT(*) as count FROM users").get().count;
   if (existingCount > 0) {
     logInfo(`Database already has ${existingCount} users. Clearing all data first...`);
+    db.exec("PRAGMA foreign_keys = OFF");
+    db.exec("DELETE FROM post_circles");
+    db.exec("DELETE FROM circle_members");
+    db.exec("DELETE FROM circles");
     db.exec("DELETE FROM notifications");
     db.exec("DELETE FROM comments");
     db.exec("DELETE FROM likes");
@@ -176,6 +229,7 @@ async function seed() {
     db.exec("DELETE FROM invites");
     db.exec("DELETE FROM sessions");
     db.exec("DELETE FROM users");
+    db.exec("PRAGMA foreign_keys = ON");
     logInfo("Cleared existing data.");
     logInfo("");
   }
@@ -220,6 +274,43 @@ async function seed() {
     postIds.push(Number(result.lastInsertRowid));
   }
   logInfo(`  Created ${postIds.length} posts`);
+  logInfo("");
+
+  logInfo("Creating circles for mike...");
+  const circleIds = [];
+  for (const c of CIRCLES) {
+    const userId = userIds[c.userIdx];
+    const result = db.prepare(`
+      INSERT INTO circles (user_id, name, color, created_at)
+      VALUES (?, ?, ?, ?)
+    `).run(userId, c.name, c.color, pastDate(randomInt(15, 25)));
+    circleIds.push(Number(result.lastInsertRowid));
+  }
+  logInfo(`  Created ${circleIds.length} circles`);
+  logInfo("");
+
+  logInfo("Adding circle members...");
+  for (const m of CIRCLE_MEMBERS) {
+    const circleId = circleIds[m.circleIdx];
+    const userId = userIds[m.userIdx];
+    db.prepare(`INSERT INTO circle_members (circle_id, user_id, created_at) VALUES (?, ?, ?)`)
+      .run(circleId, userId, pastDate(randomInt(10, 20)));
+  }
+  logInfo(`  Added ${CIRCLE_MEMBERS.length} circle members`);
+  logInfo("");
+
+  logInfo("Linking circle posts...");
+  let circlePostCount = 0;
+  for (let i = 0; i < POSTS.length; i++) {
+    const p = POSTS[i];
+    if (p.circleIdx !== undefined) {
+      const postId = postIds[i];
+      const circleId = circleIds[p.circleIdx];
+      db.prepare(`INSERT INTO post_circles (post_id, circle_id) VALUES (?, ?)`).run(postId, circleId);
+      circlePostCount++;
+    }
+  }
+  logInfo(`  Linked ${circlePostCount} posts to circles`);
   logInfo("");
 
   logInfo("Creating likes...");
@@ -314,7 +405,7 @@ async function seed() {
   logInfo(`Database: ${dbPath}`);
 }
 
-seed().catch(() => {
-  logError("Seed failed.");
+seed().catch((err) => {
+  logError("Seed failed:", err);
   process.exitCode = 1;
 });

@@ -1,0 +1,10 @@
+[
+  {
+    "session_id": "1a146b53-3a56-4c2f-a410-60807d27c644",
+    "transcript_path": "/home/mikekey/.claude/projects/-home-mikekey-Projects-knitly/1a146b53-3a56-4c2f-a410-60807d27c644.jsonl",
+    "cwd": "/home/mikekey/Projects/knitly/server",
+    "hook_event_name": "SessionEnd",
+    "reason": "clear",
+    "logged_at": "2026-02-02T19:41:55.699849"
+  }
+]
