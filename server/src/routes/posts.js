@@ -52,9 +52,11 @@ postsRouter.post("/", ensureSession, async (c) => {
     .slice(0, 6)
     .map((item, index) => ({
       url: item.url,
+      thumbnailUrl: item.thumbnailUrl || null,
       width: Number.isFinite(item.width) ? item.width : null,
       height: Number.isFinite(item.height) ? item.height : null,
-      type: "image",
+      duration: Number.isFinite(item.duration) ? item.duration : null,
+      type: item.type === "video" ? "video" : "image",
       sortOrder: Number.isFinite(item.sortOrder) ? item.sortOrder : index,
     }));
 
