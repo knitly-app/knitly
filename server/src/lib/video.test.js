@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { assertFfmpegAvailable, VIDEO_CONTENT_TYPES, MAX_VIDEO_DURATION, getVideoMetadata } from "./video.js";
+import { assertFfmpegAvailable, VIDEO_CONTENT_TYPES, MAX_VIDEO_DURATION, getVideoMetadata, validateVideo } from "./video.js";
 import { mkdtempSync, writeFileSync, rmSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -28,6 +28,20 @@ describe("getVideoMetadata", () => {
     writeFileSync(fakePath, "not a video");
 
     await expect(getVideoMetadata(fakePath)).rejects.toThrow();
+
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+});
+
+describe("validateVideo", () => {
+  it("should reject files that ffprobe cannot parse", async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "video-test-"));
+    const fakePath = join(tempDir, "fake.mp4");
+    writeFileSync(fakePath, "not a video");
+
+    const result = await validateVideo(fakePath);
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe("invalid_video");
 
     rmSync(tempDir, { recursive: true, force: true });
   });
