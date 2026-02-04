@@ -190,6 +190,14 @@ function extFromContentType(contentType) {
       return "webp";
     case "image/gif":
       return "gif";
+    case "video/mp4":
+      return "mp4";
+    case "video/quicktime":
+      return "mov";
+    case "video/webm":
+      return "webm";
+    case "video/x-m4v":
+      return "m4v";
     case "image/jpeg":
     case "image/jpg":
     default:

@@ -59,16 +59,21 @@ mediaRouter.put("/upload/:key", async (c) => {
   }
 
   const body = await c.req.arrayBuffer();
+  const isVideo = VIDEO_CONTENT_TYPES.has(pending.contentType);
+  const maxSize = isVideo ? MAX_VIDEO_FILE_SIZE : MAX_LOCAL_SIZE;
 
-  if (body.byteLength > MAX_LOCAL_SIZE) {
+  if (body.byteLength > maxSize) {
     return c.json({ error: "File too large" }, 400);
   }
 
   const buffer = Buffer.from(body);
-  const validation = validateUpload(buffer, pending.contentType, key);
-  if (!validation.valid) {
-    clearPendingUpload(key);
-    return c.json({ error: "Invalid file format" }, 400);
+
+  if (!isVideo) {
+    const validation = validateUpload(buffer, pending.contentType, key);
+    if (!validation.valid) {
+      clearPendingUpload(key);
+      return c.json({ error: "Invalid file format" }, 400);
+    }
   }
 
   await saveLocalUpload(key, buffer);
