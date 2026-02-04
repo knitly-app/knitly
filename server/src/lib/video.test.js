@@ -1,5 +1,8 @@
 import { describe, it, expect } from "bun:test";
-import { assertFfmpegAvailable, VIDEO_CONTENT_TYPES, MAX_VIDEO_DURATION } from "./video.js";
+import { assertFfmpegAvailable, VIDEO_CONTENT_TYPES, MAX_VIDEO_DURATION, getVideoMetadata } from "./video.js";
+import { mkdtempSync, writeFileSync, rmSync } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
 
 describe("video utilities", () => {
   it("should export VIDEO_CONTENT_TYPES", () => {
@@ -15,5 +18,17 @@ describe("video utilities", () => {
 
   it("should not throw if ffmpeg is available", () => {
     expect(() => assertFfmpegAvailable()).not.toThrow();
+  });
+});
+
+describe("getVideoMetadata", () => {
+  it("should reject invalid files", async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "video-test-"));
+    const fakePath = join(tempDir, "fake.mp4");
+    writeFileSync(fakePath, "not a video");
+
+    await expect(getVideoMetadata(fakePath)).rejects.toThrow();
+
+    rmSync(tempDir, { recursive: true, force: true });
   });
 });
