@@ -127,3 +127,39 @@ export async function processVideo(inputPath, outputPath) {
     proc.on("error", (err) => reject(err));
   });
 }
+
+export async function extractThumbnail(inputPath, outputPath) {
+  return new Promise((resolve, reject) => {
+    const args = [
+      "-i", inputPath,
+      "-ss", "1",
+      "-vframes", "1",
+      "-vf", "scale=-2:480",
+      "-q:v", "3",
+      "-y",
+      outputPath,
+    ];
+
+    const proc = spawn("ffmpeg", args, { timeout: 10000 });
+    let stderr = "";
+
+    proc.stderr.on("data", (data) => { stderr += data; });
+
+    proc.on("close", (code) => {
+      if (code !== 0) {
+        return reject(new Error(`ffmpeg thumbnail failed: ${stderr.slice(-500)}`));
+      }
+      resolve();
+    });
+
+    proc.on("error", (err) => reject(err));
+  });
+}
+
+export function makeVideoKey(userId) {
+  return `video/${userId}/${Date.now()}-${crypto.randomUUID()}.mp4`;
+}
+
+export function makeThumbnailKey(userId) {
+  return `thumb/${userId}/${Date.now()}-${crypto.randomUUID()}.jpg`;
+}
