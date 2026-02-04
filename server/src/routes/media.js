@@ -22,6 +22,7 @@ import {
 import {
   VIDEO_CONTENT_TYPES,
   MAX_VIDEO_FILE_SIZE,
+  VIDEO_OUTPUT_HEIGHT,
   validateVideo,
   processVideo,
   extractThumbnail,
@@ -115,7 +116,7 @@ mediaRouter.post("/presign", ensureSession, async (c) => {
     if (error instanceof z.ZodError) {
       return c.json({ error: "Invalid input", details: error.errors }, 400);
     }
-    logError("Media presign error.");
+    logError("Media presign error.", { error: error.message, stack: error.stack });
     return c.json({ error: "Failed to create upload URL" }, 500);
   }
 });

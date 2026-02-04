@@ -64,6 +64,10 @@ function detectMagicFormat(buffer) {
   return null;
 }
 
+function isValidKey(key) {
+  return /^(raw|media|video|thumb)\/\d+\/\d+-[\w-]+\.\w+$/.test(key);
+}
+
 function logSuspiciousUpload(details) {
   console.warn("[MEDIA SECURITY]", JSON.stringify({
     timestamp: new Date().toISOString(),
@@ -182,27 +186,20 @@ export const spacesConfig = {
   quality: QUALITY,
 };
 
+const CONTENT_TYPE_TO_EXT = {
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+  "video/mp4": "mp4",
+  "video/quicktime": "mov",
+  "video/webm": "webm",
+  "video/x-m4v": "m4v",
+  "image/jpeg": "jpg",
+  "image/jpg": "jpg",
+};
+
 function extFromContentType(contentType) {
-  switch (contentType) {
-    case "image/png":
-      return "png";
-    case "image/webp":
-      return "webp";
-    case "image/gif":
-      return "gif";
-    case "video/mp4":
-      return "mp4";
-    case "video/quicktime":
-      return "mov";
-    case "video/webm":
-      return "webm";
-    case "video/x-m4v":
-      return "m4v";
-    case "image/jpeg":
-    case "image/jpg":
-    default:
-      return "jpg";
-  }
+  return CONTENT_TYPE_TO_EXT[contentType] || "jpg";
 }
 
 export function makeRawKey(userId, contentType) {
@@ -238,18 +235,27 @@ export function clearPendingUpload(key) {
   pendingLocalUploads.delete(key);
 }
 
+function localPath(key) {
+  if (!isValidKey(key)) {
+    throw new Error(`Invalid key format: ${key}`);
+  }
+  return path.join(localUploadDir, key.replace(/\//g, "_"));
+}
+
 export async function saveLocalUpload(key, buffer) {
-  const filePath = path.join(localUploadDir, key.replace(/\//g, "_"));
-  fs.writeFileSync(filePath, buffer);
+  const filePath = localPath(key);
+  await fs.promises.writeFile(filePath, buffer);
 }
 
 export async function downloadObject(key) {
   if (useLocalStorage) {
-    const filePath = path.join(localUploadDir, key.replace(/\//g, "_"));
-    if (!fs.existsSync(filePath)) {
+    const filePath = localPath(key);
+    try {
+      await fs.promises.access(filePath);
+    } catch {
       throw new Error("File not found");
     }
-    return fs.readFileSync(filePath);
+    return await fs.promises.readFile(filePath);
   }
 
   const command = new GetObjectCommand({
@@ -265,8 +271,8 @@ export async function downloadObject(key) {
 
 export async function uploadProcessed(key, buffer, contentType = "image/webp") {
   if (useLocalStorage) {
-    const filePath = path.join(localUploadDir, key.replace(/\//g, "_"));
-    fs.writeFileSync(filePath, buffer);
+    const filePath = localPath(key);
+    await fs.promises.writeFile(filePath, buffer);
     return;
   }
 
@@ -286,9 +292,11 @@ export async function uploadProcessed(key, buffer, contentType = "image/webp") {
 
 export async function deleteObject(key) {
   if (useLocalStorage) {
-    const filePath = path.join(localUploadDir, key.replace(/\//g, "_"));
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    const filePath = localPath(key);
+    try {
+      await fs.promises.unlink(filePath);
+    } catch {
+      // File already deleted or doesn't exist
     }
     return;
   }
@@ -324,6 +332,9 @@ export async function processImage(buffer) {
 
 export function getPublicUrl(key) {
   if (useLocalStorage) {
+    if (!isValidKey(key)) {
+      throw new Error(`Invalid key format: ${key}`);
+    }
     return `${baseUrl}/uploads/${key.replace(/\//g, "_")}`;
   }
   return `${spacesConfig.publicUrl}/${key}`;
