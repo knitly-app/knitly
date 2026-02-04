@@ -16,9 +16,11 @@ export interface User {
 
 export interface MediaItem {
   url: string
+  thumbnailUrl?: string
   width?: number | null
   height?: number | null
-  type: 'image'
+  duration?: number | null
+  type: 'image' | 'video'
   sortOrder?: number
 }
 
