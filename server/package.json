@@ -7,6 +7,7 @@
     "start": "NODE_ENV=production bun run src/index.js",
     "seed": "bun run src/seed.js",
     "seed:dev": "bun run src/seed-dev.js",
+    "cleanup:sessions": "bun run src/scripts/cleanup-sessions.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "bun test"

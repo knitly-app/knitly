@@ -4,7 +4,7 @@ import { MapPin, Link as LinkIcon, Settings } from 'lucide-preact'
 import { users, posts as postsApi } from '../api/endpoints'
 import { useAuth } from '../hooks/useAuth'
 import { PostCard } from '../components/PostCard'
-import { Spinner } from '../components/Spinner'
+import { ProfileHeaderSkeleton, PostCardSkeleton } from '../components/Skeleton'
 import { useReaction, useDeletePost, useEditPost } from '../hooks/usePosts'
 import { getAvatarUrl } from '../utils/avatar'
 
@@ -32,8 +32,12 @@ export function ProfileRoute() {
 
   if (userLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Spinner />
+      <div className="w-full max-w-2xl mx-auto py-4 md:py-8 px-4 md:px-0">
+        <ProfileHeaderSkeleton />
+        <div className="space-y-6 mt-8">
+          <PostCardSkeleton />
+          <PostCardSkeleton showMedia />
+        </div>
       </div>
     )
   }
@@ -51,7 +55,7 @@ export function ProfileRoute() {
       <div className="bg-white rounded-5xl overflow-hidden shadow-sm border border-gray-50 mb-8">
         {user.header ? (
           <div className="h-32 overflow-hidden">
-            <img src={user.header} alt="" className="w-full h-full object-cover" />
+            <img src={user.header} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
           </div>
         ) : (
           <div className="h-32 bg-gradient-to-r from-accent-400 to-accent-600" />
@@ -63,6 +67,8 @@ export function ProfileRoute() {
               src={getAvatarUrl(user)}
               alt={user.displayName}
               className="w-24 h-24 rounded-full border-4 border-white shadow-lg"
+              loading="lazy"
+              decoding="async"
             />
             {isOwnProfile && (
               <Link
@@ -114,8 +120,9 @@ export function ProfileRoute() {
 
       <div className="space-y-6">
         {postsLoading ? (
-          <div className="flex items-center justify-center py-10">
-            <Spinner size="sm" />
+          <div className="space-y-6">
+            <PostCardSkeleton />
+            <PostCardSkeleton />
           </div>
         ) : posts?.length === 0 ? (
           <div className="text-center py-10">

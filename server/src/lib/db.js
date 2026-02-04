@@ -153,6 +153,13 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_post_circles_circle ON post_circles(circle_id);
 `);
 
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_posts_deleted_created ON posts(deleted_at, created_at);
+  CREATE INDEX IF NOT EXISTS idx_sessions_user_expires ON sessions(user_id, expires_at);
+  CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, read);
+  ANALYZE;
+`);
+
 const addColumnIfMissing = (statement) => {
   try {
     db.exec(statement);
@@ -986,6 +993,24 @@ export const dbUtils = {
     return db.prepare("SELECT circle_id FROM post_circles WHERE post_id = ?")
       .all(postId)
       .map(row => row.circle_id);
+  },
+
+  getPostCirclesMap(postIds = []) {
+    if (!postIds.length) return new Map();
+
+    const placeholders = postIds.map(() => "?").join(", ");
+    const rows = db.prepare(`
+      SELECT pc.post_id, pc.circle_id
+      FROM post_circles pc
+      WHERE pc.post_id IN (${placeholders})
+    `).all(...postIds);
+
+    const map = new Map();
+    postIds.forEach(id => map.set(id, []));
+    rows.forEach(row => {
+      map.get(row.post_id).push(row.circle_id);
+    });
+    return map;
   },
 
   getPostCirclesWithDetails(postId) {

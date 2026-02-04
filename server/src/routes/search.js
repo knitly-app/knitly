@@ -1,11 +1,15 @@
 import { Hono } from "hono";
 import { dbUtils } from "../lib/db.js";
 import { ensureSession, optionalAuth } from "../middleware/auth.js";
+import { searchRateLimit } from "../middleware/rateLimit.js";
+import { sanitizeSearchQuery } from "../lib/sanitize.js";
 
 export const searchRouter = new Hono();
 
+searchRouter.use("*", searchRateLimit);
+
 searchRouter.get("/users", ensureSession, async (c) => {
-  const q = c.req.query("q");
+  const q = sanitizeSearchQuery(c.req.query("q"));
   if (!q) return c.json({ error: "Query required" }, 400);
 
   const users = dbUtils.searchUsers(q, 20);
@@ -19,11 +23,12 @@ searchRouter.get("/users", ensureSession, async (c) => {
 });
 
 searchRouter.get("/posts", optionalAuth, async (c) => {
-  const q = c.req.query("q");
+  const q = sanitizeSearchQuery(c.req.query("q"));
   if (!q) return c.json({ error: "Query required" }, 400);
 
   const currentUser = c.get("user");
   const posts = dbUtils.searchPosts(q, 50);
+  const reactionsMap = currentUser ? dbUtils.getUserReactionsMap(currentUser.id, posts.map(p => p.id)) : new Map();
 
   return c.json(posts.map(p => ({
     id: String(p.id),
@@ -32,7 +37,7 @@ searchRouter.get("/posts", optionalAuth, async (c) => {
     media: p.media || [],
     createdAt: p.created_at,
     reactions: p.reactions || {},
-    userReaction: currentUser ? dbUtils.getUserReaction(currentUser.id, p.id) : null,
+    userReaction: reactionsMap.get(p.id) ?? null,
     comments: p.comments,
     author: {
       username: p.username,

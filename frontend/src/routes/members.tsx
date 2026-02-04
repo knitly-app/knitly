@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Search } from 'lucide-preact'
 import { users } from '../api/endpoints'
 import { ProfileCard } from '../components/ProfileCard'
-import { Spinner } from '../components/Spinner'
+import { ProfileCardSkeleton } from '../components/Skeleton'
 
 export function MembersRoute() {
   const [query, setQuery] = useState('')
@@ -46,8 +46,11 @@ export function MembersRoute() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-10">
-          <Spinner size="sm" />
+        <div className="space-y-4">
+          <ProfileCardSkeleton />
+          <ProfileCardSkeleton />
+          <ProfileCardSkeleton />
+          <ProfileCardSkeleton />
         </div>
       ) : error ? (
         <div className="text-center py-10">

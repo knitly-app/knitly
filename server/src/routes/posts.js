@@ -1,12 +1,13 @@
 import { Hono } from "hono";
 import { dbUtils } from "../lib/db.js";
 import { ensureSession } from "../middleware/auth.js";
+import { sanitizeText } from "../lib/sanitize.js";
 
 export const postsRouter = new Hono();
 
 const VALID_REACTIONS = ["love", "haha", "hugs", "celebrate"];
 
-function formatPost(post, userReaction = null) {
+function formatPost(post, userReaction = null, circleIds = null) {
   return {
     id: String(post.id),
     userId: String(post.user_id),
@@ -16,7 +17,7 @@ function formatPost(post, userReaction = null) {
     reactions: post.reactions || {},
     userReaction,
     comments: post.comments,
-    circleIds: dbUtils.getPostCircles(post.id).map(String),
+    circleIds: circleIds ?? dbUtils.getPostCircles(post.id).map(String),
     author: {
       username: post.username,
       displayName: post.display_name,
@@ -44,7 +45,7 @@ postsRouter.post("/", ensureSession, async (c) => {
   const currentUser = c.get("user");
   const body = await c.req.json();
 
-  const content = typeof body.content === "string" ? body.content.trim() : "";
+  const content = sanitizeText(body.content);
   const rawMedia = Array.isArray(body.media) ? body.media : [];
   const media = rawMedia
     .filter((item) => item && typeof item.url === "string")
@@ -97,7 +98,7 @@ postsRouter.patch("/:id", ensureSession, async (c) => {
     return c.json({ error: "Forbidden" }, 403);
   }
 
-  const content = typeof body.content === "string" ? body.content.trim() : "";
+  const content = sanitizeText(body.content);
   if (!content && (!post.media || post.media.length === 0)) {
     return c.json({ error: "Content required" }, 400);
   }
@@ -184,14 +185,15 @@ postsRouter.post("/:id/comments", ensureSession, async (c) => {
   const currentUser = c.get("user");
   const body = await c.req.json();
 
-  if (!body.content?.trim()) {
+  const commentContent = sanitizeText(body.content);
+  if (!commentContent) {
     return c.json({ error: "Content required" }, 400);
   }
 
   const post = dbUtils.getPost(postId);
   if (!post) return c.json({ error: "Not found" }, 404);
 
-  const comment = dbUtils.createComment(postId, currentUser.id, body.content);
+  const comment = dbUtils.createComment(postId, currentUser.id, commentContent);
 
   if (post.user_id !== currentUser.id) {
     dbUtils.createNotification(post.user_id, "comment", currentUser.id, postId);

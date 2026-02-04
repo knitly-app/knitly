@@ -180,6 +180,8 @@ export function PostCard({ post, author, currentUserId, onReact, onDelete, onEdi
             src={avatarUrl}
             alt={postAuthor?.displayName || 'User'}
             className="w-12 h-12 rounded-full border-2 border-white shadow-sm"
+            loading="lazy"
+            decoding="async"
           />
         </Link>
         <div className="flex-1 min-w-0">
@@ -269,6 +271,8 @@ export function PostCard({ post, author, currentUserId, onReact, onDelete, onEdi
                   src={mediaItems[0].url}
                   alt="Post media"
                   className="w-full h-auto object-cover max-h-96"
+                  loading="lazy"
+                  decoding="async"
                 />
               </button>
             </div>
@@ -289,6 +293,8 @@ export function PostCard({ post, author, currentUserId, onReact, onDelete, onEdi
                     src={item.url}
                     alt={`Post media ${idx + 1}`}
                     className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </button>
               ))}

@@ -1,4 +1,5 @@
-import { render } from 'preact'
+import { render, type ComponentType, type JSX } from 'preact'
+import { lazy, Suspense } from 'preact/compat'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import {
   createRouter,
@@ -11,29 +12,44 @@ import './index.css'
 import { App } from './App'
 import { useAppSettings } from './hooks/useAppSettings'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { RouteErrorFallback } from './components/RouteErrorFallback'
 import { ToastProvider } from './components/Toast'
 import { ConfirmProvider } from './components/ConfirmModal'
 import { Lightbox } from './components/Lightbox'
 import { auth, posts, users, type User } from './api/endpoints'
-import {
-  FeedRoute,
-  LoginRoute,
-  SignupRoute,
-  InviteRoute,
-  ProfileRoute,
-  PostRoute,
-  SearchRoute,
-  NotificationsRoute,
-  MembersRoute,
-  SettingsRoute,
-  AdminRoute,
-  CirclesRoute,
-} from './routes'
+
+function RouteLoader() {
+  return <div className="flex-1 flex items-center justify-center py-12" />
+}
+
+function withSuspense<P extends object>(LazyComponent: ComponentType<P>) {
+  return function SuspenseWrapper(props: P): JSX.Element {
+    return (
+      <Suspense fallback={<RouteLoader />}>
+        <LazyComponent {...props} />
+      </Suspense>
+    )
+  }
+}
+
+const FeedRoute = withSuspense(lazy(() => import('./routes/feed').then((m) => ({ default: m.FeedRoute }))))
+const LoginRoute = withSuspense(lazy(() => import('./routes/login').then((m) => ({ default: m.LoginRoute }))))
+const SignupRoute = withSuspense(lazy(() => import('./routes/signup').then((m) => ({ default: m.SignupRoute }))))
+const InviteRoute = withSuspense(lazy(() => import('./routes/invite').then((m) => ({ default: m.InviteRoute }))))
+const ProfileRoute = withSuspense(lazy(() => import('./routes/profile').then((m) => ({ default: m.ProfileRoute }))))
+const PostRoute = withSuspense(lazy(() => import('./routes/post').then((m) => ({ default: m.PostRoute }))))
+const SearchRoute = withSuspense(lazy(() => import('./routes/search').then((m) => ({ default: m.SearchRoute }))))
+const NotificationsRoute = withSuspense(lazy(() => import('./routes/notifications').then((m) => ({ default: m.NotificationsRoute }))))
+const MembersRoute = withSuspense(lazy(() => import('./routes/members').then((m) => ({ default: m.MembersRoute }))))
+const SettingsRoute = withSuspense(lazy(() => import('./routes/settings').then((m) => ({ default: m.SettingsRoute }))))
+const AdminRoute = withSuspense(lazy(() => import('./routes/admin').then((m) => ({ default: m.AdminRoute }))))
+const CirclesRoute = withSuspense(lazy(() => import('./routes/circles').then((m) => ({ default: m.CirclesRoute }))))
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60,
+      gcTime: 1000 * 60 * 5,
       retry: 1,
     },
   },
@@ -237,9 +253,15 @@ const routeTree = rootRoute.addChildren([
   adminRoute,
 ])
 
-const router = createRouter({ routeTree, context: { queryClient } })
+const router = createRouter({
+  routeTree,
+  context: { queryClient },
+  defaultErrorComponent: ({ error }: { error: unknown }) => (
+    <RouteErrorFallback error={error instanceof Error ? error : new Error(String(error))} />
+  ),
+})
 
-useAppSettings.getState().fetchSettings()
+void useAppSettings.getState().fetchSettings()
 
 declare module '@tanstack/react-router' {
   interface Register {

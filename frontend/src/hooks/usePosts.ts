@@ -8,6 +8,8 @@ export function useFeed(circleId?: string) {
     queryFn: ({ pageParam }) => posts.feed(pageParam, circleId),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
+    staleTime: 1000 * 30,
+    gcTime: 1000 * 60 * 5,
   })
 }
 
@@ -16,6 +18,8 @@ export function usePost(id: string) {
     queryKey: ['posts', id],
     queryFn: () => posts.get(id),
     enabled: !!id,
+    staleTime: 1000 * 60,
+    gcTime: 1000 * 60 * 5,
   })
 }
 
@@ -24,6 +28,8 @@ export function useUserPosts(userId: string) {
     queryKey: ['users', userId, 'posts'],
     queryFn: () => posts.userPosts(userId),
     enabled: !!userId,
+    staleTime: 1000 * 60,
+    gcTime: 1000 * 60 * 5,
   })
 }
 
@@ -84,6 +90,8 @@ export function usePostComments(postId: string) {
     queryKey: ['posts', postId, 'comments'],
     queryFn: () => posts.comments(postId),
     enabled: !!postId,
+    staleTime: 1000 * 30,
+    gcTime: 1000 * 60 * 5,
   })
 }
 

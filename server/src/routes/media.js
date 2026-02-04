@@ -16,6 +16,8 @@ import {
   getPendingUpload,
   clearPendingUpload,
   saveLocalUpload,
+  validateUpload,
+  validateImageDimensions,
 } from "../lib/media.js";
 import { logError } from "../lib/logging.js";
 
@@ -50,7 +52,14 @@ mediaRouter.put("/upload/:key", async (c) => {
     return c.json({ error: "File too large" }, 400);
   }
 
-  await saveLocalUpload(key, Buffer.from(body));
+  const buffer = Buffer.from(body);
+  const validation = validateUpload(buffer, pending.contentType, key);
+  if (!validation.valid) {
+    clearPendingUpload(key);
+    return c.json({ error: "Invalid file format" }, 400);
+  }
+
+  await saveLocalUpload(key, buffer);
   clearPendingUpload(key);
 
   return c.json({ success: true });
@@ -102,6 +111,22 @@ mediaRouter.post("/complete", ensureSession, async (c) => {
     }
 
     const originalBuffer = await downloadObject(key);
+
+    const validation = validateUpload(originalBuffer, null, key);
+    if (!validation.valid) {
+      await deleteObject(key);
+      return c.json({ error: "Invalid file format" }, 400);
+    }
+
+    const dimensionCheck = await validateImageDimensions(originalBuffer);
+    if (!dimensionCheck.valid) {
+      await deleteObject(key);
+      const msg = dimensionCheck.error === "dimensions_exceeded"
+        ? "Image dimensions too large (max 8192x8192)"
+        : "Invalid image file";
+      return c.json({ error: msg }, 400);
+    }
+
     const { buffer, width, height } = await processImage(originalBuffer);
     const processedKey = makeProcessedKey(currentUser.id);
 

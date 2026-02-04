@@ -153,6 +153,8 @@ export function SettingsRoute() {
               src={getAvatarUrl(user)}
               alt={user.displayName}
               className="w-16 h-16 rounded-full border-2 border-white shadow-sm"
+              loading="lazy"
+              decoding="async"
             />
             <div>
               <h2 className="font-bold text-gray-900 text-lg">{user.displayName}</h2>
@@ -229,6 +231,8 @@ export function SettingsRoute() {
                   src={formValues.avatar || (user ? getAvatarUrl(user) : '')}
                   alt="Avatar preview"
                   className="w-full h-full object-cover"
+                  loading="lazy"
+                  decoding="async"
                 />
                 <div className={`absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity ${isUploadingAvatar ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                   {isUploadingAvatar ? (
@@ -264,6 +268,8 @@ export function SettingsRoute() {
                   src={formValues.header}
                   alt="Header preview"
                   className="w-full h-full object-cover"
+                  loading="lazy"
+                  decoding="async"
                 />
               )}
               <div className={`absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity ${isUploadingHeader ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>

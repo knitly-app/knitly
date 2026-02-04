@@ -1,7 +1,8 @@
 import { useState } from 'preact/hooks'
 import { useNavigate } from '@tanstack/react-router'
 import { PostCard } from '../components/PostCard'
-import { Spinner } from '../components/Spinner'
+import { PostCardSkeleton } from '../components/Skeleton'
+import { FeedErrorFallback } from '../components/RouteErrorFallback'
 import { CirclePills } from '../components/CirclePills'
 import { useAuth } from '../hooks/useAuth'
 import { useDeletePost, useEditPost, useFeed, useReaction } from '../hooks/usePosts'
@@ -13,7 +14,7 @@ export function FeedRoute() {
   const { data: circles } = useCircles()
   const navigate = useNavigate()
   const appName = useAppSettings((s) => s.appName)
-  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useFeed(circleFilter)
+  const { data, isLoading, isError, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useFeed(circleFilter)
   const reactionMutation = useReaction()
   const deletePost = useDeletePost()
   const editPost = useEditPost()
@@ -23,8 +24,20 @@ export function FeedRoute() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Spinner />
+      <div className="flex flex-col w-full max-w-2xl mx-auto py-4 md:py-8">
+        <div className="space-y-6 px-4 md:px-0">
+          <PostCardSkeleton />
+          <PostCardSkeleton showMedia />
+          <PostCardSkeleton />
+        </div>
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col w-full max-w-2xl mx-auto py-4 md:py-8 px-4 md:px-0">
+        <FeedErrorFallback onRetry={() => void refetch()} />
       </div>
     )
   }

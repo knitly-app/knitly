@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { useNotifications, useMarkNotificationRead } from '../hooks/useNotifications'
-import { Spinner } from '../components/Spinner'
+import { NotificationSkeleton } from '../components/Skeleton'
 import { getAvatarUrl } from '../utils/avatar'
 import { formatTimeAgo } from '../utils/time'
 
@@ -30,8 +30,15 @@ export function NotificationsRoute() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Spinner />
+      <div className="w-full max-w-2xl mx-auto py-8 px-5">
+        <h2 className="text-2xl font-bold mb-8 text-gray-900">Activity</h2>
+        <div className="space-y-4">
+          <NotificationSkeleton />
+          <NotificationSkeleton />
+          <NotificationSkeleton />
+          <NotificationSkeleton />
+          <NotificationSkeleton />
+        </div>
       </div>
     )
   }
@@ -62,6 +69,8 @@ export function NotificationsRoute() {
                 src={getAvatarUrl({ id: notif.fromUserId, avatar: notif.fromAvatar })}
                 className="w-14 h-14 rounded-full mr-5 border-2 border-white shadow-sm"
                 alt={notif.fromDisplayName}
+                loading="lazy"
+                decoding="async"
               />
               <div className="flex-1">
                 <p className="text-sm text-gray-800 leading-snug">

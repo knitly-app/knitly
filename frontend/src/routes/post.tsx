@@ -4,7 +4,7 @@ import { useParams, useNavigate, Link } from '@tanstack/react-router'
 import { ArrowLeft, Send, Trash2 } from 'lucide-preact'
 import { posts as postsApi } from '../api/endpoints'
 import { PostCard } from '../components/PostCard'
-import { Spinner } from '../components/Spinner'
+import { PostCardSkeleton, CommentSkeleton } from '../components/Skeleton'
 import { useReaction, useAddComment, usePostComments, useDeletePost, useDeleteComment, useEditPost } from '../hooks/usePosts'
 import { useAuth } from '../hooks/useAuth'
 import { useConfirm } from '../components/ConfirmModal'
@@ -68,8 +68,19 @@ export function PostRoute() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Spinner />
+      <div className="w-full max-w-2xl mx-auto py-4 md:py-8 px-4 md:px-0">
+        <div className="mb-6">
+          <div className="w-20 h-6 bg-gray-200 animate-pulse rounded" />
+        </div>
+        <PostCardSkeleton showMedia />
+        <div className="mt-8 bg-white rounded-4xl p-6 shadow-sm border border-gray-50">
+          <div className="w-24 h-6 bg-gray-200 animate-pulse rounded mb-6" />
+          <div className="space-y-4">
+            <CommentSkeleton />
+            <CommentSkeleton />
+            <CommentSkeleton />
+          </div>
+        </div>
       </div>
     )
   }
@@ -145,6 +156,8 @@ export function PostRoute() {
                     src={getAvatarUrl({ id: comment.userId, avatar: comment.avatar })}
                     alt={comment.displayName}
                     className="w-10 h-10 rounded-full"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </Link>
                 <div className="flex-1 bg-gray-50 rounded-2xl p-4">

@@ -23,6 +23,127 @@ const {
 const MAX_BYTES = parseInt(MAX_UPLOAD_BYTES || "10485760", 10);
 const MAX_DIMENSION = parseInt(MEDIA_MAX_DIMENSION || "2048", 10);
 const QUALITY = parseInt(MEDIA_QUALITY || "82", 10);
+const INPUT_MAX_DIMENSION = 8192;
+
+const MAGIC_BYTES = {
+  jpeg: { bytes: [0xFF, 0xD8, 0xFF], offset: 0 },
+  png: { bytes: [0x89, 0x50, 0x4E, 0x47], offset: 0 },
+  gif: { bytes: [0x47, 0x49, 0x46, 0x38], offset: 0 },
+  webp: { bytes: [0x52, 0x49, 0x46, 0x46], offset: 0, secondary: { bytes: [0x57, 0x45, 0x42, 0x50], offset: 8 } },
+};
+
+const CONTENT_TYPE_TO_FORMAT = {
+  "image/jpeg": "jpeg",
+  "image/jpg": "jpeg",
+  "image/png": "png",
+  "image/gif": "gif",
+  "image/webp": "webp",
+};
+
+const EXT_TO_FORMAT = {
+  jpg: "jpeg",
+  jpeg: "jpeg",
+  png: "png",
+  gif: "gif",
+  webp: "webp",
+};
+
+function detectMagicFormat(buffer) {
+  if (!buffer || buffer.length < 12) return null;
+
+  for (const [format, sig] of Object.entries(MAGIC_BYTES)) {
+    const primary = sig.bytes.every((b, i) => buffer[sig.offset + i] === b);
+    if (!primary) continue;
+
+    if (sig.secondary) {
+      const secondary = sig.secondary.bytes.every((b, i) => buffer[sig.secondary.offset + i] === b);
+      if (!secondary) continue;
+    }
+    return format;
+  }
+  return null;
+}
+
+function logSuspiciousUpload(details) {
+  console.warn("[MEDIA SECURITY]", JSON.stringify({
+    timestamp: new Date().toISOString(),
+    ...details,
+  }));
+}
+
+export function validateUpload(buffer, claimedContentType, filename) {
+  const errors = [];
+
+  const detectedFormat = detectMagicFormat(buffer);
+  const claimedFormat = CONTENT_TYPE_TO_FORMAT[claimedContentType];
+
+  if (!detectedFormat) {
+    errors.push("unrecognized_format");
+    logSuspiciousUpload({
+      event: "unrecognized_magic_bytes",
+      filename,
+      claimedContentType,
+      firstBytes: buffer.slice(0, 16).toString("hex"),
+    });
+  } else if (claimedFormat && detectedFormat !== claimedFormat) {
+    errors.push("content_type_mismatch");
+    logSuspiciousUpload({
+      event: "content_type_mismatch",
+      filename,
+      claimedContentType,
+      claimedFormat,
+      detectedFormat,
+    });
+  }
+
+  if (filename) {
+    const ext = path.extname(filename).slice(1).toLowerCase();
+    const extFormat = EXT_TO_FORMAT[ext];
+    if (extFormat && detectedFormat && extFormat !== detectedFormat) {
+      errors.push("extension_mismatch");
+      logSuspiciousUpload({
+        event: "extension_mismatch",
+        filename,
+        extension: ext,
+        extFormat,
+        detectedFormat,
+      });
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    detectedFormat,
+    errors,
+  };
+}
+
+export async function validateImageDimensions(buffer) {
+  try {
+    const metadata = await sharp(buffer).metadata();
+    const { width, height } = metadata;
+
+    if (!width || !height) {
+      logSuspiciousUpload({ event: "no_dimensions", width, height });
+      return { valid: false, error: "invalid_image" };
+    }
+
+    if (width > INPUT_MAX_DIMENSION || height > INPUT_MAX_DIMENSION) {
+      logSuspiciousUpload({
+        event: "dimensions_exceeded",
+        width,
+        height,
+        max: INPUT_MAX_DIMENSION,
+      });
+      return { valid: false, error: "dimensions_exceeded", width, height };
+    }
+
+    return { valid: true, width, height };
+  } catch (err) {
+    logSuspiciousUpload({ event: "metadata_extraction_failed", error: err.message });
+    return { valid: false, error: "invalid_image" };
+  }
+}
 
 export const useLocalStorage = USE_LOCAL_STORAGE === "true" || !SPACES_ENDPOINT;
 export const localUploadDir = LOCAL_UPLOAD_DIR || path.join(process.cwd(), "../uploads");

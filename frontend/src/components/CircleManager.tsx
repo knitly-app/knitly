@@ -272,6 +272,8 @@ function CircleDetails({ circleId, onDelete }: { circleId: string; onDelete: () 
                     src={getAvatarUrl(user)}
                     alt={user.displayName}
                     className="w-8 h-8 rounded-full"
+                    loading="lazy"
+                    decoding="async"
                   />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 truncate">{user.displayName}</p>
@@ -301,6 +303,8 @@ function CircleDetails({ circleId, onDelete }: { circleId: string; onDelete: () 
                   src={getAvatarUrl(member)}
                   alt={member.displayName}
                   className="w-10 h-10 rounded-full"
+                  loading="lazy"
+                  decoding="async"
                 />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-900 truncate">{member.displayName}</p>

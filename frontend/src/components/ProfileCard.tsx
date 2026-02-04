@@ -15,6 +15,8 @@ export function ProfileCard({ user }: ProfileCardProps) {
             src={getAvatarUrl(user)}
             alt={user.displayName}
             className="w-14 h-14 rounded-full border-2 border-white shadow-sm"
+            loading="lazy"
+            decoding="async"
           />
         </Link>
         <div className="flex-1 min-w-0">

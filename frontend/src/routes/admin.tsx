@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from '@tansta
 import { Link, useSearch } from '@tanstack/react-router'
 import { ArrowLeft, Users, FileText, Mail, TrendingUp, Copy, Ban, Plus, Search, Trash2, ShieldOff } from 'lucide-preact'
 import { admin, invites as invitesApi } from '../api/endpoints'
-import { Spinner } from '../components/Spinner'
+import { AdminTableSkeleton } from '../components/Skeleton'
 import { getAvatarUrl } from '../utils/avatar'
 import { useToast } from '../components/Toast'
 import { useConfirm } from '../components/ConfirmModal'
@@ -458,9 +458,7 @@ export function AdminRoute() {
         </div>
 
         {invitesLoading ? (
-          <div className="flex items-center justify-center py-10">
-            <Spinner size="sm" />
-          </div>
+          <AdminTableSkeleton count={3} />
         ) : inviteItems.length === 0 ? (
           <div className="py-10 text-center text-gray-400 text-sm">No invites yet</div>
         ) : filteredInvites.length === 0 ? (
@@ -576,9 +574,7 @@ export function AdminRoute() {
         </div>
 
         {usersLoading ? (
-          <div className="flex items-center justify-center py-10">
-            <Spinner size="sm" />
-          </div>
+          <AdminTableSkeleton count={5} />
         ) : memberItems.length === 0 ? (
           <div className="py-10 text-center text-gray-400 text-sm">No members yet</div>
         ) : filteredMembers.length === 0 ? (
@@ -608,6 +604,8 @@ export function AdminRoute() {
                       src={getAvatarUrl(member)}
                       alt={member.displayName}
                       className="w-11 h-11 rounded-full"
+                      loading="lazy"
+                      decoding="async"
                     />
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
@@ -741,6 +739,8 @@ export function AdminRoute() {
                               src={getAvatarUrl(member)}
                               alt={member.displayName}
                               className="w-8 h-8 rounded-full"
+                              loading="lazy"
+                              decoding="async"
                             />
                             <div className="min-w-0">
                               <p className="text-sm font-medium text-gray-900 truncate">{member.displayName}</p>
@@ -798,9 +798,7 @@ export function AdminRoute() {
           </div>
 
           {moderationLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <Spinner size="sm" />
-            </div>
+            <AdminTableSkeleton count={5} />
           ) : moderationItems.length === 0 ? (
             <div className="py-10 text-center text-gray-400 text-sm">
               {normalizedModerationQuery ? 'No matches found' : 'Nothing to review'}
@@ -820,6 +818,8 @@ export function AdminRoute() {
                             src={getAvatarUrl({ id: item.author.id, avatar: item.author.avatar })}
                             alt={item.author.displayName}
                             className="w-9 h-9 rounded-full"
+                            loading="lazy"
+                            decoding="async"
                           />
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
@@ -901,9 +901,7 @@ export function AdminRoute() {
           </div>
 
           {auditLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <Spinner size="sm" />
-            </div>
+            <AdminTableSkeleton count={5} />
           ) : auditItems.length === 0 ? (
             <div className="py-10 text-center text-gray-400 text-sm">No audit entries</div>
           ) : (

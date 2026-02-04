@@ -18,4 +18,20 @@ export default defineConfig({
       'react-dom': 'preact/compat',
     },
   },
+  build: {
+    target: 'esnext',
+    minify: 'esbuild',
+    cssMinify: true,
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-preact': ['preact', 'preact/compat', 'preact/hooks'],
+          'vendor-router': ['@tanstack/react-router'],
+          'vendor-query': ['@tanstack/react-query'],
+          'vendor-state': ['zustand'],
+        },
+      },
+    },
+  },
 })

@@ -261,5 +261,24 @@
       "replaceAll": false
     },
     "tool_use_id": "toolu_01YTz4sE8AjnDBUzB7cQCsYc"
+  },
+  {
+    "session_id": "321f1109-1d7c-475b-913a-6870ae7d94d6",
+    "transcript_path": "/home/mikekey/.claude/projects/-home-mikekey-Projects-knitly/321f1109-1d7c-475b-913a-6870ae7d94d6.jsonl",
+    "cwd": "/home/mikekey/Projects/knitly/server",
+    "permission_mode": "acceptEdits",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "cd /home/mikekey/Projects/knitly/server && bun run lint",
+      "description": "Run server lint"
+    },
+    "tool_response": {
+      "stdout": "     \ue21e  bun.lock \n     \ue74e  eslint.config.js \n     \uf115  logs/\n     \ue718  node_modules/\n     \ue60b  package.json \n     \uf115  src/\n     \uf115  tests/\n$ eslint .",
+      "stderr": "",
+      "interrupted": false,
+      "isImage": false
+    },
+    "tool_use_id": "toolu_01WUFaArastx62ZCYB1Kvgzj"
   }
 ]

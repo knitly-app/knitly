@@ -5,8 +5,12 @@ import { dbUtils } from "../lib/db.js";
 import { hashPassword, verifyPassword } from "../lib/security.js";
 import { COOKIE_NAME, COOKIE_OPTIONS } from "../lib/constants.js";
 import { logError } from "../lib/logging.js";
+import { authRateLimit } from "../middleware/rateLimit.js";
 
 export const authRouter = new Hono();
+
+authRouter.use("/login", authRateLimit);
+authRouter.use("/signup", authRateLimit);
 
 const SignupSchema = z.object({
   email: z.string().email(),

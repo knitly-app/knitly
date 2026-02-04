@@ -135,5 +135,6 @@ usersRouter.get("/:id/posts", optionalAuth, async (c) => {
   if (!userId) return c.json({ error: "Not found" }, 404);
 
   const posts = dbUtils.getUserPosts(userId, 50, currentUser?.id ?? null);
-  return c.json(posts.map(p => formatPost(p, currentUser ? dbUtils.getUserReaction(currentUser.id, p.id) : null)));
+  const reactionsMap = currentUser ? dbUtils.getUserReactionsMap(currentUser.id, posts.map(p => p.id)) : new Map();
+  return c.json(posts.map(p => formatPost(p, reactionsMap.get(p.id) ?? null)));
 });

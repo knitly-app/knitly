@@ -4,6 +4,8 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { useLocalStorage } from "./lib/media.js";
 import { logInfo } from "./lib/logging.js";
+import { securityHeaders } from "./middleware/security.js";
+import { generalRateLimit } from "./middleware/rateLimit.js";
 
 import { authRouter } from "./routes/auth.js";
 import { usersRouter } from "./routes/users.js";
@@ -21,6 +23,8 @@ export function createApp() {
   const app = new Hono();
 
   app.use("*", logger());
+  app.use("*", securityHeaders);
+  app.use("/api/*", generalRateLimit);
   app.use(
     "/api/*",
     cors({
@@ -28,7 +32,8 @@ export function createApp() {
         if (process.env.NODE_ENV !== "production") {
           return origin || "*";
         }
-        return origin;
+        const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [];
+        return allowedOrigins.includes(origin) ? origin : null;
       },
       credentials: true,
     })

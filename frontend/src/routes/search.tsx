@@ -5,7 +5,7 @@ import { Search as SearchIcon } from 'lucide-preact'
 import { search as searchApi } from '../api/endpoints'
 import { ProfileCard } from '../components/ProfileCard'
 import { PostCard } from '../components/PostCard'
-import { Spinner } from '../components/Spinner'
+import { ProfileCardSkeleton, PostCardSkeleton } from '../components/Skeleton'
 import { useReaction } from '../hooks/usePosts'
 import { useUIStore } from '../stores/ui'
 
@@ -69,8 +69,10 @@ export function SearchRoute() {
         mode === 'people' ? (
           <div className="space-y-4">
             {isLoading ? (
-              <div className="flex items-center justify-center py-10">
-                <Spinner size="sm" />
+              <div className="space-y-4">
+                <ProfileCardSkeleton />
+                <ProfileCardSkeleton />
+                <ProfileCardSkeleton />
               </div>
             ) : users?.length === 0 ? (
               <div className="text-center py-10">
@@ -85,8 +87,9 @@ export function SearchRoute() {
         ) : (
           <div className="space-y-6">
             {postsLoading ? (
-              <div className="flex items-center justify-center py-10">
-                <Spinner size="sm" />
+              <div className="space-y-6">
+                <PostCardSkeleton />
+                <PostCardSkeleton showMedia />
               </div>
             ) : posts?.length === 0 ? (
               <div className="text-center py-10">
