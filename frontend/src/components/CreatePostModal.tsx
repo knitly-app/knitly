@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'preact/hooks'
-import { X, ImagePlus } from 'lucide-preact'
+import { X, ImagePlus, Video } from 'lucide-preact'
 import { useCreatePost } from '../hooks/usePosts'
 import { useCircles } from '../hooks/useCircles'
 import { media as mediaApi, type MediaItem } from '../api/endpoints'
@@ -10,14 +10,17 @@ interface CreatePostModalProps {
   onClose: () => void
 }
 
+type MediaMode = 'none' | 'photos' | 'video'
+
 export function CreatePostModal({ onClose }: CreatePostModalProps) {
   const [content, setContent] = useState('')
+  const [mediaMode, setMediaMode] = useState<MediaMode>('none')
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
   const [isUploading, setIsUploading] = useState(false)
-  const [isDragging, setIsDragging] = useState(false)
   const [selectedCircleId, setSelectedCircleId] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
+  const videoInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const createPost = useCreatePost()
   const { data: circles = [] } = useCircles()
@@ -33,38 +36,38 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
     }
   }, [previews])
 
-  const handleFiles = (files: FileList | File[]) => {
-    const fileArray = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, 6)
-    if (fileArray.length === 0) return
+  const handlePhotoSelect = (files: FileList | null) => {
+    if (!files) return
+    const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, 6)
+    if (imageFiles.length === 0) return
 
     previews.forEach((url) => URL.revokeObjectURL(url))
-    const combined = [...selectedFiles, ...fileArray].slice(0, 6)
-    setSelectedFiles(combined)
-    setPreviews(combined.map((file) => URL.createObjectURL(file)))
+    setSelectedFiles(imageFiles)
+    setPreviews(imageFiles.map((file) => URL.createObjectURL(file)))
+    setMediaMode('photos')
   }
 
-  const handleDrop = (e: DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-    if (e.dataTransfer?.files) {
-      handleFiles(e.dataTransfer.files)
+  const handleVideoSelect = (files: FileList | null) => {
+    if (!files || files.length === 0) return
+    const videoFile = Array.from(files).find(f => f.type.startsWith('video/'))
+    if (!videoFile) return
+
+    if (videoFile.size > 50 * 1024 * 1024) {
+      toast.error('Video too large (max 50MB)')
+      return
     }
+
+    previews.forEach((url) => URL.revokeObjectURL(url))
+    setSelectedFiles([videoFile])
+    setPreviews([URL.createObjectURL(videoFile)])
+    setMediaMode('video')
   }
 
-  const handleDragOver = (e: DragEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }
-
-  const handleDragLeave = (e: DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-  }
-
-  const removeImage = (index: number) => {
-    URL.revokeObjectURL(previews[index])
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index))
-    setPreviews(prev => prev.filter((_, i) => i !== index))
+  const clearMedia = () => {
+    previews.forEach((url) => URL.revokeObjectURL(url))
+    setSelectedFiles([])
+    setPreviews([])
+    setMediaMode('none')
   }
 
   const handleSubmit = async () => {
@@ -78,14 +81,14 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
         uploadedMedia = await Promise.all(
           selectedFiles.map(async (file) => {
             const presign = await mediaApi.presign({
-              contentType: file.type || 'image/jpeg',
+              contentType: file.type || (mediaMode === 'video' ? 'video/mp4' : 'image/jpeg'),
               size: file.size,
             })
 
             await fetch(presign.uploadUrl, {
               method: 'PUT',
               body: file,
-              headers: { 'Content-Type': file.type || 'image/jpeg' },
+              headers: { 'Content-Type': file.type },
             })
 
             return mediaApi.complete({ key: presign.key })
@@ -100,8 +103,9 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
       })
       toast.success('Moment shared')
       onClose()
-    } catch {
-      toast.error('Failed to share moment')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to share moment'
+      toast.error(message)
     } finally {
       setIsUploading(false)
     }
@@ -121,9 +125,7 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
           </button>
           <h2 className="text-lg font-bold text-gray-900">New Moment</h2>
           <button
-            onClick={() => {
-              void handleSubmit()
-            }}
+            onClick={() => { void handleSubmit() }}
             disabled={!canSubmit}
             className="px-5 py-2 bg-accent-500 text-white rounded-full text-sm font-bold disabled:opacity-40 hover:bg-accent-600 transition-colors"
           >
@@ -150,47 +152,78 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
             className="w-full text-lg text-gray-800 placeholder-gray-400 resize-none focus:outline-none min-h-[120px]"
           />
 
-          {previews.length > 0 && (
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {previews.map((url, idx) => (
-                <div key={url} className="relative aspect-square rounded-xl overflow-hidden bg-gray-100">
-                  <img src={url} alt="" className="w-full h-full object-cover" />
-                  <button
-                    onClick={() => removeImage(idx)}
-                    className="absolute top-1 right-1 p-1 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ))}
+          {mediaMode === 'photos' && previews.length > 0 && (
+            <div className="relative mb-4">
+              <button
+                onClick={clearMedia}
+                className="absolute -top-2 -right-2 z-10 p-1 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+              >
+                <X size={16} />
+              </button>
+              <div className="grid grid-cols-3 gap-2 rounded-xl overflow-hidden">
+                {previews.map((url) => (
+                  <div key={url} className="relative aspect-square bg-gray-100">
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
-          <div
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-colors ${
-              isDragging
-                ? 'border-accent-400 bg-accent-50'
-                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={(e) => handleFiles((e.target as HTMLInputElement).files || [])}
-            />
-            <ImagePlus size={32} className={`mx-auto mb-2 ${isDragging ? 'text-accent-500' : 'text-gray-400'}`} />
-            <p className={`text-sm font-medium ${isDragging ? 'text-accent-600' : 'text-gray-500'}`}>
-              {isDragging ? 'Drop photos here' : 'Add photos'}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">Drag & drop or click to select</p>
-          </div>
+          {mediaMode === 'video' && previews.length > 0 && (
+            <div className="relative mb-4">
+              <button
+                onClick={clearMedia}
+                className="absolute top-2 right-2 z-10 p-1 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+              >
+                <X size={16} />
+              </button>
+              <video
+                src={previews[0]}
+                className="w-full rounded-xl max-h-64 bg-black"
+                controls
+                playsInline
+              />
+            </div>
+          )}
+
+          {mediaMode === 'none' && (
+            <div className="border-t border-gray-100 pt-4 mt-4">
+              <p className="text-sm text-gray-500 mb-3">Add to your moment</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => photoInputRef.current?.click()}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 hover:border-accent-300 hover:bg-accent-50 transition-colors text-gray-600 hover:text-accent-600"
+                >
+                  <ImagePlus size={20} />
+                  <span className="text-sm font-medium">Photos</span>
+                </button>
+                <button
+                  onClick={() => videoInputRef.current?.click()}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 hover:border-accent-300 hover:bg-accent-50 transition-colors text-gray-600 hover:text-accent-600"
+                >
+                  <Video size={20} />
+                  <span className="text-sm font-medium">Video</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => handlePhotoSelect((e.target as HTMLInputElement).files)}
+          />
+          <input
+            ref={videoInputRef}
+            type="file"
+            accept="video/*"
+            className="hidden"
+            onChange={(e) => handleVideoSelect((e.target as HTMLInputElement).files)}
+          />
         </div>
       </div>
     </div>
