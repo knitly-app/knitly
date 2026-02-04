@@ -1,0 +1,18 @@
+[
+  {
+    "session_id": "4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f",
+    "transcript_path": "/home/mikekey/.claude/projects/-home-mikekey-Projects-knitly/4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f.jsonl",
+    "cwd": "/home/mikekey/Projects/knitly/server",
+    "permission_mode": "acceptEdits",
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "Did we UPDATE the TODO with this"
+  },
+  {
+    "session_id": "4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f",
+    "transcript_path": "/home/mikekey/.claude/projects/-home-mikekey-Projects-knitly/4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f.jsonl",
+    "cwd": "/home/mikekey/Projects/knitly/server",
+    "permission_mode": "acceptEdits",
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "Evaluate the TODO and the current app state, what is left? Also check the README - incase I'm forgetting something"
+  }
+]

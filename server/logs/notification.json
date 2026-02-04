@@ -6,5 +6,29 @@
     "hook_event_name": "Notification",
     "message": "Claude is waiting for your input",
     "notification_type": "idle_prompt"
+  },
+  {
+    "session_id": "4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f",
+    "transcript_path": "/home/mikekey/.claude/projects/-home-mikekey-Projects-knitly/4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f.jsonl",
+    "cwd": "/home/mikekey/Projects/knitly/server",
+    "hook_event_name": "Notification",
+    "message": "Claude is waiting for your input",
+    "notification_type": "idle_prompt"
+  },
+  {
+    "session_id": "4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f",
+    "transcript_path": "/home/mikekey/.claude/projects/-home-mikekey-Projects-knitly/4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f.jsonl",
+    "cwd": "/home/mikekey/Projects/knitly/server",
+    "hook_event_name": "Notification",
+    "message": "Claude is waiting for your input",
+    "notification_type": "idle_prompt"
+  },
+  {
+    "session_id": "4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f",
+    "transcript_path": "/home/mikekey/.claude/projects/-home-mikekey-Projects-knitly/4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f.jsonl",
+    "cwd": "/home/mikekey/Projects/knitly/server",
+    "hook_event_name": "Notification",
+    "message": "Claude is waiting for your input",
+    "notification_type": "idle_prompt"
   }
 ]

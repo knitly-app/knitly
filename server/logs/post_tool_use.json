@@ -299,5 +299,108 @@
       "isImage": false
     },
     "tool_use_id": "toolu_01NURcHPask3nis3EBZTiJJE"
+  },
+  {
+    "session_id": "4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f",
+    "transcript_path": "/home/mikekey/.claude/projects/-home-mikekey-Projects-knitly/4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f.jsonl",
+    "cwd": "/home/mikekey/Projects/knitly/server",
+    "permission_mode": "acceptEdits",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "cd /home/mikekey/Projects/knitly/server && timeout 5 bun run dev 2>&1 || true",
+      "description": "Quick server start test"
+    },
+    "tool_response": {
+      "stdout": "     \ue21e  bun.lock \n     \ue74e  eslint.config.js \n     \uf115  logs/\n     \ue718  node_modules/\n     \ue60b  package.json \n     \uf115  src/\n     \uf115  tests/\n$ bun run src/index.js\nServer running on port 3000.\nLocal uploads enabled.\n46 |     }\n47 |   }\n48 |   let er;\n49 |   if (args.length > 0)\n50 |     er = args[0];\n51 |     throw er;\n                 ^\nerror: Failed to start server. Is port 3000 in use?\n      at emitError (node:events:51:13)\n\nBun v1.3.8 (Linux x64)\nerror: script \"dev\" exited with code 1",
+      "stderr": "",
+      "interrupted": false,
+      "isImage": false
+    },
+    "tool_use_id": "toolu_01T5M5wE5r64g2MmBQef6xyE"
+  },
+  {
+    "session_id": "4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f",
+    "transcript_path": "/home/mikekey/.claude/projects/-home-mikekey-Projects-knitly/4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f.jsonl",
+    "cwd": "/home/mikekey/Projects/knitly/server",
+    "permission_mode": "acceptEdits",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+      "file_path": "/home/mikekey/Projects/knitly/TODO.md"
+    },
+    "tool_response": {
+      "type": "text",
+      "file": {
+        "filePath": "/home/mikekey/Projects/knitly/TODO.md",
+        "content": "# Knitly TODO\n\n## Project Status: MVP Complete\n\nCore social features working: posts, comments, reactions, circles, notifications, search, admin panel with customization. Ready for UX polish and feature expansion.\n\n---\n\n## UX Polish\n\n- [x] **Image lightbox** \u2014 Click to view images larger, swipe through galleries\n- [ ] **Loading skeletons** \u2014 Replace spinners with content placeholders\n- [x] ~~Invite validation bug~~ \u2014 removed inviter line entirely\n\n## Feature Expansion\n\n### Media\n- [ ] **Video uploads** \u2014 Extend presigned upload flow to support video formats\n- [ ] **Profile header image** \u2014 Custom banner/cover photo for profiles\n- [ ] **Shared albums** \u2014 Collaborative photo collections\n\n### Profile\n- [x] **Header/cover image upload** \u2014 Replace gradient with custom image\n- [ ] **Profile theme colors** \u2014 Let users pick accent color\n\n### Content\n- [ ] **@ mentions** \u2014 Tag users in posts/comments\n- [ ] **Link previews** \u2014 Unfurl URLs with Open Graph data\n\n### Account\n- [ ] **Password reset** \u2014 Email-based recovery flow\n- [ ] **Account deletion** \u2014 Self-service with confirmation\n\n---\n\n## Admin/Infrastructure\n\n- [ ] Disk usage / storage overview\n- [ ] Database backup/restore\n- [ ] Exportable archive (zip download)\n\n---\n\n## Phase 2 \u2014 Community Features\n\n- [ ] **Polls** \u2014 Simple voting on posts\n- [ ] **AMA / Ask box** \u2014 Direct questions to users (anonymous optional)\n- [ ] **Shared calendar** \u2014 Birthdays + events with RSVP\n\n---\n\n## Future Ideas (Not Planned)\n\n- Direct messaging\n- Dark mode\n- Kid-safe mode\n- Hashtags/trending\n- Post bookmarks\n\n---\n\n## Completed\n\n### Core Features\n- [x] Feed with infinite scroll\n- [x] Post creation with multi-image support (up to 6)\n- [x] Post editing and deletion\n- [x] Reactions (love, haha, hugs, celebrate)\n- [x] Comments with threading\n- [x] Notifications (reactions, comments, follows)\n- [x] User profiles with avatar upload\n- [x] Profile editing (bio, location, website)\n- [x] Circles for audience control\n- [x] Circle-filtered posting\n- [x] Search (users + posts)\n- [x] Member directory\n\n### Admin Panel\n- [x] Stats overview\n- [x] User management (disable, promote, demote, remove)\n- [x] Invite management (create, revoke)\n- [x] Content moderation (delete posts/comments)\n- [x] Audit log\n- [x] Ownership transfer\n- [x] Session revocation\n- [x] Customize tab (app name + logo icon)\n\n### Polish\n- [x] Share link functionality\n- [x] Avatar upload with compression\n- [x] Error boundary with friendly UI\n- [x] Back buttons use browser history\n- [x] Feed shows all posts (no follow filter)\n- [x] Removed followers/following from UI\n- [x] Removed member invite UI\n- [x] Markdown support for posts/comments (`**bold**`, `*italic*`)\n\n### Security & Performance (120 Users Optimization)\n- [x] Rate limiting (auth: 5/min, search: 20/min, API: 100/min)\n- [x] Security headers (CSP, HSTS, X-Frame-Options, etc.)\n- [x] XSS sanitization on posts, comments, search\n- [x] File upload hardening (magic byte validation, dimension limits)\n- [x] Session cleanup script\n- [x] N+1 query fixes (feed, user posts, search)\n- [x] Database indexes for common queries\n- [x] Frontend bundle optimization (lazy routes, vendor splitting)\n- [x] Image lazy loading (16 images)\n- [x] TanStack Query caching (staleTime/gcTime)\n- [x] Error boundaries with graceful fallbacks\n- [x] Unit tests for new security/perf code\n",
+        "numLines": 111,
+        "startLine": 1,
+        "totalLines": 111
+      }
+    },
+    "tool_use_id": "toolu_017Kxx7ERxniANsrLbLJNZeE"
+  },
+  {
+    "session_id": "4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f",
+    "transcript_path": "/home/mikekey/.claude/projects/-home-mikekey-Projects-knitly/4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f.jsonl",
+    "cwd": "/home/mikekey/Projects/knitly/server",
+    "permission_mode": "acceptEdits",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+      "file_path": "/home/mikekey/Projects/knitly/TODO.md",
+      "old_string": "### Core Features\n- [x] Feed with infinite scroll\n- [x] Post creation with multi-image support (up to 6)\n- [x] Post editing and deletion\n- [x] Reactions (love, haha, hugs, celebrate)\n- [x] Comments with threading\n- [x] Notifications (reactions, comments, follows)\n- [x] User profiles with avatar upload\n- [x] Profile editing (bio, location, website)\n- [x] Circles for audience control\n- [x] Circle-filtered posting\n- [x] Search (users + posts)\n- [x] Member directory",
+      "new_string": "### Core Features\n- [x] Feed with infinite scroll\n- [x] Post creation with multi-image support (up to 6)\n- [x] Post editing and deletion\n- [x] Reactions (love, haha, hugs, celebrate)\n- [x] Comments with threading\n- [x] Notifications (reactions, comments, follows)\n- [x] User profiles with avatar upload\n- [x] Profile editing (bio, location, website)\n- [x] Circles for audience control\n- [x] Circle-filtered posting\n- [x] Search (users + posts)\n- [x] Member directory\n- [x] The Lobby \u2014 ephemeral group chat (IRC/AOL vibes, polling-based, 24h TTL)",
+      "replace_all": false
+    },
+    "tool_response": {
+      "filePath": "/home/mikekey/Projects/knitly/TODO.md",
+      "oldString": "### Core Features\n- [x] Feed with infinite scroll\n- [x] Post creation with multi-image support (up to 6)\n- [x] Post editing and deletion\n- [x] Reactions (love, haha, hugs, celebrate)\n- [x] Comments with threading\n- [x] Notifications (reactions, comments, follows)\n- [x] User profiles with avatar upload\n- [x] Profile editing (bio, location, website)\n- [x] Circles for audience control\n- [x] Circle-filtered posting\n- [x] Search (users + posts)\n- [x] Member directory",
+      "newString": "### Core Features\n- [x] Feed with infinite scroll\n- [x] Post creation with multi-image support (up to 6)\n- [x] Post editing and deletion\n- [x] Reactions (love, haha, hugs, celebrate)\n- [x] Comments with threading\n- [x] Notifications (reactions, comments, follows)\n- [x] User profiles with avatar upload\n- [x] Profile editing (bio, location, website)\n- [x] Circles for audience control\n- [x] Circle-filtered posting\n- [x] Search (users + posts)\n- [x] Member directory\n- [x] The Lobby \u2014 ephemeral group chat (IRC/AOL vibes, polling-based, 24h TTL)",
+      "originalFile": "# Knitly TODO\n\n## Project Status: MVP Complete\n\nCore social features working: posts, comments, reactions, circles, notifications, search, admin panel with customization. Ready for UX polish and feature expansion.\n\n---\n\n## UX Polish\n\n- [x] **Image lightbox** \u2014 Click to view images larger, swipe through galleries\n- [ ] **Loading skeletons** \u2014 Replace spinners with content placeholders\n- [x] ~~Invite validation bug~~ \u2014 removed inviter line entirely\n\n## Feature Expansion\n\n### Media\n- [ ] **Video uploads** \u2014 Extend presigned upload flow to support video formats\n- [ ] **Profile header image** \u2014 Custom banner/cover photo for profiles\n- [ ] **Shared albums** \u2014 Collaborative photo collections\n\n### Profile\n- [x] **Header/cover image upload** \u2014 Replace gradient with custom image\n- [ ] **Profile theme colors** \u2014 Let users pick accent color\n\n### Content\n- [ ] **@ mentions** \u2014 Tag users in posts/comments\n- [ ] **Link previews** \u2014 Unfurl URLs with Open Graph data\n\n### Account\n- [ ] **Password reset** \u2014 Email-based recovery flow\n- [ ] **Account deletion** \u2014 Self-service with confirmation\n\n---\n\n## Admin/Infrastructure\n\n- [ ] Disk usage / storage overview\n- [ ] Database backup/restore\n- [ ] Exportable archive (zip download)\n\n---\n\n## Phase 2 \u2014 Community Features\n\n- [ ] **Polls** \u2014 Simple voting on posts\n- [ ] **AMA / Ask box** \u2014 Direct questions to users (anonymous optional)\n- [ ] **Shared calendar** \u2014 Birthdays + events with RSVP\n\n---\n\n## Future Ideas (Not Planned)\n\n- Direct messaging\n- Dark mode\n- Kid-safe mode\n- Hashtags/trending\n- Post bookmarks\n\n---\n\n## Completed\n\n### Core Features\n- [x] Feed with infinite scroll\n- [x] Post creation with multi-image support (up to 6)\n- [x] Post editing and deletion\n- [x] Reactions (love, haha, hugs, celebrate)\n- [x] Comments with threading\n- [x] Notifications (reactions, comments, follows)\n- [x] User profiles with avatar upload\n- [x] Profile editing (bio, location, website)\n- [x] Circles for audience control\n- [x] Circle-filtered posting\n- [x] Search (users + posts)\n- [x] Member directory\n\n### Admin Panel\n- [x] Stats overview\n- [x] User management (disable, promote, demote, remove)\n- [x] Invite management (create, revoke)\n- [x] Content moderation (delete posts/comments)\n- [x] Audit log\n- [x] Ownership transfer\n- [x] Session revocation\n- [x] Customize tab (app name + logo icon)\n\n### Polish\n- [x] Share link functionality\n- [x] Avatar upload with compression\n- [x] Error boundary with friendly UI\n- [x] Back buttons use browser history\n- [x] Feed shows all posts (no follow filter)\n- [x] Removed followers/following from UI\n- [x] Removed member invite UI\n- [x] Markdown support for posts/comments (`**bold**`, `*italic*`)\n\n### Security & Performance (120 Users Optimization)\n- [x] Rate limiting (auth: 5/min, search: 20/min, API: 100/min)\n- [x] Security headers (CSP, HSTS, X-Frame-Options, etc.)\n- [x] XSS sanitization on posts, comments, search\n- [x] File upload hardening (magic byte validation, dimension limits)\n- [x] Session cleanup script\n- [x] N+1 query fixes (feed, user posts, search)\n- [x] Database indexes for common queries\n- [x] Frontend bundle optimization (lazy routes, vendor splitting)\n- [x] Image lazy loading (16 images)\n- [x] TanStack Query caching (staleTime/gcTime)\n- [x] Error boundaries with graceful fallbacks\n- [x] Unit tests for new security/perf code\n",
+      "structuredPatch": [
+        {
+          "oldStart": 74,
+          "oldLines": 6,
+          "newStart": 74,
+          "newLines": 7,
+          "lines": [
+            " - [x] Circle-filtered posting",
+            " - [x] Search (users + posts)",
+            " - [x] Member directory",
+            "+- [x] The Lobby \u2014 ephemeral group chat (IRC/AOL vibes, polling-based, 24h TTL)",
+            " ",
+            " ### Admin Panel",
+            " - [x] Stats overview"
+          ]
+        }
+      ],
+      "userModified": false,
+      "replaceAll": false
+    },
+    "tool_use_id": "toolu_01Y8jrxQvSGXzxamWnhGsCtp"
+  },
+  {
+    "session_id": "4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f",
+    "transcript_path": "/home/mikekey/.claude/projects/-home-mikekey-Projects-knitly/4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f.jsonl",
+    "cwd": "/home/mikekey/Projects/knitly/server",
+    "permission_mode": "acceptEdits",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Read",
+    "tool_input": {
+      "file_path": "/home/mikekey/Projects/knitly/README.md"
+    },
+    "tool_response": {
+      "type": "text",
+      "file": {
+        "filePath": "/home/mikekey/Projects/knitly/README.md",
+        "content": "# Knitly\n\n> A private social network for small, trusted circles.\n> Self-hosted. Invite-only. No algorithms. No strangers.\n\nKnitly is a lightweight social app designed for families and small communities who want to share life without surveillance, ads, or public feeds.\n\nThink early social media \u2014 before it became a performance platform.\nChronological timeline. Simple profiles. Moments with friends.\n\nNo growth hacks. No infinite scroll psychology.\nJust your people.\n\n---\n\n## Philosophy\n\nModern social media optimized for scale, not humans. Knitly scales back to human size.\n\nEach instance is a closed network for ~120 people \u2014 roughly the size of a real-world social circle. If you're not invited, it doesn't exist.\n\n**Knitly is:**\n- a private timeline for friends & family\n- a shared memory space\n- a calm alternative to algorithmic feeds\n- infrastructure for trusted communities\n\n**Knitly is not:**\n- a public social network\n- an influencer platform\n- an ad network\n- a discovery feed\n- a dopamine machine\n\nFriction is a feature. The goal is intimacy, not scale.\n\n---\n\n## Features\n\n### Moments\n- Text posts with photo attachments\n- Chronological feed (no algorithm)\n- Likes and comments\n- Edit/delete your own content\n- Clean media gallery\n\n### Profiles\n- Simple bio (name, avatar, short text, link)\n- Posts and media tabs\n- Follow/unfollow inside the network\n\n### Network\n- Invite-only membership\n- Closed internal directory\n- No public access or guest viewing\n\n### Notifications\n- Likes and comments on your moments\n- In-app only (no spam)\n\n### Admin\n- Generate invite links\n- View/remove members\n- Backup and restore database\n\n---\n\n## Tech Stack\n\n| Layer | Tech |\n|-------|------|\n| Backend | Bun + Hono |\n| Database | SQLite |\n| Frontend | Preact + TanStack Query/Router |\n| Styling | Tailwind v4 |\n| Storage | S3-compatible (or local filesystem) |\n| Auth | Session cookies |\n\nIntentionally simple to deploy and maintain.\n\n---\n\n## Quick Start\n\n```bash\ngit clone https://github.com/yourname/knitly\ncd knitly\nbun install\nbun run dev\n```\n\n- Frontend: http://localhost:5173\n- API: http://localhost:3000\n\n### Seed Data\n\n```bash\nbun --cwd server run seed      # production seed\nbun --cwd server run seed:dev  # with test data\n```\n\nDefault admin: `mike@mk3y.com` / `password123`\n\n---\n\n## Configuration\n\n### Local Development\n\nDefaults work out of the box. Override if needed:\n\n| Variable | Default | Purpose |\n|----------|---------|---------|\n| `DATABASE_PATH` | `../circles.db` | SQLite location |\n| `PORT` | `3000` | API server port |\n| `USE_LOCAL_STORAGE` | `true` | Store uploads locally |\n| `LOCAL_UPLOAD_DIR` | `../uploads` | Local media directory |\n| `BASE_URL` | `http://localhost:3000` | Public URL for media |\n\n### Production (S3/Spaces)\n\nRequired: `SPACES_ENDPOINT`, `SPACES_REGION`, `SPACES_BUCKET`, `SPACES_KEY`, `SPACES_SECRET`\n\nOptional: `SPACES_PUBLIC_URL`, `MAX_UPLOAD_BYTES`, `MEDIA_MAX_DIMENSION`, `MEDIA_QUALITY`\n\n---\n\n## Deployment\n\nRuns comfortably on:\n- a small VPS\n- a home server\n- a Raspberry Pi\n- Docker\n- any Linux box\n\nRecommended:\n- SQLite backups enabled\n- Object storage for photos\n- HTTPS via reverse proxy\n\nFull deployment guide: [docs/deploy.md](docs/deploy.md)\n\n---\n\n## Data Ownership\n\nYou own your instance. You own your media. You own your memories.\n\n- Exportable backups\n- Portable database\n- Media archive access\n\nYou are never locked in.\n\n---\n\n## Tests\n\n```bash\nbun test server/tests         # API tests\nbun --cwd frontend run test   # Frontend tests\n```\n\n---\n\n## Roadmap\n\n- Video moments\n- Shared albums\n- Yearly memories\n- Sub-circles (groups inside networks)\n- Improved admin tools\n- Mobile polish\n\n---\n\n## Docs\n\n- [Design Doc](docs/plans/2026-02-01-knitly-design.md)\n- [Testing Strategy](docs/testing.md)\n\n---\n\n## Contributing\n\nPull requests welcome.\n\nIf you believe social software should feel human again, you're in the right place.\n\n---\n\n## License\n\nMIT\n\n---\n\nKnitly is a digital living room.\n\nA place for the people you trust.\nA network that belongs to you.\nA timeline that moves at the speed of real life.\n\nWelcome home.\n",
+        "numLines": 207,
+        "startLine": 1,
+        "totalLines": 207
+      }
+    },
+    "tool_use_id": "toolu_01QLqMSFNZEmBeQvqhbXDsKj"
   }
 ]

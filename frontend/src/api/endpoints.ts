@@ -264,6 +264,35 @@ export const admin = {
   revokeUserSessions: (id: string) => api.post<{ success: true; id: string }>(`/admin/users/${id}/revoke-sessions`),
 }
 
+export interface ChatMessage {
+  id: string
+  userId: string
+  username: string
+  displayName: string
+  avatar?: string
+  content: string
+  createdAt: string
+}
+
+export interface ChatPresenceResponse {
+  online: number
+  users: string[]
+  joins: string[]
+  leaves: string[]
+}
+
+export const chat = {
+  messages: (since?: string) => {
+    const params: Record<string, string> = {}
+    if (since) params.since = since
+    return api.get<{ messages: ChatMessage[] }>('/chat/messages', { params })
+  },
+  send: (content: string) => api.post<ChatMessage>('/chat/messages', { content }),
+  presence: () => api.post<ChatPresenceResponse>('/chat/presence'),
+  status: () => api.get<{ online: number }>('/chat/status'),
+  leave: () => api.post('/chat/leave'),
+}
+
 export const settings = {
   get: async (): Promise<{ appName: string; logoIcon: string }> => {
     const res = await fetch("/api/settings");

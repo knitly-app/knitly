@@ -1,17 +1,20 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import { Bell, Home, Plus, Settings, Shield, User, Users } from 'lucide-preact'
+import { Bell, Home, MessageCircle, Plus, Settings, Shield, User, Users } from 'lucide-preact'
 import { useAuth } from '../hooks/useAuth'
 import { useUnreadCount } from '../hooks/useNotifications'
+import { useChatStatus } from '../hooks/useChat'
 import { useUIStore } from '../stores/ui'
 
 export function Navigation() {
   const location = useLocation()
   const unreadCount = useUnreadCount()
+  const chatOnline = useChatStatus()
   const openCreatePost = useUIStore((s) => s.openCreatePost)
   const { user } = useAuth()
 
   const navLinks = [
     { to: '/' as const, label: 'Moments', icon: Home },
+    { to: '/chat' as const, label: 'Lobby', icon: MessageCircle, chatBadge: true },
     { to: '/notifications' as const, label: 'Activity', icon: Bell, badge: true },
     { to: '/members' as const, label: 'Members', icon: Users },
     { to: '/profile/$id' as const, params: { id: 'me' }, label: 'Profile', icon: User },
@@ -28,29 +31,32 @@ export function Navigation() {
   return (
     <>
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-gray-100 flex items-center justify-between px-8 z-50 safe-pb">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-gray-100 flex items-center justify-around px-4 z-50 safe-pb">
         <Link to="/" className={`p-2 transition-colors ${isActive('/') ? 'text-accent-500' : 'text-gray-400'}`}>
           <Home size={24} strokeWidth={isActive('/') ? 2.5 : 2} />
         </Link>
+
+        <Link to="/chat" className={`p-2 transition-colors relative ${isActive('/chat') ? 'text-accent-500' : 'text-gray-400'}`}>
+          <MessageCircle size={24} strokeWidth={isActive('/chat') ? 2.5 : 2} />
+          {chatOnline > 0 && (
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-green-500 rounded-full border-2 border-white" />
+          )}
+        </Link>
+
+        <div className="relative -mt-10">
+          <button
+            onClick={openCreatePost}
+            className="w-12 h-12 bg-accent-500 rounded-full shadow-xl flex items-center justify-center transition-transform transform active:scale-90 hover:bg-accent-600"
+          >
+            <Plus size={28} className="text-white" />
+          </button>
+        </div>
 
         <Link to="/notifications" className={`p-2 transition-colors relative ${isActive('/notifications') ? 'text-accent-500' : 'text-gray-400'}`}>
           <Bell size={24} strokeWidth={isActive('/notifications') ? 2.5 : 2} />
           {unreadCount > 0 && (
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-accent-500 rounded-full border-2 border-white" />
           )}
-        </Link>
-
-        <div className="relative -mt-12">
-          <button
-            onClick={openCreatePost}
-            className="w-14 h-14 bg-accent-500 rounded-full shadow-xl flex items-center justify-center transition-transform transform active:scale-90 hover:bg-accent-600"
-          >
-            <Plus size={32} className="text-white" />
-          </button>
-        </div>
-
-        <Link to="/members" className={`p-2 transition-colors ${isActive('/members') ? 'text-accent-500' : 'text-gray-400'}`}>
-          <Users size={24} strokeWidth={isActive('/members') ? 2.5 : 2} />
         </Link>
 
         <Link to="/profile/$id" params={{ id: 'me' }} className={`p-2 transition-colors ${isActive('/profile') ? 'text-accent-500' : 'text-gray-400'}`}>
@@ -82,10 +88,18 @@ export function Navigation() {
                   {link.badge && unreadCount > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-accent-500 rounded-full border-2 border-white" />
                   )}
+                  {'chatBadge' in link && link.chatBadge && chatOnline > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white" />
+                  )}
                 </div>
-                <span className={`hidden lg:inline font-semibold ${active ? 'text-accent-600' : 'text-gray-700'}`}>
-                  {link.label}
-                </span>
+                <div className="hidden lg:flex items-center gap-2">
+                  <span className={`font-semibold ${active ? 'text-accent-600' : 'text-gray-700'}`}>
+                    {link.label}
+                  </span>
+                  {'chatBadge' in link && link.chatBadge && chatOnline > 0 && (
+                    <span className="text-xs text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">{chatOnline}</span>
+                  )}
+                </div>
               </Link>
             )
           })}

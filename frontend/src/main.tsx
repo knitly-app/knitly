@@ -44,6 +44,7 @@ const MembersRoute = withSuspense(lazy(() => import('./routes/members').then((m)
 const SettingsRoute = withSuspense(lazy(() => import('./routes/settings').then((m) => ({ default: m.SettingsRoute }))))
 const AdminRoute = withSuspense(lazy(() => import('./routes/admin').then((m) => ({ default: m.AdminRoute }))))
 const CirclesRoute = withSuspense(lazy(() => import('./routes/circles').then((m) => ({ default: m.CirclesRoute }))))
+const ChatRoute = withSuspense(lazy(() => import('./routes/chat').then((m) => ({ default: m.ChatRoute }))))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -221,6 +222,12 @@ const circlesRoute = createRoute({
   component: CirclesRoute,
 })
 
+const chatRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/chat',
+  component: ChatRoute,
+})
+
 const adminRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/admin',
@@ -250,6 +257,7 @@ const routeTree = rootRoute.addChildren([
   membersRoute,
   settingsRoute,
   circlesRoute,
+  chatRoute,
   adminRoute,
 ])
 

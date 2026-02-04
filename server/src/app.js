@@ -18,6 +18,7 @@ import { adminRouter } from "./routes/admin.js";
 import { mediaRouter } from "./routes/media.js";
 import { circlesRouter } from "./routes/circles.js";
 import { settingsRouter } from "./routes/settings.js";
+import { chatRouter } from "./routes/chat.js";
 
 export function createApp() {
   const app = new Hono();
@@ -52,6 +53,7 @@ export function createApp() {
   app.route("/api/media", mediaRouter);
   app.route("/api/circles", circlesRouter);
   app.route("/api/settings", settingsRouter);
+  app.route("/api/chat", chatRouter);
 
   if (useLocalStorage) {
     app.use("/uploads/*", serveStatic({ root: "../" }));
