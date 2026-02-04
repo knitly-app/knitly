@@ -402,5 +402,142 @@
       }
     },
     "tool_use_id": "toolu_01QLqMSFNZEmBeQvqhbXDsKj"
+  },
+  {
+    "session_id": "4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f",
+    "transcript_path": "/home/mikekey/.claude/projects/-home-mikekey-Projects-knitly/4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f.jsonl",
+    "cwd": "/home/mikekey/Projects/knitly/server",
+    "permission_mode": "acceptEdits",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+      "file_path": "/home/mikekey/Projects/knitly/README.md",
+      "old_string": "## Features\n\n### Moments\n- Text posts with photo attachments\n- Chronological feed (no algorithm)\n- Likes and comments\n- Edit/delete your own content\n- Clean media gallery\n\n### Profiles\n- Simple bio (name, avatar, short text, link)\n- Posts and media tabs\n- Follow/unfollow inside the network\n\n### Network\n- Invite-only membership\n- Closed internal directory\n- No public access or guest viewing\n\n### Notifications\n- Likes and comments on your moments\n- In-app only (no spam)\n\n### Admin\n- Generate invite links\n- View/remove members\n- Backup and restore database",
+      "new_string": "## Features\n\n### Moments\n- Text posts with photo attachments (up to 6 images)\n- Chronological feed (no algorithm)\n- Reactions (love, haha, hugs, celebrate)\n- Comments with markdown support\n- Edit/delete your own content\n- Image lightbox with gallery navigation\n\n### Profiles\n- Bio, avatar, header/cover image\n- Location and website links\n- Posts and media tabs\n\n### Circles\n- Create private groups within your network\n- Share posts with specific circles only\n- Manage circle membership\n\n### The Lobby\n- Ephemeral group chat room (IRC/AOL vibes)\n- Messages disappear after 24 hours\n- See who's online, join/leave announcements\n- No chat history anxiety \u2014 conversations are fleeting\n\n### Network\n- Invite-only membership\n- Closed member directory\n- No public access or guest viewing\n\n### Notifications\n- Reactions and comments on your moments\n- In-app only (no email spam)\n\n### Admin\n- Generate and revoke invite links\n- User management (disable, promote, remove)\n- Content moderation (delete posts/comments)\n- Audit log for accountability\n- Customize app name and logo\n- Backup and restore database",
+      "replace_all": false
+    },
+    "tool_response": {
+      "filePath": "/home/mikekey/Projects/knitly/README.md",
+      "oldString": "## Features\n\n### Moments\n- Text posts with photo attachments\n- Chronological feed (no algorithm)\n- Likes and comments\n- Edit/delete your own content\n- Clean media gallery\n\n### Profiles\n- Simple bio (name, avatar, short text, link)\n- Posts and media tabs\n- Follow/unfollow inside the network\n\n### Network\n- Invite-only membership\n- Closed internal directory\n- No public access or guest viewing\n\n### Notifications\n- Likes and comments on your moments\n- In-app only (no spam)\n\n### Admin\n- Generate invite links\n- View/remove members\n- Backup and restore database",
+      "newString": "## Features\n\n### Moments\n- Text posts with photo attachments (up to 6 images)\n- Chronological feed (no algorithm)\n- Reactions (love, haha, hugs, celebrate)\n- Comments with markdown support\n- Edit/delete your own content\n- Image lightbox with gallery navigation\n\n### Profiles\n- Bio, avatar, header/cover image\n- Location and website links\n- Posts and media tabs\n\n### Circles\n- Create private groups within your network\n- Share posts with specific circles only\n- Manage circle membership\n\n### The Lobby\n- Ephemeral group chat room (IRC/AOL vibes)\n- Messages disappear after 24 hours\n- See who's online, join/leave announcements\n- No chat history anxiety \u2014 conversations are fleeting\n\n### Network\n- Invite-only membership\n- Closed member directory\n- No public access or guest viewing\n\n### Notifications\n- Reactions and comments on your moments\n- In-app only (no email spam)\n\n### Admin\n- Generate and revoke invite links\n- User management (disable, promote, remove)\n- Content moderation (delete posts/comments)\n- Audit log for accountability\n- Customize app name and logo\n- Backup and restore database",
+      "originalFile": "# Knitly\n\n> A private social network for small, trusted circles.\n> Self-hosted. Invite-only. No algorithms. No strangers.\n\nKnitly is a lightweight social app designed for families and small communities who want to share life without surveillance, ads, or public feeds.\n\nThink early social media \u2014 before it became a performance platform.\nChronological timeline. Simple profiles. Moments with friends.\n\nNo growth hacks. No infinite scroll psychology.\nJust your people.\n\n---\n\n## Philosophy\n\nModern social media optimized for scale, not humans. Knitly scales back to human size.\n\nEach instance is a closed network for ~120 people \u2014 roughly the size of a real-world social circle. If you're not invited, it doesn't exist.\n\n**Knitly is:**\n- a private timeline for friends & family\n- a shared memory space\n- a calm alternative to algorithmic feeds\n- infrastructure for trusted communities\n\n**Knitly is not:**\n- a public social network\n- an influencer platform\n- an ad network\n- a discovery feed\n- a dopamine machine\n\nFriction is a feature. The goal is intimacy, not scale.\n\n---\n\n## Features\n\n### Moments\n- Text posts with photo attachments\n- Chronological feed (no algorithm)\n- Likes and comments\n- Edit/delete your own content\n- Clean media gallery\n\n### Profiles\n- Simple bio (name, avatar, short text, link)\n- Posts and media tabs\n- Follow/unfollow inside the network\n\n### Network\n- Invite-only membership\n- Closed internal directory\n- No public access or guest viewing\n\n### Notifications\n- Likes and comments on your moments\n- In-app only (no spam)\n\n### Admin\n- Generate invite links\n- View/remove members\n- Backup and restore database\n\n---\n\n## Tech Stack\n\n| Layer | Tech |\n|-------|------|\n| Backend | Bun + Hono |\n| Database | SQLite |\n| Frontend | Preact + TanStack Query/Router |\n| Styling | Tailwind v4 |\n| Storage | S3-compatible (or local filesystem) |\n| Auth | Session cookies |\n\nIntentionally simple to deploy and maintain.\n\n---\n\n## Quick Start\n\n```bash\ngit clone https://github.com/yourname/knitly\ncd knitly\nbun install\nbun run dev\n```\n\n- Frontend: http://localhost:5173\n- API: http://localhost:3000\n\n### Seed Data\n\n```bash\nbun --cwd server run seed      # production seed\nbun --cwd server run seed:dev  # with test data\n```\n\nDefault admin: `mike@mk3y.com` / `password123`\n\n---\n\n## Configuration\n\n### Local Development\n\nDefaults work out of the box. Override if needed:\n\n| Variable | Default | Purpose |\n|----------|---------|---------|\n| `DATABASE_PATH` | `../circles.db` | SQLite location |\n| `PORT` | `3000` | API server port |\n| `USE_LOCAL_STORAGE` | `true` | Store uploads locally |\n| `LOCAL_UPLOAD_DIR` | `../uploads` | Local media directory |\n| `BASE_URL` | `http://localhost:3000` | Public URL for media |\n\n### Production (S3/Spaces)\n\nRequired: `SPACES_ENDPOINT`, `SPACES_REGION`, `SPACES_BUCKET`, `SPACES_KEY`, `SPACES_SECRET`\n\nOptional: `SPACES_PUBLIC_URL`, `MAX_UPLOAD_BYTES`, `MEDIA_MAX_DIMENSION`, `MEDIA_QUALITY`\n\n---\n\n## Deployment\n\nRuns comfortably on:\n- a small VPS\n- a home server\n- a Raspberry Pi\n- Docker\n- any Linux box\n\nRecommended:\n- SQLite backups enabled\n- Object storage for photos\n- HTTPS via reverse proxy\n\nFull deployment guide: [docs/deploy.md](docs/deploy.md)\n\n---\n\n## Data Ownership\n\nYou own your instance. You own your media. You own your memories.\n\n- Exportable backups\n- Portable database\n- Media archive access\n\nYou are never locked in.\n\n---\n\n## Tests\n\n```bash\nbun test server/tests         # API tests\nbun --cwd frontend run test   # Frontend tests\n```\n\n---\n\n## Roadmap\n\n- Video moments\n- Shared albums\n- Yearly memories\n- Sub-circles (groups inside networks)\n- Improved admin tools\n- Mobile polish\n\n---\n\n## Docs\n\n- [Design Doc](docs/plans/2026-02-01-knitly-design.md)\n- [Testing Strategy](docs/testing.md)\n\n---\n\n## Contributing\n\nPull requests welcome.\n\nIf you believe social software should feel human again, you're in the right place.\n\n---\n\n## License\n\nMIT\n\n---\n\nKnitly is a digital living room.\n\nA place for the people you trust.\nA network that belongs to you.\nA timeline that moves at the speed of real life.\n\nWelcome home.\n",
+      "structuredPatch": [
+        {
+          "oldStart": 39,
+          "oldLines": 29,
+          "newStart": 39,
+          "newLines": 44,
+          "lines": [
+            " ## Features",
+            " ",
+            " ### Moments",
+            "-- Text posts with photo attachments",
+            "+- Text posts with photo attachments (up to 6 images)",
+            " - Chronological feed (no algorithm)",
+            "-- Likes and comments",
+            "+- Reactions (love, haha, hugs, celebrate)",
+            "+- Comments with markdown support",
+            " - Edit/delete your own content",
+            "-- Clean media gallery",
+            "+- Image lightbox with gallery navigation",
+            " ",
+            " ### Profiles",
+            "-- Simple bio (name, avatar, short text, link)",
+            "+- Bio, avatar, header/cover image",
+            "+- Location and website links",
+            " - Posts and media tabs",
+            "-- Follow/unfollow inside the network",
+            " ",
+            "+### Circles",
+            "+- Create private groups within your network",
+            "+- Share posts with specific circles only",
+            "+- Manage circle membership",
+            "+",
+            "+### The Lobby",
+            "+- Ephemeral group chat room (IRC/AOL vibes)",
+            "+- Messages disappear after 24 hours",
+            "+- See who's online, join/leave announcements",
+            "+- No chat history anxiety \u2014 conversations are fleeting",
+            "+",
+            " ### Network",
+            " - Invite-only membership",
+            "-- Closed internal directory",
+            "+- Closed member directory",
+            " - No public access or guest viewing",
+            " ",
+            " ### Notifications",
+            "-- Likes and comments on your moments",
+            "-- In-app only (no spam)",
+            "+- Reactions and comments on your moments",
+            "+- In-app only (no email spam)",
+            " ",
+            " ### Admin",
+            "-- Generate invite links",
+            "-- View/remove members",
+            "+- Generate and revoke invite links",
+            "+- User management (disable, promote, remove)",
+            "+- Content moderation (delete posts/comments)",
+            "+- Audit log for accountability",
+            "+- Customize app name and logo",
+            " - Backup and restore database",
+            " ",
+            " ---"
+          ]
+        }
+      ],
+      "userModified": false,
+      "replaceAll": false
+    },
+    "tool_use_id": "toolu_01LPKMPSDmQ9ggrjYp2E1Mr2"
+  },
+  {
+    "session_id": "4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f",
+    "transcript_path": "/home/mikekey/.claude/projects/-home-mikekey-Projects-knitly/4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f.jsonl",
+    "cwd": "/home/mikekey/Projects/knitly/server",
+    "permission_mode": "acceptEdits",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": {
+      "file_path": "/home/mikekey/Projects/knitly/README.md",
+      "old_string": "## Roadmap\n\n- Video moments\n- Shared albums\n- Yearly memories\n- Sub-circles (groups inside networks)\n- Improved admin tools\n- Mobile polish",
+      "new_string": "## Roadmap\n\n- Video moments (30s clips)\n- Shared albums\n- @ mentions\n- Link previews\n- Password reset flow\n- Dark mode",
+      "replace_all": false
+    },
+    "tool_response": {
+      "filePath": "/home/mikekey/Projects/knitly/README.md",
+      "oldString": "## Roadmap\n\n- Video moments\n- Shared albums\n- Yearly memories\n- Sub-circles (groups inside networks)\n- Improved admin tools\n- Mobile polish",
+      "newString": "## Roadmap\n\n- Video moments (30s clips)\n- Shared albums\n- @ mentions\n- Link previews\n- Password reset flow\n- Dark mode",
+      "originalFile": "# Knitly\n\n> A private social network for small, trusted circles.\n> Self-hosted. Invite-only. No algorithms. No strangers.\n\nKnitly is a lightweight social app designed for families and small communities who want to share life without surveillance, ads, or public feeds.\n\nThink early social media \u2014 before it became a performance platform.\nChronological timeline. Simple profiles. Moments with friends.\n\nNo growth hacks. No infinite scroll psychology.\nJust your people.\n\n---\n\n## Philosophy\n\nModern social media optimized for scale, not humans. Knitly scales back to human size.\n\nEach instance is a closed network for ~120 people \u2014 roughly the size of a real-world social circle. If you're not invited, it doesn't exist.\n\n**Knitly is:**\n- a private timeline for friends & family\n- a shared memory space\n- a calm alternative to algorithmic feeds\n- infrastructure for trusted communities\n\n**Knitly is not:**\n- a public social network\n- an influencer platform\n- an ad network\n- a discovery feed\n- a dopamine machine\n\nFriction is a feature. The goal is intimacy, not scale.\n\n---\n\n## Features\n\n### Moments\n- Text posts with photo attachments (up to 6 images)\n- Chronological feed (no algorithm)\n- Reactions (love, haha, hugs, celebrate)\n- Comments with markdown support\n- Edit/delete your own content\n- Image lightbox with gallery navigation\n\n### Profiles\n- Bio, avatar, header/cover image\n- Location and website links\n- Posts and media tabs\n\n### Circles\n- Create private groups within your network\n- Share posts with specific circles only\n- Manage circle membership\n\n### The Lobby\n- Ephemeral group chat room (IRC/AOL vibes)\n- Messages disappear after 24 hours\n- See who's online, join/leave announcements\n- No chat history anxiety \u2014 conversations are fleeting\n\n### Network\n- Invite-only membership\n- Closed member directory\n- No public access or guest viewing\n\n### Notifications\n- Reactions and comments on your moments\n- In-app only (no email spam)\n\n### Admin\n- Generate and revoke invite links\n- User management (disable, promote, remove)\n- Content moderation (delete posts/comments)\n- Audit log for accountability\n- Customize app name and logo\n- Backup and restore database\n\n---\n\n## Tech Stack\n\n| Layer | Tech |\n|-------|------|\n| Backend | Bun + Hono |\n| Database | SQLite |\n| Frontend | Preact + TanStack Query/Router |\n| Styling | Tailwind v4 |\n| Storage | S3-compatible (or local filesystem) |\n| Auth | Session cookies |\n\nIntentionally simple to deploy and maintain.\n\n---\n\n## Quick Start\n\n```bash\ngit clone https://github.com/yourname/knitly\ncd knitly\nbun install\nbun run dev\n```\n\n- Frontend: http://localhost:5173\n- API: http://localhost:3000\n\n### Seed Data\n\n```bash\nbun --cwd server run seed      # production seed\nbun --cwd server run seed:dev  # with test data\n```\n\nDefault admin: `mike@mk3y.com` / `password123`\n\n---\n\n## Configuration\n\n### Local Development\n\nDefaults work out of the box. Override if needed:\n\n| Variable | Default | Purpose |\n|----------|---------|---------|\n| `DATABASE_PATH` | `../circles.db` | SQLite location |\n| `PORT` | `3000` | API server port |\n| `USE_LOCAL_STORAGE` | `true` | Store uploads locally |\n| `LOCAL_UPLOAD_DIR` | `../uploads` | Local media directory |\n| `BASE_URL` | `http://localhost:3000` | Public URL for media |\n\n### Production (S3/Spaces)\n\nRequired: `SPACES_ENDPOINT`, `SPACES_REGION`, `SPACES_BUCKET`, `SPACES_KEY`, `SPACES_SECRET`\n\nOptional: `SPACES_PUBLIC_URL`, `MAX_UPLOAD_BYTES`, `MEDIA_MAX_DIMENSION`, `MEDIA_QUALITY`\n\n---\n\n## Deployment\n\nRuns comfortably on:\n- a small VPS\n- a home server\n- a Raspberry Pi\n- Docker\n- any Linux box\n\nRecommended:\n- SQLite backups enabled\n- Object storage for photos\n- HTTPS via reverse proxy\n\nFull deployment guide: [docs/deploy.md](docs/deploy.md)\n\n---\n\n## Data Ownership\n\nYou own your instance. You own your media. You own your memories.\n\n- Exportable backups\n- Portable database\n- Media archive access\n\nYou are never locked in.\n\n---\n\n## Tests\n\n```bash\nbun test server/tests         # API tests\nbun --cwd frontend run test   # Frontend tests\n```\n\n---\n\n## Roadmap\n\n- Video moments\n- Shared albums\n- Yearly memories\n- Sub-circles (groups inside networks)\n- Improved admin tools\n- Mobile polish\n\n---\n\n## Docs\n\n- [Design Doc](docs/plans/2026-02-01-knitly-design.md)\n- [Testing Strategy](docs/testing.md)\n\n---\n\n## Contributing\n\nPull requests welcome.\n\nIf you believe social software should feel human again, you're in the right place.\n\n---\n\n## License\n\nMIT\n\n---\n\nKnitly is a digital living room.\n\nA place for the people you trust.\nA network that belongs to you.\nA timeline that moves at the speed of real life.\n\nWelcome home.\n",
+      "structuredPatch": [
+        {
+          "oldStart": 182,
+          "oldLines": 12,
+          "newStart": 182,
+          "newLines": 12,
+          "lines": [
+            " ",
+            " ## Roadmap",
+            " ",
+            "-- Video moments",
+            "+- Video moments (30s clips)",
+            " - Shared albums",
+            "-- Yearly memories",
+            "-- Sub-circles (groups inside networks)",
+            "-- Improved admin tools",
+            "-- Mobile polish",
+            "+- @ mentions",
+            "+- Link previews",
+            "+- Password reset flow",
+            "+- Dark mode",
+            " ",
+            " ---",
+            " "
+          ]
+        }
+      ],
+      "userModified": false,
+      "replaceAll": false
+    },
+    "tool_use_id": "toolu_01AUkLNPXGRLwQjLS9SAcKSE"
   }
 ]

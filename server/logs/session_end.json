@@ -6,5 +6,13 @@
     "hook_event_name": "SessionEnd",
     "reason": "clear",
     "logged_at": "2026-02-02T19:41:55.699849"
+  },
+  {
+    "session_id": "4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f",
+    "transcript_path": "/home/mikekey/.claude/projects/-home-mikekey-Projects-knitly/4fe6eea3-0e6c-4e20-a8d6-2b67ea06929f.jsonl",
+    "cwd": "/home/mikekey/Projects/knitly/server",
+    "hook_event_name": "SessionEnd",
+    "reason": "clear",
+    "logged_at": "2026-02-03T23:10:28.795151"
   }
 ]
