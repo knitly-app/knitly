@@ -1,5 +1,7 @@
 import { afterAll, beforeEach, describe, expect, test } from "bun:test";
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
 import { Hono } from "hono";
 
 const testId = crypto.randomUUID();
@@ -377,6 +379,32 @@ describe("P0 integration", () => {
     expect(delRes.status).toBe(200);
     const delBody = await delRes.json();
     expect(delBody.success).toBe(true);
+  });
+
+  test("delete post cleans up media files", async () => {
+    const passwordHash = await hashPassword("password123");
+    const userId = dbUtils.createUser("cleanup@test.com", "cleanup", "Cleanup", passwordHash);
+    const { sessionId: cookie } = dbUtils.createSession(userId);
+
+    const uploadDir = process.env.LOCAL_UPLOAD_DIR;
+    const mediaKey = `media/${userId}/${Date.now()}-${crypto.randomUUID()}.webp`;
+    const mediaPath = path.join(uploadDir, mediaKey);
+
+    await fs.promises.mkdir(path.dirname(mediaPath), { recursive: true });
+    await fs.promises.writeFile(mediaPath, Buffer.from("fake image data"));
+
+    const fileExistsBefore = await fs.promises.access(mediaPath).then(() => true).catch(() => false);
+    expect(fileExistsBefore).toBe(true);
+
+    const post = dbUtils.createPost(userId, "Post with media", [
+      { url: `http://localhost:3000/uploads/${mediaKey}`, width: 100, height: 100, type: "image", sortOrder: 1 },
+    ]);
+
+    const delRes = await jsonReq(`/api/posts/${post.id}`, { method: "DELETE", cookie });
+    expect(delRes.status).toBe(200);
+
+    const fileExistsAfter = await fs.promises.access(mediaPath).then(() => true).catch(() => false);
+    expect(fileExistsAfter).toBe(false);
   });
 
   test("edit post", async () => {

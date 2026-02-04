@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { dbUtils } from "../lib/db.js";
 import { ensureSession } from "../middleware/auth.js";
 import { sanitizeText } from "../lib/sanitize.js";
+import { deleteObject, extractKeyFromUrl } from "../lib/media.js";
 
 export const postsRouter = new Hono();
 
@@ -121,7 +122,19 @@ postsRouter.delete("/:id", ensureSession, async (c) => {
     return c.json({ error: "Forbidden" }, 403);
   }
 
+  const mediaToDelete = (post.media || []).flatMap((item) => {
+    const keys = [];
+    const mainKey = extractKeyFromUrl(item.url);
+    if (mainKey) keys.push(mainKey);
+    const thumbKey = extractKeyFromUrl(item.thumbnailUrl);
+    if (thumbKey) keys.push(thumbKey);
+    return keys;
+  });
+
   dbUtils.deletePost(postId);
+
+  await Promise.all(mediaToDelete.map((key) => deleteObject(key).catch(() => {})));
+
   return c.json({ success: true });
 });
 

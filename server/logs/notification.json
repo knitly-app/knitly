@@ -30,5 +30,13 @@
     "hook_event_name": "Notification",
     "message": "Claude is waiting for your input",
     "notification_type": "idle_prompt"
+  },
+  {
+    "session_id": "75877daf-3d90-4fe8-a62c-f38fda860642",
+    "transcript_path": "/home/mikekey/.claude/projects/-home-mikekey-Projects-knitly/75877daf-3d90-4fe8-a62c-f38fda860642.jsonl",
+    "cwd": "/home/mikekey/Projects/knitly/server",
+    "hook_event_name": "Notification",
+    "message": "Claude is waiting for your input",
+    "notification_type": "idle_prompt"
   }
 ]

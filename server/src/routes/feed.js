@@ -27,7 +27,7 @@ feedRouter.get("/", ensureSession, async (c) => {
   const cursor = c.req.query("cursor");
   const circleId = c.req.query("circleId");
 
-  const posts = dbUtils.getFeed(50, cursor, currentUser.id, circleId ? parseInt(circleId) : null);
+  const posts = dbUtils.getFeed(51, cursor, currentUser.id, circleId ? parseInt(circleId) : null);
   const hasMore = posts.length > 50;
   const results = hasMore ? posts.slice(0, 50) : posts;
 

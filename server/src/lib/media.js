@@ -239,11 +239,12 @@ function localPath(key) {
   if (!isValidKey(key)) {
     throw new Error(`Invalid key format: ${key}`);
   }
-  return path.join(localUploadDir, key.replace(/\//g, "_"));
+  return path.join(localUploadDir, key);
 }
 
 export async function saveLocalUpload(key, buffer) {
   const filePath = localPath(key);
+  await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
   await fs.promises.writeFile(filePath, buffer);
 }
 
@@ -272,6 +273,7 @@ export async function downloadObject(key) {
 export async function uploadProcessed(key, buffer, contentType = "image/webp") {
   if (useLocalStorage) {
     const filePath = localPath(key);
+    await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
     await fs.promises.writeFile(filePath, buffer);
     return;
   }
@@ -335,9 +337,25 @@ export function getPublicUrl(key) {
     if (!isValidKey(key)) {
       throw new Error(`Invalid key format: ${key}`);
     }
-    return `${baseUrl}/uploads/${key.replace(/\//g, "_")}`;
+    return `${baseUrl}/uploads/${key}`;
   }
   return `${spacesConfig.publicUrl}/${key}`;
+}
+
+export function extractKeyFromUrl(url) {
+  if (!url) return null;
+
+  const uploadsMatch = url.match(/\/uploads\/(.+)$/);
+  if (uploadsMatch) return uploadsMatch[1];
+
+  if (spacesConfig.publicUrl) {
+    const spacesPrefix = spacesConfig.publicUrl + "/";
+    if (url.startsWith(spacesPrefix)) {
+      return url.slice(spacesPrefix.length);
+    }
+  }
+
+  return null;
 }
 
 async function streamToBuffer(stream) {

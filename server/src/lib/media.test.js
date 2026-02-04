@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test'
-import { validateUpload, validateImageDimensions, makeRawKey } from './media.js'
+import { validateUpload, validateImageDimensions, makeRawKey, extractKeyFromUrl, getPublicUrl, makeProcessedKey } from './media.js'
 
 const jpegBuffer = Buffer.from([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01])
 const pngBuffer = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D])
@@ -188,5 +188,57 @@ describe('makeRawKey', () => {
       const key = makeRawKey(42, 'video/mp4')
       expect(key).toContain('/42/')
     })
+  })
+})
+
+describe('extractKeyFromUrl', () => {
+  it('extracts key from local uploads URL', () => {
+    const url = 'http://localhost:3000/uploads/media/123/1234567890-uuid.webp'
+    const key = extractKeyFromUrl(url)
+    expect(key).toBe('media/123/1234567890-uuid.webp')
+  })
+
+  it('extracts nested path from uploads URL', () => {
+    const url = 'http://localhost:3000/uploads/thumb/42/1234567890-uuid.webp'
+    const key = extractKeyFromUrl(url)
+    expect(key).toBe('thumb/42/1234567890-uuid.webp')
+  })
+
+  it('returns null for null/undefined input', () => {
+    expect(extractKeyFromUrl(null)).toBeNull()
+    expect(extractKeyFromUrl(undefined)).toBeNull()
+  })
+
+  it('returns null for unrecognized URL format', () => {
+    const url = 'https://random-site.com/some/path.jpg'
+    expect(extractKeyFromUrl(url)).toBeNull()
+  })
+})
+
+describe('getPublicUrl', () => {
+  it('returns URL with nested path structure', () => {
+    const key = 'media/123/1234567890-uuid.webp'
+    const url = getPublicUrl(key)
+    expect(url).toContain('/uploads/media/123/1234567890-uuid.webp')
+  })
+
+  it('preserves full key path in URL', () => {
+    const key = 'thumb/42/1234567890-uuid.webp'
+    const url = getPublicUrl(key)
+    expect(url).toContain('/uploads/thumb/42/1234567890-uuid.webp')
+  })
+})
+
+describe('makeProcessedKey', () => {
+  it('creates key with media prefix and userId', () => {
+    const key = makeProcessedKey(123)
+    expect(key.startsWith('media/123/')).toBe(true)
+    expect(key.endsWith('.webp')).toBe(true)
+  })
+
+  it('generates unique keys', () => {
+    const key1 = makeProcessedKey(1)
+    const key2 = makeProcessedKey(1)
+    expect(key1).not.toBe(key2)
   })
 })

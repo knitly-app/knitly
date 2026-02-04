@@ -14,5 +14,13 @@
     "hook_event_name": "SessionEnd",
     "reason": "clear",
     "logged_at": "2026-02-03T23:10:28.795151"
+  },
+  {
+    "session_id": "75877daf-3d90-4fe8-a62c-f38fda860642",
+    "transcript_path": "/home/mikekey/.claude/projects/-home-mikekey-Projects-knitly/75877daf-3d90-4fe8-a62c-f38fda860642.jsonl",
+    "cwd": "/home/mikekey/Projects/knitly/server",
+    "hook_event_name": "SessionEnd",
+    "reason": "prompt_input_exit",
+    "logged_at": "2026-02-04T11:13:58.544249"
   }
 ]
