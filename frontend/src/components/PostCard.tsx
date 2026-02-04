@@ -259,7 +259,19 @@ export function PostCard({ post, author, currentUserId, onReact, onDelete, onEdi
             </Link>
           )}
 
-          {mediaItems.length === 1 && (
+          {mediaItems.length === 1 && mediaItems[0].type === 'video' && (
+            <div className="rounded-3xl overflow-hidden mb-4 -mx-2 bg-black">
+              <video
+                src={mediaItems[0].url}
+                poster={mediaItems[0].thumbnailUrl}
+                className="w-full max-h-96"
+                controls
+                playsInline
+                preload="metadata"
+              />
+            </div>
+          )}
+          {mediaItems.length === 1 && mediaItems[0].type !== 'video' && (
             <div className="rounded-3xl overflow-hidden mb-4 -mx-2">
               <button
                 type="button"
