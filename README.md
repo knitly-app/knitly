@@ -39,29 +39,44 @@ Friction is a feature. The goal is intimacy, not scale.
 ## Features
 
 ### Moments
-- Text posts with photo attachments
+- Text posts with photo attachments (up to 6 images)
 - Chronological feed (no algorithm)
-- Likes and comments
+- Reactions (love, haha, hugs, celebrate)
+- Comments with markdown support
 - Edit/delete your own content
-- Clean media gallery
+- Image lightbox with gallery navigation
 
 ### Profiles
-- Simple bio (name, avatar, short text, link)
+- Bio, avatar, header/cover image
+- Location and website links
 - Posts and media tabs
-- Follow/unfollow inside the network
+
+### Circles
+- Create private groups within your network
+- Share posts with specific circles only
+- Manage circle membership
+
+### The Lobby
+- Ephemeral group chat room (IRC/AOL vibes)
+- Messages disappear after 24 hours
+- See who's online, join/leave announcements
+- No chat history anxiety — conversations are fleeting
 
 ### Network
 - Invite-only membership
-- Closed internal directory
+- Closed member directory
 - No public access or guest viewing
 
 ### Notifications
-- Likes and comments on your moments
-- In-app only (no spam)
+- Reactions and comments on your moments
+- In-app only (no email spam)
 
 ### Admin
-- Generate invite links
-- View/remove members
+- Generate and revoke invite links
+- User management (disable, promote, remove)
+- Content moderation (delete posts/comments)
+- Audit log for accountability
+- Customize app name and logo
 - Backup and restore database
 
 ---
@@ -167,12 +182,12 @@ bun --cwd frontend run test   # Frontend tests
 
 ## Roadmap
 
-- Video moments
+- Video moments (30s clips)
 - Shared albums
-- Yearly memories
-- Sub-circles (groups inside networks)
-- Improved admin tools
-- Mobile polish
+- @ mentions
+- Link previews
+- Password reset flow
+- Dark mode
 
 ---
 

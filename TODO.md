@@ -15,7 +15,7 @@ Core social features working: posts, comments, reactions, circles, notifications
 ## Feature Expansion
 
 ### Media
-- [ ] **Video uploads** — Extend presigned upload flow to support video formats
+- [ ] **Video uploads** — 30s max, 720p, ffmpeg transcoding, CreatePostModal redesign
 - [ ] **Profile header image** — Custom banner/cover photo for profiles
 - [ ] **Shared albums** — Collaborative photo collections
 
@@ -74,6 +74,7 @@ Core social features working: posts, comments, reactions, circles, notifications
 - [x] Circle-filtered posting
 - [x] Search (users + posts)
 - [x] Member directory
+- [x] The Lobby — ephemeral group chat (IRC/AOL vibes, polling-based, 24h TTL)
 
 ### Admin Panel
 - [x] Stats overview
@@ -93,6 +94,7 @@ Core social features working: posts, comments, reactions, circles, notifications
 - [x] Feed shows all posts (no follow filter)
 - [x] Removed followers/following from UI
 - [x] Removed member invite UI
+- [x] Markdown support for posts/comments (`**bold**`, `*italic*`)
 
 ### Security & Performance (120 Users Optimization)
 - [x] Rate limiting (auth: 5/min, search: 20/min, API: 100/min)

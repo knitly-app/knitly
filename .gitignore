@@ -55,6 +55,11 @@ next-env.d.ts
 *.sln
 *.sw?
 
+# Runtime/Generated
+uploads/
+logs/
+specs/
+
 #AI Agents
 .claude
 CLAUDE.md
