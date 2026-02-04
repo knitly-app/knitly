@@ -39,7 +39,7 @@ Friction is a feature. The goal is intimacy, not scale.
 ## Features
 
 ### Moments
-- Text posts with photo attachments (up to 6 images)
+- Text posts with photos (up to 6 images) or video (30s max, 720p)
 - Chronological feed (no algorithm)
 - Reactions (love, haha, hugs, celebrate)
 - Comments with markdown support
@@ -97,6 +97,8 @@ Intentionally simple to deploy and maintain.
 ---
 
 ## Quick Start
+
+**Requirements:** Bun, ffmpeg (for video processing)
 
 ```bash
 git clone https://github.com/yourname/knitly
@@ -182,7 +184,6 @@ bun --cwd frontend run test   # Frontend tests
 
 ## Roadmap
 
-- Video moments (30s clips)
 - Shared albums
 - @ mentions
 - Link previews

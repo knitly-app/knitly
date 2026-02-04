@@ -122,8 +122,6 @@ mediaRouter.post("/presign", ensureSession, async (c) => {
 });
 
 mediaRouter.post("/complete", ensureSession, async (c) => {
-  const tempDir = mkdtempSync(join(tmpdir(), "knitly-media-"));
-
   try {
     assertSpacesConfig();
     const body = await c.req.json();
@@ -134,88 +132,101 @@ mediaRouter.post("/complete", ensureSession, async (c) => {
       return c.json({ error: "Invalid media key" }, 403);
     }
 
-    const originalBuffer = await downloadObject(key);
-    const rawPath = join(tempDir, "raw");
-    writeFileSync(rawPath, originalBuffer);
+    const tempDir = mkdtempSync(join(tmpdir(), "knitly-media-"));
+    try {
+      const originalBuffer = await downloadObject(key);
+      const rawPath = join(tempDir, "raw");
+      writeFileSync(rawPath, originalBuffer);
 
-    const isVideo = key.match(/\.(mp4|mov|webm|m4v)$/i);
+      const isVideo = key.match(/\.(mp4|mov|webm|m4v)$/i);
 
-    if (isVideo) {
-      const validation = await validateVideo(rawPath);
+      if (isVideo) {
+        const validation = await validateVideo(rawPath);
 
-      if (!validation.valid) {
-        await deleteObject(key);
-        if (validation.error === "duration_exceeded") {
-          return c.json({ error: `Video too long (max ${validation.maxDuration} seconds)` }, 400);
+        if (!validation.valid) {
+          await deleteObject(key);
+          if (validation.error === "duration_exceeded") {
+            return c.json({ error: `Video too long (max ${validation.maxDuration} seconds)` }, 400);
+          }
+          return c.json({ error: "Video file appears corrupted" }, 400);
         }
-        return c.json({ error: "Video file appears corrupted" }, 400);
+
+        const processedPath = join(tempDir, "processed.mp4");
+        const thumbPath = join(tempDir, "thumb.jpg");
+
+        await processVideo(rawPath, processedPath);
+
+        try {
+          await extractThumbnail(processedPath, thumbPath);
+        } catch (processedErr) {
+          logError("Thumbnail from processed failed, trying raw", { error: processedErr.message });
+          try {
+            await extractThumbnail(rawPath, thumbPath);
+          } catch (rawErr) {
+            logError("Thumbnail extraction failed completely", { processedError: processedErr.message, rawError: rawErr.message });
+            throw new Error("Could not generate video thumbnail");
+          }
+        }
+
+        const videoKey = makeVideoKey(currentUser.id);
+        const thumbKey = makeThumbnailKey(currentUser.id);
+
+        const videoBuffer = readFileSync(processedPath);
+        const thumbBuffer = readFileSync(thumbPath);
+
+        await Promise.all([
+          uploadProcessed(videoKey, videoBuffer, "video/mp4"),
+          uploadProcessed(thumbKey, thumbBuffer, "image/jpeg"),
+          deleteObject(key)
+        ]);
+
+        return c.json({
+          url: getPublicUrl(videoKey),
+          thumbnailUrl: getPublicUrl(thumbKey),
+          width: validation.width,
+          height: Math.min(validation.height, VIDEO_OUTPUT_HEIGHT),
+          duration: validation.duration,
+          type: "video",
+        });
       }
 
-      const processedPath = join(tempDir, "processed.mp4");
-      const thumbPath = join(tempDir, "thumb.jpg");
-
-      await processVideo(rawPath, processedPath);
-
-      try {
-        await extractThumbnail(processedPath, thumbPath);
-      } catch {
-        await extractThumbnail(rawPath, thumbPath);
+      const imgValidation = validateUpload(originalBuffer, null, key);
+      if (!imgValidation.valid) {
+        await deleteObject(key);
+        return c.json({ error: "Invalid file format" }, 400);
       }
 
-      const videoKey = makeVideoKey(currentUser.id);
-      const thumbKey = makeThumbnailKey(currentUser.id);
+      const dimensionCheck = await validateImageDimensions(originalBuffer);
+      if (!dimensionCheck.valid) {
+        await deleteObject(key);
+        const msg = dimensionCheck.error === "dimensions_exceeded"
+          ? "Image dimensions too large (max 8192x8192)"
+          : "Invalid image file";
+        return c.json({ error: msg }, 400);
+      }
 
-      const videoBuffer = readFileSync(processedPath);
-      const thumbBuffer = readFileSync(thumbPath);
+      const { buffer, width, height } = await processImage(originalBuffer);
+      const processedKey = makeProcessedKey(currentUser.id);
 
-      await uploadProcessed(videoKey, videoBuffer, "video/mp4");
-      await uploadProcessed(thumbKey, thumbBuffer, "image/jpeg");
-      await deleteObject(key);
+      await Promise.all([
+        uploadProcessed(processedKey, buffer),
+        deleteObject(key)
+      ]);
 
       return c.json({
-        url: getPublicUrl(videoKey),
-        thumbnailUrl: getPublicUrl(thumbKey),
-        width: validation.width,
-        height: Math.min(validation.height, 720),
-        duration: validation.duration,
-        type: "video",
+        url: getPublicUrl(processedKey),
+        width,
+        height,
+        type: "image",
       });
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
     }
-
-    const imgValidation = validateUpload(originalBuffer, null, key);
-    if (!imgValidation.valid) {
-      await deleteObject(key);
-      return c.json({ error: "Invalid file format" }, 400);
-    }
-
-    const dimensionCheck = await validateImageDimensions(originalBuffer);
-    if (!dimensionCheck.valid) {
-      await deleteObject(key);
-      const msg = dimensionCheck.error === "dimensions_exceeded"
-        ? "Image dimensions too large (max 8192x8192)"
-        : "Invalid image file";
-      return c.json({ error: msg }, 400);
-    }
-
-    const { buffer, width, height } = await processImage(originalBuffer);
-    const processedKey = makeProcessedKey(currentUser.id);
-
-    await uploadProcessed(processedKey, buffer);
-    await deleteObject(key);
-
-    return c.json({
-      url: getPublicUrl(processedKey),
-      width,
-      height,
-      type: "image",
-    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return c.json({ error: "Invalid input", details: error.errors }, 400);
     }
-    logError("Media complete error.");
+    logError("Media complete error.", { error: error.message, stack: error.stack, userId: c.get("user")?.id });
     return c.json({ error: "Failed to process media" }, 500);
-  } finally {
-    rmSync(tempDir, { recursive: true, force: true });
   }
 });
