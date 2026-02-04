@@ -167,13 +167,6 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_chat_messages_created ON chat_messages(created_at);
 `);
 
-db.exec(`
-  CREATE INDEX IF NOT EXISTS idx_posts_deleted_created ON posts(deleted_at, created_at);
-  CREATE INDEX IF NOT EXISTS idx_sessions_user_expires ON sessions(user_id, expires_at);
-  CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, read);
-  ANALYZE;
-`);
-
 const addColumnIfMissing = (statement) => {
   try {
     db.exec(statement);
@@ -192,6 +185,14 @@ addColumnIfMissing(`ALTER TABLE invites ADD COLUMN revoked_at TEXT NULL`);
 addColumnIfMissing(`ALTER TABLE posts ADD COLUMN deleted_at TEXT NULL`);
 addColumnIfMissing(`ALTER TABLE comments ADD COLUMN deleted_at TEXT NULL`);
 addColumnIfMissing(`ALTER TABLE users ADD COLUMN header TEXT DEFAULT ''`);
+
+// Create indexes that depend on migrated columns
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_posts_deleted_created ON posts(deleted_at, created_at);
+  CREATE INDEX IF NOT EXISTS idx_sessions_user_expires ON sessions(user_id, expires_at);
+  CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, read);
+  ANALYZE;
+`);
 
 const SESSION_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
