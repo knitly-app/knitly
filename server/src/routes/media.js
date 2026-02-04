@@ -19,6 +19,18 @@ import {
   validateUpload,
   validateImageDimensions,
 } from "../lib/media.js";
+import {
+  VIDEO_CONTENT_TYPES,
+  MAX_VIDEO_FILE_SIZE,
+  validateVideo,
+  processVideo,
+  extractThumbnail,
+  makeVideoKey,
+  makeThumbnailKey,
+} from "../lib/video.js";
+import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
 import { logError } from "../lib/logging.js";
 
 export const mediaRouter = new Hono();
@@ -71,14 +83,18 @@ mediaRouter.post("/presign", ensureSession, async (c) => {
     const body = await c.req.json();
     const { contentType, size } = PresignSchema.parse(body);
 
-    const allowedTypes = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp"]);
-    if (!allowedTypes.has(contentType)) {
-      return c.json({ error: "Unsupported image type" }, 400);
+    const allowedImageTypes = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp"]);
+    const isVideo = VIDEO_CONTENT_TYPES.has(contentType);
+    const isImage = allowedImageTypes.has(contentType);
+
+    if (!isImage && !isVideo) {
+      return c.json({ error: "Unsupported file type" }, 400);
     }
 
-    const maxSize = useLocalStorage ? MAX_LOCAL_SIZE : spacesConfig.maxBytes;
+    const maxSize = isVideo ? MAX_VIDEO_FILE_SIZE : (useLocalStorage ? MAX_LOCAL_SIZE : spacesConfig.maxBytes);
     if (size > maxSize) {
-      return c.json({ error: "File too large" }, 400);
+      const maxMB = Math.round(maxSize / 1024 / 1024);
+      return c.json({ error: `File too large (max ${maxMB}MB)` }, 400);
     }
 
     const currentUser = c.get("user");
@@ -100,6 +116,8 @@ mediaRouter.post("/presign", ensureSession, async (c) => {
 });
 
 mediaRouter.post("/complete", ensureSession, async (c) => {
+  const tempDir = mkdtempSync(join(tmpdir(), "knitly-media-"));
+
   try {
     assertSpacesConfig();
     const body = await c.req.json();
@@ -111,9 +129,55 @@ mediaRouter.post("/complete", ensureSession, async (c) => {
     }
 
     const originalBuffer = await downloadObject(key);
+    const rawPath = join(tempDir, "raw");
+    writeFileSync(rawPath, originalBuffer);
 
-    const validation = validateUpload(originalBuffer, null, key);
-    if (!validation.valid) {
+    const isVideo = key.match(/\.(mp4|mov|webm|m4v)$/i);
+
+    if (isVideo) {
+      const validation = await validateVideo(rawPath);
+
+      if (!validation.valid) {
+        await deleteObject(key);
+        if (validation.error === "duration_exceeded") {
+          return c.json({ error: `Video too long (max ${validation.maxDuration} seconds)` }, 400);
+        }
+        return c.json({ error: "Video file appears corrupted" }, 400);
+      }
+
+      const processedPath = join(tempDir, "processed.mp4");
+      const thumbPath = join(tempDir, "thumb.jpg");
+
+      await processVideo(rawPath, processedPath);
+
+      try {
+        await extractThumbnail(processedPath, thumbPath);
+      } catch {
+        await extractThumbnail(rawPath, thumbPath);
+      }
+
+      const videoKey = makeVideoKey(currentUser.id);
+      const thumbKey = makeThumbnailKey(currentUser.id);
+
+      const videoBuffer = readFileSync(processedPath);
+      const thumbBuffer = readFileSync(thumbPath);
+
+      await uploadProcessed(videoKey, videoBuffer, "video/mp4");
+      await uploadProcessed(thumbKey, thumbBuffer, "image/jpeg");
+      await deleteObject(key);
+
+      return c.json({
+        url: getPublicUrl(videoKey),
+        thumbnailUrl: getPublicUrl(thumbKey),
+        width: validation.width,
+        height: Math.min(validation.height, 720),
+        duration: validation.duration,
+        type: "video",
+      });
+    }
+
+    const imgValidation = validateUpload(originalBuffer, null, key);
+    if (!imgValidation.valid) {
       await deleteObject(key);
       return c.json({ error: "Invalid file format" }, 400);
     }
@@ -145,5 +209,7 @@ mediaRouter.post("/complete", ensureSession, async (c) => {
     }
     logError("Media complete error.");
     return c.json({ error: "Failed to process media" }, 500);
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
   }
 });

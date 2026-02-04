@@ -255,19 +255,23 @@ export async function downloadObject(key) {
   return await streamToBuffer(result.Body);
 }
 
-export async function uploadProcessed(key, buffer) {
+export async function uploadProcessed(key, buffer, contentType = "image/webp") {
   if (useLocalStorage) {
     const filePath = path.join(localUploadDir, key.replace(/\//g, "_"));
     fs.writeFileSync(filePath, buffer);
     return;
   }
 
+  const cacheControl = contentType.startsWith("video/")
+    ? "public, max-age=31536000"
+    : "public, max-age=31536000, immutable";
+
   const command = new PutObjectCommand({
     Bucket: spacesConfig.bucket,
     Key: key,
     Body: buffer,
-    ContentType: "image/webp",
-    CacheControl: "public, max-age=31536000, immutable",
+    ContentType: contentType,
+    CacheControl: cacheControl,
   });
   await spaces.send(command);
 }
