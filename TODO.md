@@ -15,7 +15,7 @@ Core social features working: posts, comments, reactions, circles, notifications
 ## Feature Expansion
 
 ### Media
-- [ ] **Video uploads** — 30s max, 720p, ffmpeg transcoding, CreatePostModal redesign
+- [x] **Video uploads** — 30s max, 720p, ffmpeg transcoding, CreatePostModal redesign
 - [ ] **Profile header image** — Custom banner/cover photo for profiles
 - [ ] **Shared albums** — Collaborative photo collections
 
