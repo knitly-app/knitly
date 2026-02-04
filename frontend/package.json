@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "postinstall": "node scripts/setup-react-shim.js",
     "dev": "vite",
     "build": "bun run typecheck && vite build",
     "preview": "vite preview",
@@ -25,14 +26,15 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@playwright/test": "^1.51.1",
     "@preact/preset-vite": "^2.10.2",
+    "@preact/signals": "^2.6.2",
     "@tailwindcss/postcss": "^4.1.18",
     "@tailwindcss/vite": "^4.1.18",
     "@types/bun": "^1.2.10",
     "@types/node": "^24.10.1",
-    "@eslint/js": "^9.39.0",
     "eslint": "^9.39.0",
-    "@playwright/test": "^1.51.1",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.33.1",
     "vite": "^7.2.4"

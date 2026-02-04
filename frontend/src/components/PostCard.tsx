@@ -8,6 +8,7 @@ import { useUIStore } from '../stores/ui'
 import { useLightbox } from '../stores/lightbox'
 import { useToast } from './Toast'
 import { formatTimeAgo } from '../utils/time'
+import { renderMarkdown } from '../utils/markdown'
 
 const REACTIONS: { type: ReactionType; emoji: string; label: string }[] = [
   { type: 'love', emoji: '❤️', label: 'Love' },
@@ -251,9 +252,10 @@ export function PostCard({ post, author, currentUserId, onReact, onDelete, onEdi
         <>
           {post.content?.trim() && (
             <Link to="/post/$id" params={{ id: post.id }} className="block">
-              <p className="text-gray-800 text-base leading-relaxed mb-4 whitespace-pre-wrap">
-                {post.content}
-              </p>
+              <p
+                className="text-gray-800 text-base leading-relaxed mb-4 whitespace-pre-wrap"
+                dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }}
+              />
             </Link>
           )}
 

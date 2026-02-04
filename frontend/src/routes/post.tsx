@@ -10,6 +10,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useConfirm } from '../components/ConfirmModal'
 import { useToast } from '../components/Toast'
 import { getAvatarUrl } from '../utils/avatar'
+import { renderMarkdown } from '../utils/markdown'
 
 export function PostRoute() {
   const params = useParams({ strict: false })
@@ -186,7 +187,10 @@ export function PostRoute() {
                       )}
                     </div>
                   </div>
-                  <p className="text-gray-600 text-sm">{comment.content}</p>
+                  <p
+                    className="text-gray-600 text-sm"
+                    dangerouslySetInnerHTML={{ __html: renderMarkdown(comment.content) }}
+                  />
                 </div>
               </div>
             ))

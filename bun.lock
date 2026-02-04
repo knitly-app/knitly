@@ -25,6 +25,7 @@
         "@eslint/js": "^9.39.0",
         "@playwright/test": "^1.51.1",
         "@preact/preset-vite": "^2.10.2",
+        "@preact/signals": "^2.6.2",
         "@tailwindcss/postcss": "^4.1.18",
         "@tailwindcss/vite": "^4.1.18",
         "@types/bun": "^1.2.10",
@@ -368,6 +369,10 @@
     "@playwright/test": ["@playwright/test@1.58.1", "", { "dependencies": { "playwright": "1.58.1" }, "bin": { "playwright": "cli.js" } }, "sha512-6LdVIUERWxQMmUSSQi0I53GgCBYgM2RpGngCPY7hSeju+VrKjq3lvs7HpJoPbDiY5QM5EYRtRX5fvrinnMAz3w=="],
 
     "@preact/preset-vite": ["@preact/preset-vite@2.10.3", "", { "dependencies": { "@babel/plugin-transform-react-jsx": "^7.27.1", "@babel/plugin-transform-react-jsx-development": "^7.27.1", "@prefresh/vite": "^2.4.11", "@rollup/pluginutils": "^5.0.0", "babel-plugin-transform-hook-names": "^1.0.2", "debug": "^4.4.3", "picocolors": "^1.1.1", "vite-prerender-plugin": "^0.5.8" }, "peerDependencies": { "@babel/core": "7.x", "vite": "2.x || 3.x || 4.x || 5.x || 6.x || 7.x" } }, "sha512-1SiS+vFItpkNdBs7q585PSAIln0wBeBdcpJYbzPs1qipsb/FssnkUioNXuRsb8ZnU8YEQHr+3v8+/mzWSnTQmg=="],
+
+    "@preact/signals": ["@preact/signals@2.6.2", "", { "dependencies": { "@preact/signals-core": "^1.12.2" }, "peerDependencies": { "preact": ">= 10.25.0 || >=11.0.0-0" } }, "sha512-80PMfNS3d8t/J3cRNEJP14zRioWnavgqzX/+tsNGiCX6rpD26+eLkUQpa1sIeOERZMink+dAi34y0MJhg11LKQ=="],
+
+    "@preact/signals-core": ["@preact/signals-core@1.12.2", "", {}, "sha512-5Yf8h1Ke3SMHr15xl630KtwPTW4sYDFkkxS0vQ8UiQLWwZQnrF9IKaVG1mN5VcJz52EcWs2acsc/Npjha/7ysA=="],
 
     "@prefresh/babel-plugin": ["@prefresh/babel-plugin@0.5.2", "", {}, "sha512-AOl4HG6dAxWkJ5ndPHBgBa49oo/9bOiJuRDKHLSTyH+Fd9x00shTXpdiTj1W41l6oQIwUOAgJeHMn4QwIDpHkA=="],
 

@@ -10,7 +10,7 @@ Core social features working: posts, comments, reactions, circles, notifications
 
 - [x] **Image lightbox** — Click to view images larger, swipe through galleries
 - [ ] **Loading skeletons** — Replace spinners with content placeholders
-- [ ] Invite validation bug (shows wrong inviter)
+- [x] ~~Invite validation bug~~ — removed inviter line entirely
 
 ## Feature Expansion
 
@@ -38,6 +38,14 @@ Core social features working: posts, comments, reactions, circles, notifications
 - [ ] Disk usage / storage overview
 - [ ] Database backup/restore
 - [ ] Exportable archive (zip download)
+
+---
+
+## Phase 2 — Community Features
+
+- [ ] **Polls** — Simple voting on posts
+- [ ] **AMA / Ask box** — Direct questions to users (anonymous optional)
+- [ ] **Shared calendar** — Birthdays + events with RSVP
 
 ---
 
@@ -85,3 +93,17 @@ Core social features working: posts, comments, reactions, circles, notifications
 - [x] Feed shows all posts (no follow filter)
 - [x] Removed followers/following from UI
 - [x] Removed member invite UI
+
+### Security & Performance (120 Users Optimization)
+- [x] Rate limiting (auth: 5/min, search: 20/min, API: 100/min)
+- [x] Security headers (CSP, HSTS, X-Frame-Options, etc.)
+- [x] XSS sanitization on posts, comments, search
+- [x] File upload hardening (magic byte validation, dimension limits)
+- [x] Session cleanup script
+- [x] N+1 query fixes (feed, user posts, search)
+- [x] Database indexes for common queries
+- [x] Frontend bundle optimization (lazy routes, vendor splitting)
+- [x] Image lazy loading (16 images)
+- [x] TanStack Query caching (staleTime/gcTime)
+- [x] Error boundaries with graceful fallbacks
+- [x] Unit tests for new security/perf code

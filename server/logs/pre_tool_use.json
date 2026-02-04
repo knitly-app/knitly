@@ -138,5 +138,31 @@
       "description": "Check which files were modified"
     },
     "tool_use_id": "toolu_013TxBvkXMB8sTa6d4nPVCGS"
+  },
+  {
+    "session_id": "321f1109-1d7c-475b-913a-6870ae7d94d6",
+    "transcript_path": "/home/mikekey/.claude/projects/-home-mikekey-Projects-knitly/321f1109-1d7c-475b-913a-6870ae7d94d6.jsonl",
+    "cwd": "/home/mikekey/Projects/knitly/server",
+    "permission_mode": "acceptEdits",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "cd /home/mikekey/Projects/knitly/frontend && bun test 2>&1",
+      "description": "Run frontend tests"
+    },
+    "tool_use_id": "toolu_01PSgfi3tsYLi7XopqWtok5W"
+  },
+  {
+    "session_id": "321f1109-1d7c-475b-913a-6870ae7d94d6",
+    "transcript_path": "/home/mikekey/.claude/projects/-home-mikekey-Projects-knitly/321f1109-1d7c-475b-913a-6870ae7d94d6.jsonl",
+    "cwd": "/home/mikekey/Projects/knitly/server",
+    "permission_mode": "acceptEdits",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "cd /home/mikekey/Projects/knitly/frontend && bun test src/test/unit/ 2>&1",
+      "description": "Run frontend unit tests only"
+    },
+    "tool_use_id": "toolu_01MhSDLnuMBUDK2yUiVLyKE7"
   }
 ]
