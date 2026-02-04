@@ -63,8 +63,10 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
     url TEXT NOT NULL,
+    thumbnail_url TEXT,
     width INTEGER,
     height INTEGER,
+    duration REAL,
     type TEXT NOT NULL DEFAULT 'image',
     sort_order INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -185,6 +187,8 @@ addColumnIfMissing(`ALTER TABLE invites ADD COLUMN revoked_at TEXT NULL`);
 addColumnIfMissing(`ALTER TABLE posts ADD COLUMN deleted_at TEXT NULL`);
 addColumnIfMissing(`ALTER TABLE comments ADD COLUMN deleted_at TEXT NULL`);
 addColumnIfMissing(`ALTER TABLE users ADD COLUMN header TEXT DEFAULT ''`);
+addColumnIfMissing(`ALTER TABLE post_media ADD COLUMN thumbnail_url TEXT`);
+addColumnIfMissing(`ALTER TABLE post_media ADD COLUMN duration REAL`);
 
 // Create indexes that depend on migrated columns
 db.exec(`
@@ -469,8 +473,8 @@ export const dbUtils = {
     if (!Array.isArray(media) || media.length === 0) return;
 
     const insert = db.prepare(`
-      INSERT INTO post_media (post_id, url, width, height, type, sort_order)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO post_media (post_id, url, thumbnail_url, width, height, duration, type, sort_order)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const tx = db.transaction((items) => {
@@ -478,8 +482,10 @@ export const dbUtils = {
         insert.run(
           postId,
           item.url,
+          item.thumbnailUrl ?? null,
           item.width ?? null,
           item.height ?? null,
+          item.duration ?? null,
           item.type || "image",
           item.sortOrder ?? index
         );
@@ -494,7 +500,7 @@ export const dbUtils = {
 
     const placeholders = postIds.map(() => "?").join(", ");
     const rows = db.prepare(`
-      SELECT id, post_id, url, width, height, type, sort_order
+      SELECT id, post_id, url, thumbnail_url, width, height, duration, type, sort_order
       FROM post_media
       WHERE post_id IN (${placeholders})
       ORDER BY sort_order ASC, id ASC
@@ -506,8 +512,10 @@ export const dbUtils = {
       map.get(row.post_id).push({
         id: row.id,
         url: row.url,
+        thumbnailUrl: row.thumbnail_url,
         width: row.width,
         height: row.height,
+        duration: row.duration,
         type: row.type,
         sortOrder: row.sort_order,
       });
