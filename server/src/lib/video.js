@@ -94,3 +94,36 @@ export async function validateVideo(filePath) {
     return { valid: false, error: "invalid_video" };
   }
 }
+
+export async function processVideo(inputPath, outputPath) {
+  return new Promise((resolve, reject) => {
+    const args = [
+      "-i", inputPath,
+      "-vf", `scale=-2:'min(${VIDEO_OUTPUT_HEIGHT},ih)'`,
+      "-c:v", "libx264",
+      "-preset", "fast",
+      "-crf", "23",
+      "-c:a", "aac",
+      "-b:a", "128k",
+      "-movflags", "+faststart",
+      "-map_metadata", "-1",
+      "-t", String(MAX_VIDEO_DURATION),
+      "-y",
+      outputPath,
+    ];
+
+    const proc = spawn("ffmpeg", args, { timeout: 60000 });
+    let stderr = "";
+
+    proc.stderr.on("data", (data) => { stderr += data; });
+
+    proc.on("close", (code) => {
+      if (code !== 0) {
+        return reject(new Error(`ffmpeg transcode failed: ${stderr.slice(-500)}`));
+      }
+      resolve();
+    });
+
+    proc.on("error", (err) => reject(err));
+  });
+}
