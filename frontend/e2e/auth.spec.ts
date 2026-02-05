@@ -17,9 +17,9 @@ const post = {
   userId: user.id,
   content: 'Hello from Knitly',
   createdAt: '2025-01-02T12:00:00.000Z',
-  likes: 2,
+  reactions: {},
+  userReaction: null,
   comments: 0,
-  liked: false,
   author: { username: user.username, displayName: user.displayName, avatar: user.avatar },
 }
 
@@ -65,6 +65,22 @@ test('login then view feed', async ({ page }) => {
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify([]),
+    })
+  })
+
+  await page.route('**/api/circles', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([]),
+    })
+  })
+
+  await page.route('**/api/settings', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ appName: 'Knitly', logoIcon: 'Zap' }),
     })
   })
 

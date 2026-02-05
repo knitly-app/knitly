@@ -31,6 +31,22 @@ test('create post from feed', async ({ page }) => {
     })
   })
 
+  await page.route('**/api/circles', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([]),
+    })
+  })
+
+  await page.route('**/api/settings', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ appName: 'Knitly', logoIcon: 'Zap' }),
+    })
+  })
+
   await page.route('**/api/feed**', async (route) => {
     await route.fulfill({
       status: 200,
@@ -59,9 +75,9 @@ test('create post from feed', async ({ page }) => {
       userId: user.id,
       content,
       createdAt: new Date().toISOString(),
-      likes: 0,
+      reactions: {},
+      userReaction: null,
       comments: 0,
-      liked: false,
       author: { username: user.username, displayName: user.displayName, avatar: user.avatar },
     }
 

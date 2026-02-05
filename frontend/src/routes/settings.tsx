@@ -25,8 +25,7 @@ export function SettingsRoute() {
     location?: string
     website?: string
   }>({})
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
-  const [isUploadingHeader, setIsUploadingHeader] = useState(false)
+  const [uploading, setUploading] = useState<'avatar' | 'header' | null>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const headerInputRef = useRef<HTMLInputElement>(null)
 
@@ -40,18 +39,8 @@ export function SettingsRoute() {
     website: draft.website ?? user?.website ?? '',
   }
 
-  const profilePayload = {
-    displayName: formValues.displayName,
-    username: formValues.username,
-    bio: formValues.bio,
-    avatar: formValues.avatar,
-    header: formValues.header,
-    location: formValues.location,
-    website: formValues.website,
-  }
-
   const updateProfile = useMutation({
-    mutationFn: (payload: typeof profilePayload) => users.update('me', payload),
+    mutationFn: (payload: typeof formValues) => users.update('me', payload),
     onSuccess: (updated) => {
       queryClient.setQueryData(['auth', 'me'], updated)
       void queryClient.invalidateQueries({ queryKey: ['users'] })
@@ -70,71 +59,21 @@ export function SettingsRoute() {
     void navigate({ to: '/login' })
   }
 
-  const handleAvatarUpload = async (file: File) => {
+  const uploadImage = async (file: File, field: 'avatar' | 'header') => {
     if (!file.type.startsWith('image/')) {
       toast.error('Please select an image file')
       return
     }
-
     try {
-      setIsUploadingAvatar(true)
-
-      const presign = await mediaApi.presign({
-        contentType: file.type || 'image/jpeg',
-        size: file.size,
-      })
-
-      await fetch(presign.uploadUrl, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': file.type || 'image/jpeg' },
-      })
-
+      setUploading(field)
+      const presign = await mediaApi.presign({ contentType: file.type || 'image/jpeg', size: file.size })
+      await fetch(presign.uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type || 'image/jpeg' } })
       const mediaItem = await mediaApi.complete({ key: presign.key })
-
-      const updatedProfile = {
-        ...profilePayload,
-        avatar: mediaItem.url,
-      }
-      updateProfile.mutate(updatedProfile)
+      updateProfile.mutate({ ...formValues, [field]: mediaItem.url })
     } catch {
-      toast.error('Failed to upload avatar')
+      toast.error(`Failed to upload ${field}`)
     } finally {
-      setIsUploadingAvatar(false)
-    }
-  }
-
-  const handleHeaderUpload = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file')
-      return
-    }
-
-    try {
-      setIsUploadingHeader(true)
-
-      const presign = await mediaApi.presign({
-        contentType: file.type || 'image/jpeg',
-        size: file.size,
-      })
-
-      await fetch(presign.uploadUrl, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': file.type || 'image/jpeg' },
-      })
-
-      const mediaItem = await mediaApi.complete({ key: presign.key })
-
-      const updatedProfile = {
-        ...profilePayload,
-        header: mediaItem.url,
-      }
-      updateProfile.mutate(updatedProfile)
-    } catch {
-      toast.error('Failed to upload header image')
-    } finally {
-      setIsUploadingHeader(false)
+      setUploading(null)
     }
   }
 
@@ -232,7 +171,7 @@ export function SettingsRoute() {
             </label>
             <div className="flex items-center gap-4">
               <div
-                onClick={() => !isUploadingAvatar && avatarInputRef.current?.click()}
+                onClick={() => !uploading && avatarInputRef.current?.click()}
                 className="relative w-20 h-20 rounded-full overflow-hidden cursor-pointer group"
               >
                 <img
@@ -242,8 +181,8 @@ export function SettingsRoute() {
                   loading="lazy"
                   decoding="async"
                 />
-                <div className={`absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity ${isUploadingAvatar ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                  {isUploadingAvatar ? (
+                <div className={`absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity ${uploading === 'avatar' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                  {uploading === 'avatar' ? (
                     <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <Camera size={24} className="text-white" />
@@ -256,7 +195,7 @@ export function SettingsRoute() {
                   className="hidden"
                   onChange={(e) => {
                     const file = (e.target as HTMLInputElement).files?.[0]
-                    if (file) void handleAvatarUpload(file)
+                    if (file) void uploadImage(file, 'avatar')
                   }}
                 />
               </div>
@@ -268,7 +207,7 @@ export function SettingsRoute() {
               Header Image
             </label>
             <div
-              onClick={() => !isUploadingHeader && headerInputRef.current?.click()}
+              onClick={() => !uploading && headerInputRef.current?.click()}
               className="relative w-full h-32 rounded-2xl overflow-hidden cursor-pointer group bg-gradient-to-r from-accent-400 to-accent-600"
             >
               {formValues.header && (
@@ -280,8 +219,8 @@ export function SettingsRoute() {
                   decoding="async"
                 />
               )}
-              <div className={`absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity ${isUploadingHeader ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                {isUploadingHeader ? (
+              <div className={`absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity ${uploading === 'header' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                {uploading === 'header' ? (
                   <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <ImagePlus size={24} className="text-white" />
@@ -294,7 +233,7 @@ export function SettingsRoute() {
                 className="hidden"
                 onChange={(e) => {
                   const file = (e.target as HTMLInputElement).files?.[0]
-                  if (file) void handleHeaderUpload(file)
+                  if (file) void uploadImage(file, 'header')
                 }}
               />
             </div>
@@ -335,7 +274,7 @@ export function SettingsRoute() {
             />
           </div>
           <button
-            onClick={() => updateProfile.mutate(profilePayload)}
+            onClick={() => updateProfile.mutate(formValues)}
             disabled={updateProfile.isPending}
             className="w-full py-3 bg-accent-500 text-white rounded-2xl font-bold shadow-lg shadow-accent-200 hover:bg-accent-600 transition-all disabled:opacity-50"
           >

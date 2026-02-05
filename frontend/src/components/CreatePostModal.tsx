@@ -1,5 +1,5 @@
 import { BarChart3, ImagePlus, Minus, Plus, Video, X } from 'lucide-preact'
-import { useEffect, useRef, useState } from 'preact/hooks'
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { media as mediaApi, type MediaItem } from '../api/endpoints'
 import { useCircles } from '../hooks/useCircles'
 import { useCreatePost } from '../hooks/usePosts'
@@ -17,7 +17,6 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
   const [content, setContent] = useState('')
   const [mediaMode, setMediaMode] = useState<MediaMode>('none')
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
-  const [previews, setPreviews] = useState<string[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [selectedCircleId, setSelectedCircleId] = useState<string | null>(null)
   const [pollQuestion, setPollQuestion] = useState('')
@@ -35,14 +34,19 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
   const createPost = useCreatePost()
   const { data: circles = [] } = useCircles()
   const toast = useToast()
+  const prevUrlsRef = useRef<string[]>([])
+
+  const previews = useMemo(() => selectedFiles.map(f => URL.createObjectURL(f)), [selectedFiles])
 
   useEffect(() => {
     textareaRef.current?.focus()
   }, [])
 
   useEffect(() => {
+    const prevUrls = prevUrlsRef.current
+    prevUrlsRef.current = previews
     return () => {
-      previews.forEach((url) => URL.revokeObjectURL(url))
+      prevUrls.forEach((url) => URL.revokeObjectURL(url))
     }
   }, [previews])
 
@@ -100,9 +104,7 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
     const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, maxPhotos)
     if (imageFiles.length === 0) return
 
-    previews.forEach((url) => URL.revokeObjectURL(url))
     setSelectedFiles(imageFiles)
-    setPreviews(imageFiles.map((file) => URL.createObjectURL(file)))
     if (mediaMode !== 'poll') setMediaMode('photos')
   }
 
@@ -116,16 +118,12 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
       return
     }
 
-    previews.forEach((url) => URL.revokeObjectURL(url))
     setSelectedFiles([videoFile])
-    setPreviews([URL.createObjectURL(videoFile)])
     setMediaMode('video')
   }
 
   const clearMedia = () => {
-    previews.forEach((url) => URL.revokeObjectURL(url))
     setSelectedFiles([])
-    setPreviews([])
     if (mediaMode !== 'poll') setMediaMode('none')
   }
 

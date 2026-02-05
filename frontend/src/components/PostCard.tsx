@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'preact/hooks'
 import { Link } from '@tanstack/react-router'
-import { MessageCircle, Share2, Trash2, Pencil, X, Check, CheckCheck, Heart } from 'lucide-preact'
+import { MessageCircle, Share2, Trash2, Pencil, X, Check, Heart } from 'lucide-preact'
 import type { Post, ReactionType, ReactionCounts } from '../api/endpoints'
 import { useConfirm } from './ConfirmModal'
 import { getAvatarUrl } from '../utils/avatar'
@@ -126,7 +126,6 @@ export function PostCard({ post, author, currentUserId, onReact, onDelete, onEdi
   const toast = useToast()
   const { editingPostId, setEditingPost } = useUIStore()
   const [editContent, setEditContent] = useState(post.content || '')
-  const [copied, setCopied] = useState(false)
   const votePoll = useVotePoll()
   const isOwner = currentUserId === post.userId
   const canDelete = !!onDelete && isOwner
@@ -137,9 +136,7 @@ export function PostCard({ post, author, currentUserId, onReact, onDelete, onEdi
     const url = `${window.location.origin}/m/${post.id}`
     try {
       await navigator.clipboard.writeText(url)
-      setCopied(true)
       toast.success('Link copied')
-      setTimeout(() => setCopied(false), 2000)
     } catch {
       toast.error('Failed to copy link')
     }
@@ -353,11 +350,9 @@ export function PostCard({ post, author, currentUserId, onReact, onDelete, onEdi
 
         <button
           onClick={() => { void handleShare() }}
-          className={`flex items-center space-x-2 p-2 rounded-xl transition-all ${
-            copied ? 'text-green-500 bg-green-50' : 'text-gray-400 hover:text-green-500 hover:bg-green-50'
-          }`}
+          className="flex items-center space-x-2 p-2 rounded-xl transition-all text-gray-400 hover:text-green-500 hover:bg-green-50"
         >
-          {copied ? <CheckCheck size={20} /> : <Share2 size={20} />}
+          <Share2 size={20} />
         </button>
       </div>
     </div>

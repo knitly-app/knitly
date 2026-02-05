@@ -22,6 +22,14 @@ export function FeedRoute() {
 
   const posts = data?.pages.flatMap((page) => page.posts) ?? []
 
+  const circlePillsProps = {
+    circles: circles ?? [],
+    selectedId: circleFilter ?? null,
+    onSelect: (id: string | null) => setCircleFilter(id ?? undefined),
+    showAdd: true,
+    onAdd: () => void navigate({ to: '/circles' }),
+  }
+
   if (isLoading) {
     return (
       <div className="flex flex-col w-full max-w-2xl mx-auto py-4 md:py-8">
@@ -46,28 +54,12 @@ export function FeedRoute() {
     <div className="flex flex-col w-full max-w-2xl mx-auto py-4 md:py-8">
       <div className="md:hidden px-5 mb-6">
         <h1 className="text-2xl font-black text-accent-500 tracking-tighter mb-4">{appName}</h1>
-        {circles && (
-          <CirclePills
-            circles={circles}
-            selectedId={circleFilter ?? null}
-            onSelect={(id) => setCircleFilter(id ?? undefined)}
-            showAdd
-            onAdd={() => void navigate({ to: '/circles' })}
-          />
-        )}
+        <CirclePills {...circlePillsProps} />
       </div>
 
       <div className="hidden md:block px-2 mb-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Your Network</h2>
-        {circles && (
-          <CirclePills
-            circles={circles}
-            selectedId={circleFilter ?? null}
-            onSelect={(id) => setCircleFilter(id ?? undefined)}
-            showAdd
-            onAdd={() => void navigate({ to: '/circles' })}
-          />
-        )}
+        <CirclePills {...circlePillsProps} />
       </div>
 
       <div className="space-y-6 px-4 md:px-0">

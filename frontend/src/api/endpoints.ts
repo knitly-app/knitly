@@ -325,25 +325,8 @@ export interface SettingsResponse {
 }
 
 export const settings = {
-  get: async (): Promise<SettingsResponse> => {
-    const res = await fetch("/api/settings");
-    if (!res.ok) throw new Error("Failed to fetch settings");
-    return res.json() as Promise<SettingsResponse>;
-  },
-
-  update: async (data: { appName?: string; logoIcon?: string }): Promise<SettingsResponse> => {
-    const res = await fetch("/api/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const errorData = (await res.json()) as { error?: string };
-      throw new Error(errorData.error || "Failed to update settings");
-    }
-    return res.json() as Promise<SettingsResponse>;
-  },
+  get: () => api.get<SettingsResponse>('/settings'),
+  update: (data: { appName?: string; logoIcon?: string }) => api.put<SettingsResponse>('/settings', data),
 }
 
 export const setup = {

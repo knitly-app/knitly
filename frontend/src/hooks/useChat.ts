@@ -1,34 +1,38 @@
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'preact/hooks'
 import { chat, type ChatMessage } from '../api/endpoints'
 
 export function useChatMessages() {
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const queryClient = useQueryClient()
   const [systemMessages, setSystemMessages] = useState<{ id: string; type: 'join' | 'leave'; username: string; timestamp: number }[]>([])
   const lastIdRef = useRef('0')
   const previousUsersRef = useRef<Set<string>>(new Set())
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const accumulatedQuery = useQuery({
+    queryKey: ['chat', 'messages', 'accumulated'],
+    queryFn: () => [] as ChatMessage[],
+    staleTime: Infinity,
+  })
+
+  const { isLoading, isError, refetch } = useQuery({
     queryKey: ['chat', 'messages'],
     queryFn: async () => {
       const result = await chat.messages(lastIdRef.current)
+      if (result.messages.length > 0) {
+        lastIdRef.current = result.messages[result.messages.length - 1].id
+        queryClient.setQueryData<ChatMessage[]>(['chat', 'messages', 'accumulated'], (prev = []) => {
+          const existingIds = new Set(prev.map((m) => m.id))
+          const newMessages = result.messages.filter((m) => !existingIds.has(m.id))
+          return newMessages.length > 0 ? [...prev, ...newMessages] : prev
+        })
+      }
       return result
     },
     refetchInterval: () => (document.hasFocus() ? 3000 : 30000),
     refetchIntervalInBackground: true,
   })
 
-  useEffect(() => {
-    if (data?.messages && data.messages.length > 0) {
-      setMessages((prev) => {
-        const existingIds = new Set(prev.map((m) => m.id))
-        const newMessages = data.messages.filter((m) => !existingIds.has(m.id))
-        if (newMessages.length === 0) return prev
-        lastIdRef.current = data.messages[data.messages.length - 1].id
-        return [...prev, ...newMessages]
-      })
-    }
-  }, [data])
+  const messages = accumulatedQuery.data ?? []
 
   const presenceQuery = useQuery({
     queryKey: ['chat', 'presence'],
@@ -66,7 +70,7 @@ export function useChatMessages() {
   const sendMutation = useMutation({
     mutationFn: chat.send,
     onSuccess: (newMessage) => {
-      setMessages((prev) => {
+      queryClient.setQueryData<ChatMessage[]>(['chat', 'messages', 'accumulated'], (prev = []) => {
         if (prev.some((m) => m.id === newMessage.id)) return prev
         lastIdRef.current = newMessage.id
         return [...prev, newMessage]
