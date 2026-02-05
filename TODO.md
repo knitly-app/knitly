@@ -39,7 +39,6 @@ Core social features working: posts, comments, reactions, circles, notifications
 
 ### Content
 - [ ] **@ mentions** — Tag users in posts/comments
-- [ ] **Link previews** — Unfurl URLs with Open Graph data
 - [ ] **Polls** — Simple voting on posts (moved from Phase 2)
 
 ### Account
@@ -66,7 +65,6 @@ Core social features working: posts, comments, reactions, circles, notifications
 
 ## Phase 2 — Community Features
 
-- [ ] **AMA / Ask box** — Direct questions to users (anonymous optional)
 - [ ] **Shared calendar** — Birthdays + events with RSVP
 
 ---
