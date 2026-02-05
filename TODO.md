@@ -6,6 +6,20 @@ Core social features working: posts, comments, reactions, circles, notifications
 
 ---
 
+## Critical Issues
+
+- [ ] **🔴 Git security cleanup** — Console.logs exposing personal info, log folders not in .gitignore (may require repo reset)
+
+## Bugs
+
+- [ ] **Image auto-save** — Header/profile images should save on upload without requiring Save button
+- [ ] **Image cleanup** — Old images not deleted on replace (5 images on server, should be 2)
+- [ ] **Heart icon styling** — Should be black/white like other icons until someone actually reacts
+- [ ] **Mobile scroll bug** — Can scroll up and navigation leaves bottom of page
+- [ ] **Lobby mobile CSS** — Doesn't fit properly, scaling issues on mobile
+- [ ] **Localhost DB reset** — Dev mode showing initial setup when DB already exists
+- [ ] **Admin profile access** — Need better mobile navigation to admin profile
+
 ## UX Polish
 
 - [x] **Image lightbox** — Click to view images larger, swipe through galleries
@@ -26,10 +40,18 @@ Core social features working: posts, comments, reactions, circles, notifications
 ### Content
 - [ ] **@ mentions** — Tag users in posts/comments
 - [ ] **Link previews** — Unfurl URLs with Open Graph data
+- [ ] **Polls** — Simple voting on posts (moved from Phase 2)
 
 ### Account
 - [ ] **Password reset** — Email-based recovery flow
 - [ ] **Account deletion** — Self-service with confirmation
+
+### Progressive Web App
+- [ ] **iOS PWA support** — Make app installable on iOS devices
+- [ ] **Offline mode** — Basic caching for offline viewing
+
+### Theming
+- [ ] **Dark mode** — System preference + manual toggle
 
 ---
 
@@ -44,7 +66,6 @@ Core social features working: posts, comments, reactions, circles, notifications
 
 ## Phase 2 — Community Features
 
-- [ ] **Polls** — Simple voting on posts
 - [ ] **AMA / Ask box** — Direct questions to users (anonymous optional)
 - [ ] **Shared calendar** — Birthdays + events with RSVP
 
@@ -53,7 +74,6 @@ Core social features working: posts, comments, reactions, circles, notifications
 ## Future Ideas (Not Planned)
 
 - Direct messaging
-- Dark mode
 - Kid-safe mode
 - Hashtags/trending
 - Post bookmarks

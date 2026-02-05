@@ -62,7 +62,9 @@ next-env.d.ts
 
 # Runtime/Generated
 uploads/
+**/logs/
 logs/
+*.log
 specs/
 
 #AI Agents

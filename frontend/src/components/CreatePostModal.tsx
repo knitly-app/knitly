@@ -1,10 +1,10 @@
-import { useState, useRef, useEffect } from 'preact/hooks'
-import { X, ImagePlus, Video } from 'lucide-preact'
-import { useCreatePost } from '../hooks/usePosts'
-import { useCircles } from '../hooks/useCircles'
+import { ImagePlus, Video, X } from 'lucide-preact'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import { media as mediaApi, type MediaItem } from '../api/endpoints'
-import { useToast } from './Toast'
+import { useCircles } from '../hooks/useCircles'
+import { useCreatePost } from '../hooks/usePosts'
 import { CirclePills } from './CirclePills'
+import { useToast } from './Toast'
 
 interface CreatePostModalProps {
   onClose: () => void
@@ -127,7 +127,7 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
           <button
             onClick={() => { void handleSubmit() }}
             disabled={!canSubmit}
-            className="px-5 py-2 bg-accent-500 text-white rounded-full text-sm font-bold disabled:opacity-40 hover:bg-accent-600 transition-colors"
+            className="px-5 py-2 bg-white text-white rounded-full text-sm font-bold disabled:opacity-40 hover:bg-accent-600 transition-colors"
           >
             {isUploading || createPost.isPending ? 'Sharing...' : 'Share'}
           </button>

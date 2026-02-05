@@ -40,7 +40,7 @@ export function CirclePills({ circles, selectedId, onSelect, showAdd, onAdd }: C
             : 'border border-gray-200 text-gray-600 hover:border-gray-300'
         }`}
       >
-        <span className="w-2 h-2 rounded-full bg-accent-500" />
+        <span className="w-2 h-2 rounded-full bg-white" />
         All
       </button>
 
