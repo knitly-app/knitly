@@ -9,14 +9,14 @@ Core social features working: posts, comments, reactions, circles, notifications
 ## UX Polish
 
 - [x] **Image lightbox** — Click to view images larger, swipe through galleries
-- [ ] **Loading skeletons** — Replace spinners with content placeholders
+- [x] ~~Loading skeletons~~ — Replace spinners with content placeholders
 - [x] ~~Invite validation bug~~ — removed inviter line entirely
 
 ## Feature Expansion
 
 ### Media
 - [x] **Video uploads** — 30s max, 720p, ffmpeg transcoding, CreatePostModal redesign
-- [ ] **Profile header image** — Custom banner/cover photo for profiles
+- [x] ~~Profile header image~~ — Custom banner/cover photo for profiles
 - [ ] **Shared albums** — Collaborative photo collections
 
 ### Profile
@@ -35,7 +35,7 @@ Core social features working: posts, comments, reactions, circles, notifications
 
 ## Admin/Infrastructure
 
-- [ ] **First-time setup wizard** — Detect empty db, show "Create Admin" form on first visit
+- [x] ~~First-time setup wizard~~ — Detect empty db, show "Create Admin" form on first visit
 - [ ] Disk usage / storage overview
 - [ ] Database backup/restore
 - [ ] Exportable archive (zip download)
