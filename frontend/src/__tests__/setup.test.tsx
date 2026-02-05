@@ -13,8 +13,8 @@ describe('SetupWizard Component', () => {
 
   describe('Setup Wizard Module', () => {
     it('exports SetupWizard component', async () => {
-      const module = await import('../routes/setup')
-      expect(typeof module.SetupWizard).toBe('function')
+      const setupModule = await import('../routes/setup')
+      expect(typeof setupModule.SetupWizard).toBe('function')
     })
 
     it('SetupWizard has correct function name', async () => {
@@ -238,7 +238,7 @@ describe('SetupWizard Component', () => {
 
     it('uses LOGO_ICON_NAMES from constants', async () => {
       const { LOGO_ICON_NAMES } = await import('../constants/settings')
-      const module = await import('../routes/setup')
+      await import('../routes/setup')
 
       expect(LOGO_ICON_NAMES).toBeDefined()
       expect(Array.isArray(LOGO_ICON_NAMES)).toBe(true)
@@ -293,7 +293,7 @@ describe('SetupWizard Component', () => {
           username: 'admin',
           displayName: 'Admin',
         })
-      } catch (e) {
+      } catch {
         errorThrown = true
       }
 

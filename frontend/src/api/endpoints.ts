@@ -295,14 +295,19 @@ export const chat = {
   leave: () => api.post('/chat/leave'),
 }
 
+export interface SettingsResponse {
+  appName: string
+  logoIcon: string
+}
+
 export const settings = {
-  get: async (): Promise<{ appName: string; logoIcon: string }> => {
+  get: async (): Promise<SettingsResponse> => {
     const res = await fetch("/api/settings");
     if (!res.ok) throw new Error("Failed to fetch settings");
-    return res.json();
+    return res.json() as Promise<SettingsResponse>;
   },
 
-  update: async (data: { appName?: string; logoIcon?: string }): Promise<{ appName: string; logoIcon: string }> => {
+  update: async (data: { appName?: string; logoIcon?: string }): Promise<SettingsResponse> => {
     const res = await fetch("/api/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -310,10 +315,10 @@ export const settings = {
       body: JSON.stringify(data),
     });
     if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || "Failed to update settings");
+      const errorData = (await res.json()) as { error?: string };
+      throw new Error(errorData.error || "Failed to update settings");
     }
-    return res.json();
+    return res.json() as Promise<SettingsResponse>;
   },
 }
 

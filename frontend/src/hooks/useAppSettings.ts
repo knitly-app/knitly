@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { DEFAULT_APP_SETTINGS, normalizeAppSettings, type AppSettings } from "../constants/settings";
+import { DEFAULT_APP_SETTINGS, normalizeAppSettings } from "../constants/settings";
+import type { AppSettings } from "../constants/settings";
 
 interface AppSettingsState extends AppSettings {
   isLoaded: boolean;
@@ -26,7 +27,7 @@ export const useAppSettings = create<AppSettingsState>((set, get) => ({
       const response = await fetch("/api/settings");
       if (!response.ok) throw new Error("Failed to fetch settings");
 
-      const data = await response.json();
+      const data = (await response.json()) as Partial<AppSettings>;
       set({
         ...normalizeAppSettings(data),
         isLoaded: true,
@@ -53,11 +54,11 @@ export const useAppSettings = create<AppSettingsState>((set, get) => ({
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to update settings");
+        const errorData = (await response.json()) as { error?: string };
+        throw new Error(errorData.error || "Failed to update settings");
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as Partial<AppSettings>;
       set({
         ...normalizeAppSettings(data),
         isLoaded: true,

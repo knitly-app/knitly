@@ -74,10 +74,10 @@ export async function submitSetupComplete(data: {
     body: JSON.stringify(data),
   })
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }))
-    throw new Error(error.error || 'Setup failed')
+    const errorData = (await response.json().catch(() => ({ error: 'Unknown error' }))) as { error?: string }
+    throw new Error(errorData.error || 'Setup failed')
   }
-  return response.json()
+  return response.json() as Promise<{ user: User; success: boolean }>
 }
 
 export function useSetupComplete() {

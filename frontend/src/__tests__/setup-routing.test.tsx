@@ -48,7 +48,7 @@ describe('setup routing', () => {
     it('setup.complete accepts admin credentials and returns success', async () => {
       globalThis.fetch = mock((url: string, options?: RequestInit) => {
         if (url.includes('/api/setup/complete')) {
-          const body = options?.body ? JSON.parse(options.body as string) : {}
+          const body = (options?.body ? JSON.parse(options.body as string) : {}) as Record<string, unknown>
           expect(body).toHaveProperty('email')
           expect(body).toHaveProperty('password')
           expect(body).toHaveProperty('username')

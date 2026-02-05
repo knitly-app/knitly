@@ -99,10 +99,10 @@ export function useChatStatus() {
 
 export function useChatPresenceHeartbeat() {
   useEffect(() => {
-    chat.presence()
+    void chat.presence()
 
     const interval = setInterval(() => {
-      chat.presence()
+      void chat.presence()
     }, 30000)
 
     const handleBeforeUnload = () => {
@@ -114,7 +114,7 @@ export function useChatPresenceHeartbeat() {
     return () => {
       clearInterval(interval)
       window.removeEventListener('beforeunload', handleBeforeUnload)
-      chat.leave()
+      void chat.leave()
     }
   }, [])
 }

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* global console */
 import { mkdirSync, writeFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
@@ -8,7 +9,7 @@ const reactDir = join(__dirname, '../node_modules/react')
 
 try {
   mkdirSync(reactDir, { recursive: true })
-} catch {}
+} catch { /* directory may already exist */ }
 
 writeFileSync(
   join(reactDir, 'package.json'),
