@@ -35,6 +35,7 @@ Core social features working: posts, comments, reactions, circles, notifications
 
 ## Admin/Infrastructure
 
+- [ ] **First-time setup wizard** — Detect empty db, show "Create Admin" form on first visit
 - [ ] Disk usage / storage overview
 - [ ] Database backup/restore
 - [ ] Exportable archive (zip download)
