@@ -38,5 +38,13 @@
     "hook_event_name": "Notification",
     "message": "Claude is waiting for your input",
     "notification_type": "idle_prompt"
+  },
+  {
+    "session_id": "c328674d-619d-44a2-8e7f-94c1db43c21b",
+    "transcript_path": "/home/mikekey/.claude/projects/-home-mikekey-Projects-knitly/c328674d-619d-44a2-8e7f-94c1db43c21b.jsonl",
+    "cwd": "/home/mikekey/Projects/knitly/server",
+    "hook_event_name": "Notification",
+    "message": "Claude needs your permission to use Bash",
+    "notification_type": "permission_prompt"
   }
 ]
