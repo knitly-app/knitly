@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { describe, it, expect } from "bun:test";
 import {
   assertFfmpegAvailable,
   VIDEO_CONTENT_TYPES,
@@ -15,7 +15,6 @@ import {
 import { mkdtempSync, writeFileSync, rmSync, existsSync, readFileSync, statSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { execSync } from "child_process";
 
 const FIXTURES_DIR = join(import.meta.dir, "../../tests/fixtures");
 const TEST_VIDEO = join(FIXTURES_DIR, "test-video.mp4");

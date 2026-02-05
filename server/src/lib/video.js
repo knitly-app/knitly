@@ -1,7 +1,4 @@
 import { execSync, spawn } from "child_process";
-import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "fs";
-import { join } from "path";
-import { tmpdir } from "os";
 import crypto from "crypto";
 
 export const VIDEO_CONTENT_TYPES = new Set([

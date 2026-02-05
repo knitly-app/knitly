@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test'
+import { describe, it, expect } from 'bun:test'
 import { authRateLimit, searchRateLimit, generalRateLimit } from './rateLimit.js'
 
 function createMockContext(ip = '127.0.0.1') {
