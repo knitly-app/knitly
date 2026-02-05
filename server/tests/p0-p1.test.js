@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
@@ -16,6 +16,7 @@ const { hashPassword, verifyPassword } = await import("../src/lib/security.js");
 const { ensureSession, optionalAuth, requireRole } = await import("../src/middleware/auth.js");
 const { createApp } = await import("../src/app.js");
 const { COOKIE_NAME } = await import("../src/lib/constants.js");
+const { clearRateLimitStore } = await import("../src/middleware/rateLimit.js");
 
 const app = createApp();
 
@@ -68,11 +69,10 @@ async function seedAdminUser() {
 
 beforeEach(() => {
   resetDb();
+  clearRateLimitStore();
 });
 
-afterAll(() => {
-  db.close();
-});
+// Note: Don't close db - causes issues when running multiple test files together
 
 describe("P0 unit", () => {
   test("users create/get/update", async () => {

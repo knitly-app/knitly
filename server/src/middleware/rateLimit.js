@@ -20,6 +20,10 @@ function getClientIP(c) {
   );
 }
 
+export function clearRateLimitStore() {
+  rateLimitStore.clear();
+}
+
 function createRateLimiter(maxRequests, windowMs = 60 * 1000) {
   return async (c, next) => {
     const ip = getClientIP(c);

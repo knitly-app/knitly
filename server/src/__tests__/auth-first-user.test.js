@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import crypto from "crypto";
 
 const testId = crypto.randomUUID();
@@ -11,6 +11,7 @@ process.env.BASE_URL = "http://localhost:3000";
 const { dbUtils, db } = await import("../lib/db.js");
 const { createApp } = await import("../app.js");
 const { COOKIE_NAME } = await import("../lib/constants.js");
+const { clearRateLimitStore } = await import("../middleware/rateLimit.js");
 
 const app = createApp();
 
@@ -46,11 +47,10 @@ async function jsonReq(path, { method = "GET", body, cookie } = {}) {
 
 beforeEach(() => {
   resetDb();
+  clearRateLimitStore();
 });
 
-afterAll(() => {
-  db.close();
-});
+// Note: Don't close db here - causes issues when running multiple test files together
 
 describe("First user signup - admin assignment", () => {
   test("first user via signup gets role: admin", async () => {
