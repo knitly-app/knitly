@@ -16,7 +16,8 @@ import { RouteErrorFallback } from './components/RouteErrorFallback'
 import { ToastProvider } from './components/Toast'
 import { ConfirmProvider } from './components/ConfirmModal'
 import { Lightbox } from './components/Lightbox'
-import { auth, posts, users, type User } from './api/endpoints'
+import { auth, posts, users, setup, type User } from './api/endpoints'
+import { PUBLIC_ROUTES } from './routes/constants'
 
 function RouteLoader() {
   return <div className="flex-1 flex items-center justify-center py-12" />
@@ -45,6 +46,7 @@ const SettingsRoute = withSuspense(lazy(() => import('./routes/settings').then((
 const AdminRoute = withSuspense(lazy(() => import('./routes/admin').then((m) => ({ default: m.AdminRoute }))))
 const CirclesRoute = withSuspense(lazy(() => import('./routes/circles').then((m) => ({ default: m.CirclesRoute }))))
 const ChatRoute = withSuspense(lazy(() => import('./routes/chat').then((m) => ({ default: m.ChatRoute }))))
+const SetupRoute = withSuspense(lazy(() => import('./routes/setup').then((m) => ({ default: m.SetupWizard }))))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -67,7 +69,16 @@ const authQueryOptions = {
   staleTime: 1000 * 60 * 5,
 }
 
-const publicRoutePrefixes = ['/login', '/signup', '/invite']
+const publicRoutePrefixes = PUBLIC_ROUTES
+
+async function getSetupNeeded(): Promise<boolean> {
+  try {
+    const status = await setup.status()
+    return status.needsSetup
+  } catch {
+    return false
+  }
+}
 
 async function getAuthUser(client: QueryClient) {
   const cached = client.getQueryData<User | null>(authQueryOptions.queryKey)
@@ -83,9 +94,23 @@ async function getAuthUser(client: QueryClient) {
 const rootRoute = createRootRouteWithContext<RouterContext>()({
   component: App,
   beforeLoad: async ({ context, location }) => {
+    const isSetupRoute = location.pathname.startsWith('/setup')
     const isPublicRoute = publicRoutePrefixes.some((route) =>
       location.pathname.startsWith(route)
     )
+
+    const needsSetup = await getSetupNeeded()
+
+    if (needsSetup) {
+      if (!isSetupRoute) {
+        return redirect({ to: '/setup', throw: true })
+      }
+      return undefined
+    }
+
+    if (isSetupRoute) {
+      return redirect({ to: '/login', throw: true })
+    }
 
     if (isPublicRoute) return undefined
 
@@ -244,6 +269,12 @@ const adminRoute = createRoute({
   },
 })
 
+const setupRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/setup',
+  component: SetupRoute,
+})
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
@@ -259,6 +290,7 @@ const routeTree = rootRoute.addChildren([
   circlesRoute,
   chatRoute,
   adminRoute,
+  setupRoute,
 ])
 
 const router = createRouter({

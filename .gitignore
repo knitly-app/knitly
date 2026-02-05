@@ -23,6 +23,11 @@ frontend/.vite/
 # Environment
 .env
 .env.local
+.env.production
+
+# Deployment (instance-specific)
+deploy.sh
+/deploy/
 
 # IDE
 .idea/

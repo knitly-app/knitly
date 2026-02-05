@@ -2,14 +2,13 @@ import { Outlet, useLocation } from '@tanstack/react-router'
 import { CreatePostModal } from './components/CreatePostModal'
 import { Navigation } from './components/Navigation'
 import { useUIStore } from './stores/ui'
-
-const publicRoutes = ['/login', '/signup', '/invite']
+import { PUBLIC_ROUTES } from './routes/constants'
 
 export function App() {
   const { showCreatePost, closeCreatePost } = useUIStore()
   const location = useLocation()
 
-  const isPublicRoute = publicRoutes.some((r) => location.pathname.startsWith(r))
+  const isPublicRoute = PUBLIC_ROUTES.some((r) => location.pathname.startsWith(r))
   const showNavigation = !isPublicRoute
 
   return (

@@ -316,3 +316,9 @@ export const settings = {
     return res.json();
   },
 }
+
+export const setup = {
+  status: () => api.get<{ needsSetup: boolean }>('/setup/status'),
+  complete: (data: { email: string; password: string; username: string; displayName: string; appName?: string; logoIcon?: string }) =>
+    api.post<{ user: User; success: boolean }>('/setup/complete', data),
+}

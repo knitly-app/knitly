@@ -43,7 +43,7 @@ authRouter.post("/signup", async (c) => {
     const { email, password, username, displayName, inviteToken } = SignupSchema.parse(body);
     const normalizedEmail = email.trim().toLowerCase();
 
-    const { count: userCount } = dbUtils.getStats();
+    const { users: userCount } = dbUtils.getStats();
     const isFirstUser = userCount === 0;
 
     if (!isFirstUser && !inviteToken) {
@@ -69,7 +69,8 @@ authRouter.post("/signup", async (c) => {
     }
 
     const passwordHash = await hashPassword(password);
-    const userId = dbUtils.createUser(normalizedEmail, username, displayName, passwordHash);
+    const role = isFirstUser ? "admin" : "member";
+    const userId = dbUtils.createUser(normalizedEmail, username, displayName, passwordHash, role);
 
     if (inviteToken) {
       const invite = dbUtils.getInviteByToken(inviteToken);

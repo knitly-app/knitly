@@ -878,6 +878,11 @@ export const dbUtils = {
     return { users, posts, invites };
   },
 
+  needsSetup() {
+    const result = db.prepare("SELECT COUNT(*) as count FROM users").get();
+    return result.count === 0;
+  },
+
   // AUDIT LOG
   createAuditEntry(actorId, actionType, targetType, targetId = null, metadata = null) {
     db.prepare(`
