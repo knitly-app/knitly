@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
-import { posts, type Post, type Comment, type User, type ReactionType, type MediaItem } from '../api/endpoints'
+import { posts, type Post, type Comment, type User, type ReactionType, type CreatePostData } from '../api/endpoints'
 import { useToast } from '../components/Toast'
 
 export function useFeed(circleId?: string) {
@@ -37,7 +37,7 @@ export function useCreatePost() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: { content: string; media?: MediaItem[]; circleIds?: string[] }) => posts.create(data),
+    mutationFn: (data: CreatePostData) => posts.create(data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['feed'] })
     },
@@ -196,6 +196,21 @@ export function useDeleteComment() {
     onSuccess: (_data, { postId }) => {
       void queryClient.invalidateQueries({ queryKey: ['posts', postId, 'comments'] })
       void queryClient.invalidateQueries({ queryKey: ['posts', postId] })
+    },
+  })
+}
+
+export function useVotePoll() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ postId, optionId }: { postId: string; optionId: string }) =>
+      posts.vote(postId, optionId),
+    onSuccess: (data, { postId }) => {
+      queryClient.setQueryData<Post>(['posts', postId], (old) =>
+        old ? { ...old, poll: data.poll } : old
+      )
+      void queryClient.invalidateQueries({ queryKey: ['feed'] })
     },
   })
 }

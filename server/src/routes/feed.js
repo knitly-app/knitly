@@ -4,7 +4,7 @@ import { ensureSession } from "../middleware/auth.js";
 
 export const feedRouter = new Hono();
 
-function formatPost(post, userReaction = null) {
+function formatPost(post, userReaction = null, poll = null, userVote = null) {
   return {
     id: String(post.id),
     userId: String(post.user_id),
@@ -14,6 +14,18 @@ function formatPost(post, userReaction = null) {
     reactions: post.reactions || {},
     userReaction,
     comments: post.comments,
+    poll: poll ? {
+      id: String(poll.id),
+      question: poll.question,
+      userVote: userVote ? String(userVote) : null,
+      totalVotes: poll.totalVotes,
+      options: poll.options.map(opt => ({
+        id: String(opt.id),
+        optionText: opt.option_text,
+        voteCount: opt.vote_count,
+        sortOrder: opt.sort_order,
+      })),
+    } : null,
     author: {
       username: post.username,
       displayName: post.display_name,
@@ -34,7 +46,11 @@ feedRouter.get("/", ensureSession, async (c) => {
   const postIds = results.map(p => p.id);
   const userReactions = dbUtils.getUserReactionsMap(currentUser.id, postIds);
 
-  const formatted = results.map(p => formatPost(p, userReactions.get(p.id) || null));
+  const formatted = results.map(p => {
+    const poll = dbUtils.getPoll(p.id);
+    const userVote = poll ? dbUtils.getUserPollVote(currentUser.id, poll.id) : null;
+    return formatPost(p, userReactions.get(p.id) || null, poll, userVote);
+  });
 
   return c.json({
     posts: formatted,

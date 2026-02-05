@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'preact/hooks'
 import { Link } from '@tanstack/react-router'
-import { MessageCircle, Share2, Trash2, Pencil, X, Check, CheckCheck } from 'lucide-preact'
+import { MessageCircle, Share2, Trash2, Pencil, X, Check, CheckCheck, Heart } from 'lucide-preact'
 import type { Post, ReactionType, ReactionCounts } from '../api/endpoints'
 import { useConfirm } from './ConfirmModal'
 import { getAvatarUrl } from '../utils/avatar'
@@ -9,6 +9,8 @@ import { useLightbox } from '../stores/lightbox'
 import { useToast } from './Toast'
 import { formatTimeAgo } from '../utils/time'
 import { renderMarkdown } from '../utils/markdown'
+import { PollCard } from './PollCard'
+import { useVotePoll } from '../hooks/usePosts'
 
 const REACTIONS: { type: ReactionType; emoji: string; label: string }[] = [
   { type: 'love', emoji: '❤️', label: 'Love' },
@@ -69,7 +71,11 @@ function ReactionButton({
             : 'text-gray-400 hover:text-accent-500 hover:bg-accent-50'
         }`}
       >
-        <span className="text-lg">{currentEmoji || '❤️'}</span>
+        {total > 0 ? (
+          <span className="text-lg">{currentEmoji || '❤️'}</span>
+        ) : (
+          <Heart size={20} />
+        )}
         {total > 0 && <span className="text-sm font-medium">{total}</span>}
       </button>
 
@@ -121,6 +127,7 @@ export function PostCard({ post, author, currentUserId, onReact, onDelete, onEdi
   const { editingPostId, setEditingPost } = useUIStore()
   const [editContent, setEditContent] = useState(post.content || '')
   const [copied, setCopied] = useState(false)
+  const votePoll = useVotePoll()
   const isOwner = currentUserId === post.userId
   const canDelete = !!onDelete && isOwner
   const canEdit = !!onEdit && isOwner
@@ -257,6 +264,14 @@ export function PostCard({ post, author, currentUserId, onReact, onDelete, onEdi
                 dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }}
               />
             </Link>
+          )}
+
+          {post.poll && (
+            <PollCard
+              poll={post.poll}
+              onVote={(optionId) => votePoll.mutate({ postId: post.id, optionId })}
+              isVoting={votePoll.isPending}
+            />
           )}
 
           {mediaItems.length === 1 && mediaItems[0].type === 'video' && (

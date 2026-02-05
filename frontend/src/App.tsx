@@ -12,7 +12,7 @@ export function App() {
   const showNavigation = !isPublicRoute
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+    <div className="h-screen overflow-hidden bg-gray-50 flex flex-col md:flex-row">
       {showNavigation && <Navigation />}
 
       <main

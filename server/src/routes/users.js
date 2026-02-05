@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { dbUtils } from "../lib/db.js";
 import { ensureSession, optionalAuth } from "../middleware/auth.js";
+import { extractKeyFromUrl, deleteObject } from "../lib/media.js";
 
 export const usersRouter = new Hono();
 
@@ -27,7 +28,7 @@ function formatUserWithCounts(user) {
   };
 }
 
-function formatPost(post, userReaction = null) {
+function formatPost(post, userReaction = null, poll = null, userVote = null) {
   return {
     id: String(post.id),
     userId: String(post.user_id),
@@ -37,6 +38,18 @@ function formatPost(post, userReaction = null) {
     reactions: post.reactions || {},
     userReaction,
     comments: post.comments,
+    poll: poll ? {
+      id: String(poll.id),
+      question: poll.question,
+      userVote: userVote ? String(userVote) : null,
+      totalVotes: poll.totalVotes,
+      options: poll.options.map(opt => ({
+        id: String(opt.id),
+        optionText: opt.option_text,
+        voteCount: opt.vote_count,
+        sortOrder: opt.sort_order,
+      })),
+    } : null,
     author: {
       username: post.username,
       displayName: post.display_name,
@@ -78,10 +91,24 @@ usersRouter.patch("/:id", ensureSession, async (c) => {
     return c.json({ error: "Forbidden" }, 403);
   }
 
+  const existingUser = dbUtils.getUserById(userId);
+  const oldAvatar = existingUser?.avatar;
+  const oldHeader = existingUser?.header;
+
   const body = await c.req.json();
   dbUtils.updateUser(userId, body);
 
   const user = dbUtils.getUserById(userId);
+
+  if (oldAvatar && user.avatar !== oldAvatar) {
+    const key = extractKeyFromUrl(oldAvatar);
+    if (key) deleteObject(key).catch(() => {});
+  }
+  if (oldHeader && user.header !== oldHeader) {
+    const key = extractKeyFromUrl(oldHeader);
+    if (key) deleteObject(key).catch(() => {});
+  }
+
   return c.json(formatUserWithCounts(user));
 });
 
@@ -136,5 +163,9 @@ usersRouter.get("/:id/posts", optionalAuth, async (c) => {
 
   const posts = dbUtils.getUserPosts(userId, 50, currentUser?.id ?? null);
   const reactionsMap = currentUser ? dbUtils.getUserReactionsMap(currentUser.id, posts.map(p => p.id)) : new Map();
-  return c.json(posts.map(p => formatPost(p, reactionsMap.get(p.id) ?? null)));
+  return c.json(posts.map(p => {
+    const poll = dbUtils.getPoll(p.id);
+    const userVote = poll && currentUser ? dbUtils.getUserPollVote(currentUser.id, poll.id) : null;
+    return formatPost(p, reactionsMap.get(p.id) ?? null, poll, userVote);
+  }));
 });

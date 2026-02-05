@@ -3,12 +3,13 @@ import { dbUtils } from "../lib/db.js";
 import { ensureSession } from "../middleware/auth.js";
 import { sanitizeText } from "../lib/sanitize.js";
 import { deleteObject, extractKeyFromUrl } from "../lib/media.js";
+import { parseMentions, resolveMentions } from "../lib/mentions.js";
 
 export const postsRouter = new Hono();
 
 const VALID_REACTIONS = ["love", "haha", "hugs", "celebrate"];
 
-function formatPost(post, userReaction = null, circleIds = null) {
+function formatPost(post, userReaction = null, circleIds = null, poll = null, userVote = null) {
   return {
     id: String(post.id),
     userId: String(post.user_id),
@@ -19,6 +20,18 @@ function formatPost(post, userReaction = null, circleIds = null) {
     userReaction,
     comments: post.comments,
     circleIds: circleIds ?? dbUtils.getPostCircles(post.id).map(String),
+    poll: poll ? {
+      id: String(poll.id),
+      question: poll.question,
+      userVote: userVote ? String(userVote) : null,
+      totalVotes: poll.totalVotes,
+      options: poll.options.map(opt => ({
+        id: String(opt.id),
+        optionText: opt.option_text,
+        voteCount: opt.vote_count,
+        sortOrder: opt.sort_order,
+      })),
+    } : null,
     author: {
       username: post.username,
       displayName: post.display_name,
@@ -39,7 +52,9 @@ postsRouter.get("/:id", ensureSession, async (c) => {
   }
 
   const userReaction = currentUser ? dbUtils.getUserReaction(currentUser.id, postId) : null;
-  return c.json(formatPost(post, userReaction));
+  const poll = dbUtils.getPoll(postId);
+  const userVote = poll ? dbUtils.getUserPollVote(currentUser.id, poll.id) : null;
+  return c.json(formatPost(post, userReaction, null, poll, userVote));
 });
 
 postsRouter.post("/", ensureSession, async (c) => {
@@ -48,7 +63,7 @@ postsRouter.post("/", ensureSession, async (c) => {
 
   const content = sanitizeText(body.content);
   const rawMedia = Array.isArray(body.media) ? body.media : [];
-  const media = rawMedia
+  let media = rawMedia
     .filter((item) => item && typeof item.url === "string")
     .slice(0, 6)
     .map((item, index) => ({
@@ -71,7 +86,29 @@ postsRouter.post("/", ensureSession, async (c) => {
     });
   }
 
-  if (!content && media.length === 0) {
+  const pollData = body.poll;
+  const hasPoll = pollData && typeof pollData.question === "string" && Array.isArray(pollData.options);
+
+  if (hasPoll) {
+    const hasVideo = media.some((m) => m.type === "video");
+    if (hasVideo) {
+      return c.json({ error: "Polls cannot include video" }, 400);
+    }
+    media = media.filter((m) => m.type === "image").slice(0, 1);
+
+    const options = pollData.options
+      .map((o) => (typeof o === "string" ? o.trim() : ""))
+      .filter((o) => o.length > 0)
+      .slice(0, 6);
+    if (options.length < 2) {
+      return c.json({ error: "Poll requires 2-6 options" }, 400);
+    }
+    if (!pollData.question.trim()) {
+      return c.json({ error: "Poll question required" }, 400);
+    }
+  }
+
+  if (!content && media.length === 0 && !hasPoll) {
     return c.json({ error: "Content or media required" }, 400);
   }
 
@@ -85,8 +122,26 @@ postsRouter.post("/", ensureSession, async (c) => {
     dbUtils.setPostCircles(post.id, circleIds);
   }
 
+  let poll = null;
+  if (hasPoll) {
+    const options = pollData.options
+      .map((o) => (typeof o === "string" ? o.trim() : ""))
+      .filter((o) => o.length > 0)
+      .slice(0, 6);
+    dbUtils.createPoll(post.id, pollData.question.trim(), options);
+    poll = dbUtils.getPoll(post.id);
+  }
+
+  const mentionedUsernames = parseMentions(content);
+  const mentionedUsers = resolveMentions(mentionedUsernames);
+  for (const user of mentionedUsers) {
+    if (user.id !== currentUser.id) {
+      dbUtils.createNotification(user.id, "mention", currentUser.id, post.id);
+    }
+  }
+
   const userReaction = dbUtils.getUserReaction(currentUser.id, post.id);
-  return c.json(formatPost(post, userReaction), 201);
+  return c.json(formatPost(post, userReaction, null, poll, null), 201);
 });
 
 postsRouter.patch("/:id", ensureSession, async (c) => {
@@ -214,6 +269,14 @@ postsRouter.post("/:id/comments", ensureSession, async (c) => {
     dbUtils.createNotification(post.user_id, "comment", currentUser.id, postId);
   }
 
+  const mentionedUsernames = parseMentions(commentContent);
+  const mentionedUsers = resolveMentions(mentionedUsernames);
+  for (const user of mentionedUsers) {
+    if (user.id !== currentUser.id && user.id !== post.user_id) {
+      dbUtils.createNotification(user.id, "mention", currentUser.id, postId);
+    }
+  }
+
   return c.json({
     id: String(comment.id),
     postId: String(comment.post_id),
@@ -239,4 +302,41 @@ postsRouter.delete("/:postId/comments/:commentId", ensureSession, async (c) => {
 
   dbUtils.deleteComment(commentId);
   return c.json({ success: true });
+});
+
+postsRouter.post("/:id/vote", ensureSession, async (c) => {
+  const postId = parseInt(c.req.param("id"));
+  const currentUser = c.get("user");
+  const body = await c.req.json();
+
+  const poll = dbUtils.getPoll(postId);
+  if (!poll) return c.json({ error: "Poll not found" }, 404);
+
+  const optionId = parseInt(body.optionId);
+  if (!Number.isFinite(optionId)) {
+    return c.json({ error: "Invalid option" }, 400);
+  }
+
+  const result = dbUtils.votePoll(currentUser.id, poll.id, optionId);
+  if (result.error) {
+    return c.json({ error: result.error }, 400);
+  }
+
+  const updatedPoll = dbUtils.getPoll(postId);
+  const userVote = dbUtils.getUserPollVote(currentUser.id, poll.id);
+
+  return c.json({
+    poll: {
+      id: String(updatedPoll.id),
+      question: updatedPoll.question,
+      userVote: userVote ? String(userVote) : null,
+      totalVotes: updatedPoll.totalVotes,
+      options: updatedPoll.options.map(opt => ({
+        id: String(opt.id),
+        optionText: opt.option_text,
+        voteCount: opt.vote_count,
+        sortOrder: opt.sort_order,
+      })),
+    },
+  });
 });

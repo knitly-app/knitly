@@ -91,8 +91,12 @@ export function SettingsRoute() {
       })
 
       const mediaItem = await mediaApi.complete({ key: presign.key })
-      setDraft((prev) => ({ ...prev, avatar: mediaItem.url }))
-      toast.success('Avatar uploaded')
+
+      const updatedProfile = {
+        ...profilePayload,
+        avatar: mediaItem.url,
+      }
+      updateProfile.mutate(updatedProfile)
     } catch {
       toast.error('Failed to upload avatar')
     } finally {
@@ -121,8 +125,12 @@ export function SettingsRoute() {
       })
 
       const mediaItem = await mediaApi.complete({ key: presign.key })
-      setDraft((prev) => ({ ...prev, header: mediaItem.url }))
-      toast.success('Header image uploaded')
+
+      const updatedProfile = {
+        ...profilePayload,
+        header: mediaItem.url,
+      }
+      updateProfile.mutate(updatedProfile)
     } catch {
       toast.error('Failed to upload header image')
     } finally {
@@ -360,18 +368,6 @@ export function SettingsRoute() {
           </div>
         </Link>
       </div>
-
-      {(user?.role === 'admin' || user?.role === 'moderator') && (
-        <div className="mt-8">
-          <Link
-            to="/admin"
-            search={{ tab: undefined }}
-            className="w-full flex items-center justify-center space-x-2 p-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-colors"
-          >
-            <span>Admin Panel</span>
-          </Link>
-        </div>
-      )}
 
       <div className="mt-8">
         <button

@@ -39,6 +39,21 @@ export interface ReactionCounts {
   celebrate?: number
 }
 
+export interface PollOption {
+  id: string
+  optionText: string
+  voteCount: number
+  sortOrder: number
+}
+
+export interface Poll {
+  id: string
+  question: string
+  userVote: string | null
+  totalVotes: number
+  options: PollOption[]
+}
+
 export interface Post {
   id: string
   userId: string
@@ -51,6 +66,7 @@ export interface Post {
   comments: number
   author?: PostAuthor
   circleIds?: string[]
+  poll?: Poll | null
 }
 
 export interface Comment {
@@ -151,6 +167,13 @@ export interface ReactionResponse {
   userReaction: ReactionType | null
 }
 
+export interface CreatePostData {
+  content: string
+  media?: MediaItem[]
+  circleIds?: string[]
+  poll?: { question: string; options: string[] }
+}
+
 export const posts = {
   feed: (cursor?: string, circleId?: string) => {
     const params: Record<string, string> = {}
@@ -159,11 +182,12 @@ export const posts = {
     return api.get<{ posts: Post[]; nextCursor?: string }>('/feed', { params })
   },
   get: (id: string) => api.get<Post>(`/posts/${id}`),
-  create: (data: { content: string; media?: MediaItem[]; circleIds?: string[] }) => api.post<Post>('/posts', data),
+  create: (data: CreatePostData) => api.post<Post>('/posts', data),
   delete: (id: string) => api.delete(`/posts/${id}`),
   update: (id: string, content: string) => api.patch<Post>(`/posts/${id}`, { content }),
   react: (id: string, type: ReactionType) => api.post<ReactionResponse>(`/posts/${id}/reactions`, { type }),
   unreact: (id: string) => api.delete<ReactionResponse>(`/posts/${id}/reactions`),
+  vote: (id: string, optionId: string) => api.post<{ poll: Poll }>(`/posts/${id}/vote`, { optionId }),
   comments: (id: string) => api.get<Comment[]>(`/posts/${id}/comments`),
   addComment: (id: string, content: string) => api.post<Comment>(`/posts/${id}/comments`, { content }),
   deleteComment: (postId: string, commentId: string) => api.delete(`/posts/${postId}/comments/${commentId}`),
@@ -323,7 +347,7 @@ export const settings = {
 }
 
 export const setup = {
-  status: () => api.get<{ needsSetup: boolean }>('/setup/status'),
+  status: () => api.get<{ needsSetup: boolean }>('/setup/status', { cache: 'no-store' }),
   complete: (data: { email: string; password: string; username: string; displayName: string; appName?: string; logoIcon?: string }) =>
     api.post<{ user: User; success: boolean }>('/setup/complete', data),
 }

@@ -167,6 +167,33 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS idx_chat_messages_created ON chat_messages(created_at);
+
+  CREATE TABLE IF NOT EXISTS polls (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id INTEGER NOT NULL UNIQUE REFERENCES posts(id) ON DELETE CASCADE,
+    question TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS poll_options (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    poll_id INTEGER NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
+    option_text TEXT NOT NULL,
+    sort_order INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS poll_votes (
+    poll_id INTEGER NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
+    option_id INTEGER NOT NULL REFERENCES poll_options(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (poll_id, user_id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_polls_post_id ON polls(post_id);
+  CREATE INDEX IF NOT EXISTS idx_poll_options_poll_id ON poll_options(poll_id);
+  CREATE INDEX IF NOT EXISTS idx_poll_votes_option ON poll_votes(option_id);
 `);
 
 const addColumnIfMissing = (statement) => {
@@ -1162,6 +1189,80 @@ export const dbUtils = {
 
   removeChatPresence(userId) {
     db.prepare("DELETE FROM chat_presence WHERE user_id = ?").run(userId);
+  },
+
+  // POLLS
+  createPoll(postId, question, options) {
+    const tx = db.transaction((pId, q, opts) => {
+      const pollResult = db.prepare(`
+        INSERT INTO polls (post_id, question) VALUES (?, ?)
+      `).run(pId, q);
+      const pollId = pollResult.lastInsertRowid;
+
+      const insertOption = db.prepare(`
+        INSERT INTO poll_options (poll_id, option_text, sort_order) VALUES (?, ?, ?)
+      `);
+      opts.forEach((text, index) => {
+        insertOption.run(pollId, text, index);
+      });
+
+      return pollId;
+    });
+    return tx(postId, question, options);
+  },
+
+  getPoll(postId) {
+    const poll = db.prepare(`
+      SELECT id, post_id, question, created_at
+      FROM polls WHERE post_id = ?
+    `).get(postId);
+    if (!poll) return null;
+
+    const options = db.prepare(`
+      SELECT po.id, po.option_text, po.sort_order,
+             COUNT(pv.user_id) as vote_count
+      FROM poll_options po
+      LEFT JOIN poll_votes pv ON po.id = pv.option_id
+      WHERE po.poll_id = ?
+      GROUP BY po.id
+      ORDER BY po.sort_order ASC
+    `).all(poll.id);
+
+    const totalVotes = options.reduce((sum, opt) => sum + opt.vote_count, 0);
+
+    return {
+      id: poll.id,
+      postId: poll.post_id,
+      question: poll.question,
+      createdAt: poll.created_at,
+      totalVotes,
+      options,
+    };
+  },
+
+  getUserPollVote(userId, pollId) {
+    const row = db.prepare(`
+      SELECT option_id FROM poll_votes WHERE poll_id = ? AND user_id = ?
+    `).get(pollId, userId);
+    return row ? row.option_id : null;
+  },
+
+  votePoll(userId, pollId, optionId) {
+    const option = db.prepare(`
+      SELECT id FROM poll_options WHERE id = ? AND poll_id = ?
+    `).get(optionId, pollId);
+    if (!option) return { error: "Invalid option" };
+
+    const existing = db.prepare(`
+      SELECT 1 FROM poll_votes WHERE poll_id = ? AND user_id = ?
+    `).get(pollId, userId);
+    if (existing) return { error: "Already voted" };
+
+    db.prepare(`
+      INSERT INTO poll_votes (poll_id, option_id, user_id) VALUES (?, ?, ?)
+    `).run(pollId, optionId, userId);
+
+    return { success: true };
   },
 };
 

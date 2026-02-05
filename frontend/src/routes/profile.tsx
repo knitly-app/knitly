@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams, Link } from '@tanstack/react-router'
-import { MapPin, Link as LinkIcon, Settings } from 'lucide-preact'
+import { MapPin, Link as LinkIcon, Settings, Shield } from 'lucide-preact'
 import { users, posts as postsApi } from '../api/endpoints'
 import { useAuth } from '../hooks/useAuth'
 import { PostCard } from '../components/PostCard'
@@ -71,13 +71,25 @@ export function ProfileRoute() {
               decoding="async"
             />
             {isOwnProfile && (
-              <Link
-                to="/settings"
-                className="px-6 py-2 bg-white rounded-full text-sm font-bold text-gray-600 shadow-sm border border-gray-200 hover:border-gray-300 transition-colors flex items-center space-x-2"
-              >
-                <Settings size={16} />
-                <span>Edit Profile</span>
-              </Link>
+              <div className="flex items-center gap-2">
+                {currentUser?.role === 'admin' && (
+                  <Link
+                    to="/admin"
+                    search={{ tab: undefined }}
+                    className="px-4 py-2 bg-gray-900 rounded-full text-sm font-bold text-white hover:bg-black transition-colors flex items-center space-x-2"
+                  >
+                    <Shield size={16} />
+                    <span>Admin Panel</span>
+                  </Link>
+                )}
+                <Link
+                  to="/settings"
+                  className="px-6 py-2 bg-white rounded-full text-sm font-bold text-gray-600 shadow-sm border border-gray-200 hover:border-gray-300 transition-colors flex items-center space-x-2"
+                >
+                  <Settings size={16} />
+                  <span>Edit Profile</span>
+                </Link>
+              </div>
             )}
           </div>
 

@@ -39,6 +39,8 @@ function formatUser(user) {
 export const setupRouter = new Hono();
 
 setupRouter.get("/status", (c) => {
+  c.header("Cache-Control", "no-store, no-cache, must-revalidate");
+  c.header("Pragma", "no-cache");
   const needsSetup = dbUtils.needsSetup();
   return c.json({ needsSetup });
 });

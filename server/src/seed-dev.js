@@ -171,6 +171,10 @@ const POSTS = [
   { userIdx: 0, content: "Mom's birthday is coming up. Any gift ideas? She said she doesn't want anything but we all know that's not true.", mediaUrl: null, circleIdx: 0 },
   { userIdx: 0, content: "Real talk: anyone else feeling burned out lately? Been pushing hard and need to hear I'm not alone.", mediaUrl: null, circleIdx: 1 },
   { userIdx: 0, content: "Planning a camping trip next month. You're all invited. No phones, just nature and good company.", mediaUrl: "https://picsum.photos/seed/camping1/800/600", circleIdx: 1 },
+  // Posts with @mentions (recent - these will be at the top of the feed)
+  { userIdx: 2, content: "Pair programming with @mike today and we knocked out so many bugs. Great session!", mediaUrl: null },
+  { userIdx: 4, content: "Shoutout to @mike and @jordan for the code review feedback. This codebase is getting cleaner by the day.", mediaUrl: null },
+  { userIdx: 1, content: "Design review went great! Thanks @mike for the honest feedback. Back to the drawing board on a few things.", mediaUrl: null },
 ];
 
 const COMMENTS = [
@@ -188,6 +192,24 @@ const COMMENTS = [
   { postIdx: 12, userIdx: 1, content: "That view though. Worth it." },
   { postIdx: 15, userIdx: 2, content: "Your dog is adorable!" },
   { postIdx: 16, userIdx: 0, content: "Those late sessions hit different. Don't burn out though!" },
+  // Additional comments
+  { postIdx: 2, userIdx: 1, content: "What was the bug? I love a good debugging story." },
+  { postIdx: 2, userIdx: 0, content: "Stepping away is underrated. Glad you figured it out!" },
+  { postIdx: 4, userIdx: 0, content: "100% agree. User feedback is gold." },
+  { postIdx: 4, userIdx: 5, content: "This is the way. Strategy meetings are where ideas go to die." },
+  { postIdx: 6, userIdx: 3, content: "Congrats to the whole team!" },
+  { postIdx: 6, userIdx: 0, content: "Milestones feel good. Celebrate it!" },
+  { postIdx: 9, userIdx: 2, content: "Such a classic. The tip about DRY changed how I code." },
+  { postIdx: 9, userIdx: 4, content: "Every developer should read this at least twice." },
+  { postIdx: 10, userIdx: 3, content: "No spoilers but I need to talk about it with someone!" },
+  { postIdx: 11, userIdx: 0, content: "Keyboard shortcuts are life. The fewer times I touch my mouse, the better." },
+  { postIdx: 11, userIdx: 6, content: "Learning vim was the best investment I made." },
+  { postIdx: 13, userIdx: 2, content: "Less is more. Hard to convince stakeholders sometimes though." },
+  { postIdx: 14, userIdx: 1, content: "That's when you know something's wrong lol" },
+  { postIdx: 17, userIdx: 5, content: "Rest is part of training. Good call." },
+  // Comments with @mentions
+  { postIdx: 9, userIdx: 1, content: "@mike have you read Clean Code too? Curious how they compare." },
+  { postIdx: 11, userIdx: 5, content: "@mike built some great shortcuts into this app actually!" },
 ];
 
 function randomInt(min, max) {
@@ -378,6 +400,28 @@ async function seed() {
     `).run(userIds[0], userIds[i], 1, pastDate(randomInt(25, 35)));
     notifCount++;
   }
+
+  // Mention notifications for mike (from the @mention posts)
+  // Post 22 (alex mentions mike), Post 23 (taylor mentions mike), Post 24 (sarah mentions mike)
+  const mentionPosts = [
+    { postIdx: 22, actorIdx: 2 }, // alex mentions mike
+    { postIdx: 23, actorIdx: 4 }, // taylor mentions mike
+    { postIdx: 24, actorIdx: 1 }, // sarah mentions mike
+  ];
+  for (const m of mentionPosts) {
+    db.prepare(`
+      INSERT INTO notifications (user_id, type, actor_id, post_id, read, created_at)
+      VALUES (?, 'mention', ?, ?, 0, ?)
+    `).run(userIds[0], userIds[m.actorIdx], postIds[m.postIdx], pastDate(0)); // recent (today)
+    notifCount++;
+  }
+
+  // Also mention notification for jordan from taylor's post (post 23)
+  db.prepare(`
+    INSERT INTO notifications (user_id, type, actor_id, post_id, read, created_at)
+    VALUES (?, 'mention', ?, ?, 0, ?)
+  `).run(userIds[5], userIds[4], postIds[23], pastDate(0));
+  notifCount++;
 
   logInfo(`  Created ${notifCount} notifications`);
   logInfo("");

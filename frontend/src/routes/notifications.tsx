@@ -13,6 +13,8 @@ function getNotificationText(type: string): string {
       return 'commented on your post'
     case 'invite':
       return 'joined via your invite'
+    case 'mention':
+      return 'mentioned you in a post'
     default:
       return 'interacted with you'
   }
