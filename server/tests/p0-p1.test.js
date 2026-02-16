@@ -821,6 +821,27 @@ describe("Admin panel", () => {
     expect(inviteEntry.metadata.tokenSuffix).not.toBe(createInviteBody.token);
   });
 
+  test("audit log sanitizes legacy invite token metadata", async () => {
+    const { adminId } = await seedAdminUser();
+    const { sessionId: modSession } = await seedModeratorUser();
+    const legacyToken = "legacy-token-should-not-leak";
+
+    dbUtils.createAuditEntry(adminId, "INVITE_CREATED", "invite", null, {
+      token: legacyToken,
+      note: "legacy row",
+    });
+
+    const auditRes = await jsonReq("/api/admin/audit", { cookie: modSession });
+    expect(auditRes.status).toBe(200);
+    const auditBody = await auditRes.json();
+
+    const inviteEntry = auditBody.items.find((item) => item.actionType === "INVITE_CREATED" && item.metadata?.note === "legacy row");
+    expect(inviteEntry).toBeTruthy();
+    expect(inviteEntry.metadata.token).toBeUndefined();
+    expect(inviteEntry.metadata.tokenSuffix).toBeTruthy();
+    expect(inviteEntry.metadata.tokenSuffix).not.toBe(legacyToken);
+  });
+
   test("moderator cannot remove users", async () => {
     const { sessionId: modSession } = await seedModeratorUser();
     const passwordHash = await hashPassword("password123");

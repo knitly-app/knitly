@@ -27,6 +27,24 @@ function parseUserId(c) {
   return { userId };
 }
 
+function maskToken(token) {
+  return token.length <= 8 ? token : `...${token.slice(-8)}`;
+}
+
+function sanitizeAuditMetadata(actionType, rawMetadata) {
+  if (!rawMetadata || typeof rawMetadata !== "object") return rawMetadata;
+
+  if ((actionType === "INVITE_CREATED" || actionType === "INVITE_REVOKED") && typeof rawMetadata.token === "string") {
+    const { token, ...rest } = rawMetadata;
+    return {
+      ...rest,
+      tokenSuffix: typeof rawMetadata.tokenSuffix === "string" ? rawMetadata.tokenSuffix : maskToken(token),
+    };
+  }
+
+  return rawMetadata;
+}
+
 adminRouter.get("/users", requireRole("admin", "moderator"), (c) => {
   const users = dbUtils.getAllUsers();
   return c.json(users.map(formatUser));
@@ -319,7 +337,7 @@ adminRouter.get("/audit", requireRole("admin", "moderator"), (c) => {
       actionType: item.action_type,
       targetType: item.target_type,
       targetId: item.target_id ? String(item.target_id) : null,
-      metadata: item.metadata_json ? JSON.parse(item.metadata_json) : null,
+      metadata: item.metadata_json ? sanitizeAuditMetadata(item.action_type, JSON.parse(item.metadata_json)) : null,
       createdAt: item.created_at,
       actor: {
         id: String(item.actor_id),
