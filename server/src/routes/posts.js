@@ -36,6 +36,7 @@ function formatPost(post, userReaction = null, circleIds = null, poll = null, us
       username: post.username,
       displayName: post.display_name,
       avatar: post.avatar || undefined,
+      role: post.role || undefined,
     },
   };
 }
@@ -236,7 +237,12 @@ postsRouter.delete("/:id/reactions", ensureSession, async (c) => {
 
 postsRouter.get("/:id/comments", ensureSession, async (c) => {
   const postId = parseInt(c.req.param("id"));
-  const comments = dbUtils.getComments(postId);
+  const since = c.req.query("since");
+  const sinceId = since ? parseInt(since) : null;
+
+  const comments = sinceId
+    ? dbUtils.getCommentsSince(postId, sinceId)
+    : dbUtils.getComments(postId);
 
   return c.json(comments.map(comment => ({
     id: String(comment.id),
@@ -245,6 +251,7 @@ postsRouter.get("/:id/comments", ensureSession, async (c) => {
     username: comment.username,
     displayName: comment.display_name,
     avatar: comment.avatar || undefined,
+    role: comment.role || undefined,
     content: comment.content,
     createdAt: comment.created_at,
   })));
@@ -284,6 +291,7 @@ postsRouter.post("/:id/comments", ensureSession, async (c) => {
     username: comment.username,
     displayName: comment.display_name,
     avatar: comment.avatar || undefined,
+    role: comment.role || undefined,
     content: comment.content,
     createdAt: comment.created_at,
   }, 201);

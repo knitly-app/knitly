@@ -122,6 +122,118 @@ adminRouter.delete("/users/:id", requireRole("admin"), (c) => {
   return c.json({ success: true });
 });
 
+adminRouter.get("/bots", requireRole("admin"), (c) => {
+  const bots = dbUtils.getBots();
+  return c.json(bots.map(bot => ({
+    id: String(bot.id),
+    username: bot.username,
+    displayName: bot.display_name,
+    avatar: bot.avatar || undefined,
+    bio: bot.bio || undefined,
+    role: bot.role,
+    disabledAt: bot.disabled_at || null,
+    createdAt: bot.created_at,
+    lastActive: bot.last_active || null,
+    keys: dbUtils.getApiKeysByUser(bot.id).map(k => ({
+      id: String(k.id),
+      label: k.label,
+      lastUsedAt: k.last_used_at || null,
+      revokedAt: k.revoked_at || null,
+      createdAt: k.created_at,
+    })),
+  })));
+});
+
+adminRouter.post("/bots", requireRole("admin"), async (c) => {
+  const currentUser = c.get("user");
+  const body = await c.req.json();
+
+  const username = body.username?.trim();
+  const displayName = body.displayName?.trim();
+  const bio = body.bio?.trim() || '';
+
+  if (!username || !displayName) {
+    return c.json({ error: "Username and display name required" }, 400);
+  }
+
+  if (!/^[a-zA-Z0-9_]{2,30}$/.test(username)) {
+    return c.json({ error: "Username must be 2-30 alphanumeric characters" }, 400);
+  }
+
+  if (dbUtils.getUserByUsername(username)) {
+    return c.json({ error: "Username already taken" }, 400);
+  }
+
+  const botEmail = `${username}@bot.knitly.local`;
+  const userId = dbUtils.createUser(botEmail, username, displayName, null, "bot");
+
+  if (bio) {
+    dbUtils.updateUser(userId, { bio });
+  }
+
+  const rawKey = `knitly_${generateRandomToken(32)}`;
+  const keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
+  dbUtils.createApiKey(userId, keyHash, "default");
+
+  dbUtils.createAuditEntry(currentUser.id, "BOT_CREATED", "user", userId);
+
+  return c.json({
+    id: String(userId),
+    username,
+    displayName,
+    bio,
+    apiKey: rawKey,
+  }, 201);
+});
+
+adminRouter.post("/bots/:id/regenerate-key", requireRole("admin"), (c) => {
+  const currentUser = c.get("user");
+  const botId = parseInt(c.req.param("id"), 10);
+  if (!Number.isFinite(botId)) return c.json({ error: "Invalid bot id" }, 400);
+
+  const bot = dbUtils.getUserById(botId);
+  if (!bot || bot.role !== 'bot') return c.json({ error: "Bot not found" }, 404);
+
+  dbUtils.revokeApiKeysByUser(botId);
+
+  const rawKey = `knitly_${generateRandomToken(32)}`;
+  const keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
+  dbUtils.createApiKey(botId, keyHash, "default");
+
+  dbUtils.createAuditEntry(currentUser.id, "BOT_KEY_REGENERATED", "user", botId);
+
+  return c.json({ apiKey: rawKey });
+});
+
+adminRouter.post("/bots/:id/revoke-key", requireRole("admin"), (c) => {
+  const currentUser = c.get("user");
+  const botId = parseInt(c.req.param("id"), 10);
+  if (!Number.isFinite(botId)) return c.json({ error: "Invalid bot id" }, 400);
+
+  const bot = dbUtils.getUserById(botId);
+  if (!bot || bot.role !== 'bot') return c.json({ error: "Bot not found" }, 404);
+
+  dbUtils.revokeApiKeysByUser(botId);
+  dbUtils.createAuditEntry(currentUser.id, "BOT_KEY_REVOKED", "user", botId);
+
+  return c.json({ success: true });
+});
+
+adminRouter.delete("/bots/:id", requireRole("admin"), (c) => {
+  const currentUser = c.get("user");
+  const botId = parseInt(c.req.param("id"), 10);
+  if (!Number.isFinite(botId)) return c.json({ error: "Invalid bot id" }, 400);
+
+  const bot = dbUtils.getUserById(botId);
+  if (!bot || bot.role !== 'bot') return c.json({ error: "Bot not found" }, 404);
+
+  dbUtils.createAuditEntry(currentUser.id, "BOT_DELETED", "user", botId);
+  dbUtils.deleteApiKeysByUser(botId);
+  dbUtils.deleteUser(botId);
+
+  return c.json({ success: true });
+});
+
 adminRouter.get("/stats", requireRole("admin"), (c) => {
   const stats = dbUtils.getStats();
   return c.json(stats);

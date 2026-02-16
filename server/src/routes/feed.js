@@ -30,6 +30,7 @@ function formatPost(post, userReaction = null, poll = null, userVote = null) {
       username: post.username,
       displayName: post.display_name,
       avatar: post.avatar || undefined,
+      role: post.role || undefined,
     },
   };
 }
@@ -38,8 +39,10 @@ feedRouter.get("/", ensureSession, async (c) => {
   const currentUser = c.get("user");
   const cursor = c.req.query("cursor");
   const circleId = c.req.query("circleId");
+  const since = c.req.query("since");
 
-  const posts = dbUtils.getFeed(51, cursor, currentUser.id, circleId ? parseInt(circleId) : null);
+  const sinceId = since ? parseInt(since) : null;
+  const posts = dbUtils.getFeed(51, sinceId ? null : cursor, currentUser.id, circleId ? parseInt(circleId) : null, sinceId);
   const hasMore = posts.length > 50;
   const results = hasMore ? posts.slice(0, 50) : posts;
 

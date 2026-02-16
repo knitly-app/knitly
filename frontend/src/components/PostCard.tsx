@@ -10,6 +10,7 @@ import { useToast } from './Toast'
 import { formatTimeAgo } from '../utils/time'
 import { renderMarkdown } from '../utils/markdown'
 import { PollCard } from './PollCard'
+import { BotBadge } from './BotBadge'
 import { useVotePoll } from '../hooks/usePosts'
 
 const REACTIONS: { type: ReactionType; emoji: string; label: string }[] = [
@@ -21,7 +22,7 @@ const REACTIONS: { type: ReactionType; emoji: string; label: string }[] = [
 
 interface PostCardProps {
   post: Post
-  author?: { displayName: string; username: string; avatar?: string }
+  author?: { displayName: string; username: string; avatar?: string; role?: string }
   currentUserId?: string
   onReact?: (postId: string, type: ReactionType, currentReaction: ReactionType | null) => void
   onDelete?: (postId: string) => void
@@ -191,7 +192,7 @@ export function PostCard({ post, author, currentUserId, onReact, onDelete, onEdi
         </Link>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex items-center gap-1.5">
               <Link
                 to="/profile/$id"
                 params={{ id: post.userId }}
@@ -199,7 +200,8 @@ export function PostCard({ post, author, currentUserId, onReact, onDelete, onEdi
               >
                 {postAuthor?.displayName || 'User'}
               </Link>
-              <span className="text-gray-400 text-sm ml-2">@{postAuthor?.username || 'user'}</span>
+              {postAuthor?.role === 'bot' && <BotBadge />}
+              <span className="text-gray-400 text-sm">@{postAuthor?.username || 'user'}</span>
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-xs text-gray-400">{formatTimeAgo(post.createdAt, { maxDays: 7 })}</span>

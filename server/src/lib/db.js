@@ -199,10 +199,22 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  CREATE TABLE IF NOT EXISTS api_keys (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    key_hash TEXT NOT NULL UNIQUE,
+    label TEXT NOT NULL DEFAULT '',
+    last_used_at TEXT,
+    revoked_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   CREATE INDEX IF NOT EXISTS idx_polls_post_id ON polls(post_id);
   CREATE INDEX IF NOT EXISTS idx_poll_options_poll_id ON poll_options(poll_id);
   CREATE INDEX IF NOT EXISTS idx_poll_votes_option ON poll_votes(option_id);
   CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user ON password_reset_tokens(user_id);
+  CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON api_keys(user_id);
+  CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON api_keys(key_hash);
 `);
 
 const addColumnIfMissing = (statement) => {
@@ -404,7 +416,7 @@ export const dbUtils = {
     const post = db.prepare(`
       SELECT
         p.id, p.user_id, p.content, p.media_url, p.created_at,
-        u.username, u.display_name, u.avatar,
+        u.username, u.display_name, u.avatar, u.role,
         (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND deleted_at IS NULL) as comments
       FROM posts p
       JOIN users u ON p.user_id = u.id
@@ -422,11 +434,11 @@ export const dbUtils = {
     };
   },
 
-  getFeed(limit = 50, cursor = null, viewerId = null, circleId = null) {
+  getFeed(limit = 50, cursor = null, viewerId = null, circleId = null, since = null) {
     let query = `
       SELECT DISTINCT
         p.id, p.user_id, p.content, p.media_url, p.created_at,
-        u.username, u.display_name, u.avatar,
+        u.username, u.display_name, u.avatar, u.role,
         (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND deleted_at IS NULL) as comments
       FROM posts p
       JOIN users u ON p.user_id = u.id
@@ -446,7 +458,10 @@ export const dbUtils = {
       params.push(circleId);
     }
 
-    if (cursor) {
+    if (since) {
+      query += ` AND p.id > ?`;
+      params.push(since);
+    } else if (cursor) {
       query += ` AND p.created_at < ?`;
       params.push(cursor);
     }
@@ -474,7 +489,7 @@ export const dbUtils = {
       const rows = db.prepare(`
         SELECT
           p.id, p.user_id, p.content, p.media_url, p.created_at,
-          u.username, u.display_name, u.avatar,
+          u.username, u.display_name, u.avatar, u.role,
           (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND deleted_at IS NULL) as comments
         FROM posts p
         JOIN users u ON p.user_id = u.id
@@ -488,7 +503,7 @@ export const dbUtils = {
     const rows = db.prepare(`
       SELECT DISTINCT
         p.id, p.user_id, p.content, p.media_url, p.created_at,
-        u.username, u.display_name, u.avatar,
+        u.username, u.display_name, u.avatar, u.role,
         (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND deleted_at IS NULL) as comments
       FROM posts p
       JOIN users u ON p.user_id = u.id
@@ -661,7 +676,7 @@ export const dbUtils = {
   getComment(id) {
     return db.prepare(`
       SELECT c.id, c.post_id, c.user_id, c.content, c.created_at,
-             u.username, u.display_name, u.avatar
+             u.username, u.display_name, u.avatar, u.role
       FROM comments c
       JOIN users u ON c.user_id = u.id
       WHERE c.id = ? AND c.deleted_at IS NULL
@@ -671,7 +686,7 @@ export const dbUtils = {
   getComments(postId) {
     return db.prepare(`
       SELECT c.id, c.post_id, c.user_id, c.content, c.created_at,
-             u.username, u.display_name, u.avatar
+             u.username, u.display_name, u.avatar, u.role
       FROM comments c
       JOIN users u ON c.user_id = u.id
       WHERE c.post_id = ? AND c.deleted_at IS NULL
@@ -888,7 +903,7 @@ export const dbUtils = {
     const rows = db.prepare(`
       SELECT
         p.id, p.user_id, p.content, p.media_url, p.created_at,
-        u.username, u.display_name, u.avatar,
+        u.username, u.display_name, u.avatar, u.role,
         (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND deleted_at IS NULL) as comments
       FROM posts p
       JOIN users u ON p.user_id = u.id
@@ -1137,7 +1152,7 @@ export const dbUtils = {
   getChatMessages(sinceId = 0, limit = 100) {
     return db.prepare(`
       SELECT m.id, m.user_id, m.content, m.created_at,
-             u.username, u.display_name, u.avatar
+             u.username, u.display_name, u.avatar, u.role
       FROM chat_messages m
       JOIN users u ON m.user_id = u.id
       WHERE m.id > ?
@@ -1152,7 +1167,7 @@ export const dbUtils = {
     `).run(userId, content);
     return db.prepare(`
       SELECT m.id, m.user_id, m.content, m.created_at,
-             u.username, u.display_name, u.avatar
+             u.username, u.display_name, u.avatar, u.role
       FROM chat_messages m
       JOIN users u ON m.user_id = u.id
       WHERE m.id = ?
@@ -1305,6 +1320,65 @@ export const dbUtils = {
 
   updatePasswordHash(userId, passwordHash) {
     db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(passwordHash, userId);
+  },
+
+  createApiKey(userId, keyHash, label = '') {
+    const result = db.prepare(`
+      INSERT INTO api_keys (user_id, key_hash, label) VALUES (?, ?, ?)
+    `).run(userId, keyHash, label);
+    return result.lastInsertRowid;
+  },
+
+  getApiKeyByHash(keyHash) {
+    return db.prepare(`
+      SELECT ak.id, ak.user_id, ak.label, ak.last_used_at, ak.revoked_at, ak.created_at,
+             u.email, u.username, u.display_name, u.bio, u.avatar, u.role, u.disabled_at
+      FROM api_keys ak
+      JOIN users u ON ak.user_id = u.id
+      WHERE ak.key_hash = ? AND ak.revoked_at IS NULL
+    `).get(keyHash) || null;
+  },
+
+  updateApiKeyLastUsed(keyId) {
+    db.prepare("UPDATE api_keys SET last_used_at = datetime('now') WHERE id = ?").run(keyId);
+  },
+
+  getApiKeysByUser(userId) {
+    return db.prepare(`
+      SELECT id, user_id, label, last_used_at, revoked_at, created_at
+      FROM api_keys WHERE user_id = ? ORDER BY created_at DESC
+    `).all(userId);
+  },
+
+  revokeApiKey(keyId) {
+    db.prepare("UPDATE api_keys SET revoked_at = datetime('now') WHERE id = ?").run(keyId);
+  },
+
+  revokeApiKeysByUser(userId) {
+    db.prepare("UPDATE api_keys SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL").run(userId);
+  },
+
+  deleteApiKeysByUser(userId) {
+    db.prepare("DELETE FROM api_keys WHERE user_id = ?").run(userId);
+  },
+
+  getBots() {
+    return db.prepare(`
+      SELECT u.id, u.username, u.display_name, u.bio, u.avatar, u.role, u.disabled_at, u.created_at,
+             (SELECT MAX(ak.last_used_at) FROM api_keys ak WHERE ak.user_id = u.id AND ak.revoked_at IS NULL) as last_active
+      FROM users u WHERE u.role = 'bot' ORDER BY u.created_at DESC
+    `).all();
+  },
+
+  getCommentsSince(postId, sinceId) {
+    return db.prepare(`
+      SELECT c.id, c.post_id, c.user_id, c.content, c.created_at,
+             u.username, u.display_name, u.avatar, u.role
+      FROM comments c
+      JOIN users u ON c.user_id = u.id
+      WHERE c.post_id = ? AND c.id > ? AND c.deleted_at IS NULL
+      ORDER BY c.created_at ASC
+    `).all(postId, sinceId);
   },
 };
 

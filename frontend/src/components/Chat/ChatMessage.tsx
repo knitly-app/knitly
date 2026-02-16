@@ -1,4 +1,5 @@
 import type { ChatMessage as ChatMessageType } from '../../api/endpoints'
+import { BotBadge } from '../BotBadge'
 
 interface ChatMessageProps {
   message: ChatMessageType
@@ -38,8 +39,9 @@ export function ChatMessage({ message, isOwn }: ChatMessageProps) {
       )}
 
       <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[70%]`}>
-        <div className={`flex items-baseline gap-2 ${isOwn ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex items-center gap-2 ${isOwn ? 'flex-row-reverse' : ''}`}>
           <span className="text-sm font-medium text-gray-900">{message.displayName}</span>
+          {message.role === 'bot' && <BotBadge />}
           <span className="text-xs text-gray-400">@{message.username}</span>
         </div>
 

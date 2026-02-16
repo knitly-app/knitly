@@ -60,3 +60,4 @@ function createRateLimiter(maxRequests, windowMs = 60 * 1000) {
 export const authRateLimit = createRateLimiter(5);
 export const searchRateLimit = createRateLimiter(20);
 export const generalRateLimit = createRateLimiter(100);
+export const apiKeyRateLimit = createRateLimiter(30);

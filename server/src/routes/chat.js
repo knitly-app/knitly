@@ -47,6 +47,7 @@ function formatMessage(msg) {
     username: msg.username,
     displayName: msg.display_name,
     avatar: msg.avatar || undefined,
+    role: msg.role || undefined,
     content: msg.content,
     createdAt: msg.created_at,
   };

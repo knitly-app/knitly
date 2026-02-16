@@ -12,6 +12,7 @@ import { useConfirm } from '../components/ConfirmModal'
 import { useToast } from '../components/Toast'
 import { getAvatarUrl } from '../utils/avatar'
 import { renderMarkdown } from '../utils/markdown'
+import { BotBadge } from '../components/BotBadge'
 
 export function PostRoute() {
   const params = useParams({ strict: false })
@@ -228,13 +229,16 @@ export function PostRoute() {
                 </Link>
                 <div className="flex-1 bg-gray-50 rounded-2xl p-4">
                   <div className="flex items-center justify-between mb-1">
-                    <Link
-                      to="/profile/$id"
-                      params={{ id: comment.userId }}
-                      className="font-bold text-gray-900 text-sm hover:text-accent-500"
-                    >
-                      {comment.displayName}
-                    </Link>
+                    <div className="flex items-center gap-1.5">
+                      <Link
+                        to="/profile/$id"
+                        params={{ id: comment.userId }}
+                        className="font-bold text-gray-900 text-sm hover:text-accent-500"
+                      >
+                        {comment.displayName}
+                      </Link>
+                      {comment.role === 'bot' && <BotBadge />}
+                    </div>
                     <div className="flex items-center space-x-2">
                       <span className="text-xs text-gray-400">
                         {new Date(comment.createdAt).toLocaleDateString()}

@@ -107,6 +107,7 @@ authRouter.post("/login", async (c) => {
     const user = dbUtils.getUserByEmail(normalizedEmail);
     if (!user) return c.json({ error: "Invalid credentials" }, 401);
     if (user.disabled_at) return c.json({ error: "Account disabled" }, 403);
+    if (user.role === 'bot') return c.json({ error: "Bot accounts cannot log in" }, 403);
 
     const valid = await verifyPassword(user.password_hash, password);
     if (!valid) return c.json({ error: "Invalid credentials" }, 401);

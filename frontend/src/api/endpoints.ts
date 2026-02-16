@@ -9,7 +9,7 @@ export interface User {
   bio?: string
   location?: string
   website?: string
-  role?: 'admin' | 'moderator' | 'member'
+  role?: 'admin' | 'moderator' | 'member' | 'bot'
   disabledAt?: string | null
   createdAt: string
 }
@@ -28,6 +28,7 @@ export interface PostAuthor {
   username: string
   displayName: string
   avatar?: string
+  role?: string
 }
 
 export type ReactionType = 'love' | 'haha' | 'hugs' | 'celebrate'
@@ -76,6 +77,7 @@ export interface Comment {
   username: string
   displayName: string
   avatar?: string
+  role?: string
   content: string
   createdAt: string
 }
@@ -104,6 +106,25 @@ export interface AuditEntry {
     username: string
     displayName: string
   }
+}
+
+export interface Bot {
+  id: string
+  username: string
+  displayName: string
+  avatar?: string
+  bio?: string
+  role: 'bot'
+  disabledAt: string | null
+  createdAt: string
+  lastActive: string | null
+  keys: {
+    id: string
+    label: string
+    lastUsedAt: string | null
+    revokedAt: string | null
+    createdAt: string
+  }[]
 }
 
 export interface Circle {
@@ -293,6 +314,12 @@ export const admin = {
   },
   revokeUserSessions: (id: string) => api.post<{ success: true; id: string }>(`/admin/users/${id}/revoke-sessions`),
   resetPassword: (id: string) => api.post<{ token: string; expiresAt: string }>(`/admin/users/${id}/reset-password`),
+  bots: () => api.get<Bot[]>('/admin/bots'),
+  createBot: (data: { username: string; displayName: string; bio?: string }) =>
+    api.post<{ id: string; username: string; displayName: string; bio: string; apiKey: string }>('/admin/bots', data),
+  regenerateBotKey: (id: string) => api.post<{ apiKey: string }>(`/admin/bots/${id}/regenerate-key`),
+  revokeBotKey: (id: string) => api.post<{ success: true }>(`/admin/bots/${id}/revoke-key`),
+  deleteBot: (id: string) => api.delete<{ success: true }>(`/admin/bots/${id}`),
 }
 
 export interface ChatMessage {
@@ -301,6 +328,7 @@ export interface ChatMessage {
   username: string
   displayName: string
   avatar?: string
+  role?: string
   content: string
   createdAt: string
 }
