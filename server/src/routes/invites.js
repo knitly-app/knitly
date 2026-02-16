@@ -4,6 +4,10 @@ import { ensureSession, requireRole } from "../middleware/auth.js";
 
 export const invitesRouter = new Hono();
 
+function maskToken(token) {
+  return token.length <= 8 ? token : `...${token.slice(-8)}`;
+}
+
 invitesRouter.get("/:token", (c) => {
   const token = c.req.param("token");
   const invite = dbUtils.getInviteByToken(token);
@@ -31,7 +35,7 @@ invitesRouter.get("/:token", (c) => {
 invitesRouter.post("/", ensureSession, requireRole("admin"), (c) => {
   const currentUser = c.get("user");
   const { token, expiresAt } = dbUtils.createInvite(currentUser.id);
-  dbUtils.createAuditEntry(currentUser.id, "INVITE_CREATED", "invite", null, { token });
+  dbUtils.createAuditEntry(currentUser.id, "INVITE_CREATED", "invite", null, { tokenSuffix: maskToken(token) });
   return c.json({ token, expiresAt }, 201);
 });
 
@@ -66,6 +70,6 @@ invitesRouter.post("/:token/revoke", ensureSession, requireRole("admin"), (c) =>
   if (invite.revoked_at) return c.json({ error: "Invite already revoked" }, 400);
 
   const revokedAt = dbUtils.revokeInviteByToken(token);
-  dbUtils.createAuditEntry(currentUser.id, "INVITE_REVOKED", "invite", null, { token });
+  dbUtils.createAuditEntry(currentUser.id, "INVITE_REVOKED", "invite", null, { tokenSuffix: maskToken(token) });
   return c.json({ token, revokedAt });
 });

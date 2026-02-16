@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { dbUtils } from "../lib/db.js";
-import { ensureSession, optionalAuth } from "../middleware/auth.js";
+import { ensureSession } from "../middleware/auth.js";
 import { extractKeyFromUrl, deleteObject } from "../lib/media.js";
 
 export const usersRouter = new Hono();
@@ -58,23 +58,36 @@ function formatPost(post, userReaction = null, poll = null, userVote = null) {
   };
 }
 
+function resolveUserId(id, currentUser) {
+  if (id === "me") return currentUser.id;
+
+  if (/^\d+$/.test(id)) {
+    return Number.parseInt(id, 10);
+  }
+
+  const username = id.startsWith("@") ? id.slice(1) : id;
+  if (!/^[a-zA-Z0-9_]{2,30}$/.test(username)) return null;
+
+  const user = dbUtils.getUserByUsername(username);
+  return user ? user.id : null;
+}
+
 usersRouter.get("/", ensureSession, async (c) => {
   const users = dbUtils.getAllUsers();
   return c.json(users.map(u => formatUser(u)));
 });
 
-usersRouter.get("/:id", optionalAuth, async (c) => {
+usersRouter.get("/:id", ensureSession, async (c) => {
   const id = c.req.param("id");
   const currentUser = c.get("user");
 
-  const userId = id === "me" ? currentUser?.id : parseInt(id);
+  const userId = resolveUserId(id, currentUser);
   if (!userId) return c.json({ error: "Not found" }, 404);
 
   const user = dbUtils.getUserById(userId);
   if (!user) return c.json({ error: "Not found" }, 404);
 
-  const isFollowing =
-    currentUser && currentUser.id !== userId ? dbUtils.isFollowing(currentUser.id, userId) : false;
+  const isFollowing = currentUser.id !== userId ? dbUtils.isFollowing(currentUser.id, userId) : false;
 
   return c.json({
     ...formatUserWithCounts(user),
@@ -86,7 +99,8 @@ usersRouter.patch("/:id", ensureSession, async (c) => {
   const id = c.req.param("id");
   const currentUser = c.get("user");
 
-  const userId = id === "me" ? currentUser.id : parseInt(id);
+  const userId = resolveUserId(id, currentUser);
+  if (!userId) return c.json({ error: "Not found" }, 404);
   if (userId !== currentUser.id && currentUser.role !== "admin") {
     return c.json({ error: "Forbidden" }, 403);
   }
@@ -112,20 +126,20 @@ usersRouter.patch("/:id", ensureSession, async (c) => {
   return c.json(formatUserWithCounts(user));
 });
 
-usersRouter.get("/:id/followers", optionalAuth, async (c) => {
+usersRouter.get("/:id/followers", ensureSession, async (c) => {
   const id = c.req.param("id");
   const currentUser = c.get("user");
-  const userId = id === "me" ? currentUser?.id : parseInt(id);
+  const userId = resolveUserId(id, currentUser);
   if (!userId) return c.json({ error: "Not found" }, 404);
 
   const followers = dbUtils.getFollowers(userId);
   return c.json(followers.map(u => formatUser(u)));
 });
 
-usersRouter.get("/:id/following", optionalAuth, async (c) => {
+usersRouter.get("/:id/following", ensureSession, async (c) => {
   const id = c.req.param("id");
   const currentUser = c.get("user");
-  const userId = id === "me" ? currentUser?.id : parseInt(id);
+  const userId = resolveUserId(id, currentUser);
   if (!userId) return c.json({ error: "Not found" }, 404);
 
   const following = dbUtils.getFollowing(userId);
@@ -133,8 +147,9 @@ usersRouter.get("/:id/following", optionalAuth, async (c) => {
 });
 
 usersRouter.post("/:id/follow", ensureSession, async (c) => {
-  const id = parseInt(c.req.param("id"));
+  const id = resolveUserId(c.req.param("id"), c.get("user"));
   const currentUser = c.get("user");
+  if (!id) return c.json({ error: "Not found" }, 404);
 
   if (id === currentUser.id) return c.json({ error: "Cannot follow yourself" }, 400);
 
@@ -148,24 +163,25 @@ usersRouter.post("/:id/follow", ensureSession, async (c) => {
 });
 
 usersRouter.delete("/:id/follow", ensureSession, async (c) => {
-  const id = parseInt(c.req.param("id"));
+  const id = resolveUserId(c.req.param("id"), c.get("user"));
   const currentUser = c.get("user");
+  if (!id) return c.json({ error: "Not found" }, 404);
 
   dbUtils.unfollow(currentUser.id, id);
   return c.json({ success: true });
 });
 
-usersRouter.get("/:id/posts", optionalAuth, async (c) => {
+usersRouter.get("/:id/posts", ensureSession, async (c) => {
   const id = c.req.param("id");
   const currentUser = c.get("user");
-  const userId = id === "me" ? currentUser?.id : parseInt(id);
+  const userId = resolveUserId(id, currentUser);
   if (!userId) return c.json({ error: "Not found" }, 404);
 
-  const posts = dbUtils.getUserPosts(userId, 50, currentUser?.id ?? null);
-  const reactionsMap = currentUser ? dbUtils.getUserReactionsMap(currentUser.id, posts.map(p => p.id)) : new Map();
+  const posts = dbUtils.getUserPosts(userId, 50, currentUser.id);
+  const reactionsMap = dbUtils.getUserReactionsMap(currentUser.id, posts.map(p => p.id));
   return c.json(posts.map(p => {
     const poll = dbUtils.getPoll(p.id);
-    const userVote = poll && currentUser ? dbUtils.getUserPollVote(currentUser.id, poll.id) : null;
+    const userVote = poll ? dbUtils.getUserPollVote(currentUser.id, poll.id) : null;
     return formatPost(p, reactionsMap.get(p.id) ?? null, poll, userVote);
   }));
 });

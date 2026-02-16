@@ -114,8 +114,16 @@ postsRouter.post("/", ensureSession, async (c) => {
   }
 
   const circleIds = Array.isArray(body.circleIds)
-    ? body.circleIds.map(Number).filter(Number.isFinite)
+    ? [...new Set(body.circleIds.map(Number).filter((id) => Number.isInteger(id) && id > 0))]
     : [];
+
+  if (circleIds.length) {
+    const ownedCircleIds = new Set(dbUtils.getUserCircles(currentUser.id).map((circle) => circle.id));
+    const hasUnauthorizedCircle = circleIds.some((circleId) => !ownedCircleIds.has(circleId));
+    if (hasUnauthorizedCircle) {
+      return c.json({ error: "Invalid circle selection" }, 403);
+    }
+  }
 
   const post = dbUtils.createPost(currentUser.id, content, media);
 
@@ -207,6 +215,9 @@ postsRouter.post("/:id/reactions", ensureSession, async (c) => {
 
   const post = dbUtils.getPost(postId);
   if (!post) return c.json({ error: "Not found" }, 404);
+  if (!dbUtils.canUserViewPost(currentUser.id, postId)) {
+    return c.json({ error: "Not found" }, 404);
+  }
 
   dbUtils.addReaction(currentUser.id, postId, reactionType);
 
@@ -226,6 +237,12 @@ postsRouter.delete("/:id/reactions", ensureSession, async (c) => {
   const postId = parseInt(c.req.param("id"));
   const currentUser = c.get("user");
 
+  const post = dbUtils.getPost(postId);
+  if (!post) return c.json({ error: "Not found" }, 404);
+  if (!dbUtils.canUserViewPost(currentUser.id, postId)) {
+    return c.json({ error: "Not found" }, 404);
+  }
+
   dbUtils.removeReaction(currentUser.id, postId);
 
   return c.json({
@@ -237,8 +254,15 @@ postsRouter.delete("/:id/reactions", ensureSession, async (c) => {
 
 postsRouter.get("/:id/comments", ensureSession, async (c) => {
   const postId = parseInt(c.req.param("id"));
+  const currentUser = c.get("user");
   const since = c.req.query("since");
   const sinceId = since ? parseInt(since) : null;
+
+  const post = dbUtils.getPost(postId);
+  if (!post) return c.json({ error: "Not found" }, 404);
+  if (!dbUtils.canUserViewPost(currentUser.id, postId)) {
+    return c.json({ error: "Not found" }, 404);
+  }
 
   const comments = sinceId
     ? dbUtils.getCommentsSince(postId, sinceId)
@@ -269,6 +293,9 @@ postsRouter.post("/:id/comments", ensureSession, async (c) => {
 
   const post = dbUtils.getPost(postId);
   if (!post) return c.json({ error: "Not found" }, 404);
+  if (!dbUtils.canUserViewPost(currentUser.id, postId)) {
+    return c.json({ error: "Not found" }, 404);
+  }
 
   const comment = dbUtils.createComment(postId, currentUser.id, commentContent);
 
@@ -316,6 +343,10 @@ postsRouter.post("/:id/vote", ensureSession, async (c) => {
   const postId = parseInt(c.req.param("id"));
   const currentUser = c.get("user");
   const body = await c.req.json();
+
+  if (!dbUtils.canUserViewPost(currentUser.id, postId)) {
+    return c.json({ error: "Not found" }, 404);
+  }
 
   const poll = dbUtils.getPoll(postId);
   if (!poll) return c.json({ error: "Poll not found" }, 404);

@@ -19,7 +19,32 @@ export function AdminRoute() {
   const confirm = useConfirm()
   const { user: currentUser } = useAuth()
   const search = useSearch({ from: '/admin' })
-  const currentTab = search.tab === 'bots' ? 'bots' : search.tab === 'moderation' ? 'moderation' : search.tab === 'audit' ? 'audit' : search.tab === 'customize' ? 'customize' : 'overview'
+  const isAdmin = currentUser?.role === 'admin'
+  const requestedTab = search.tab === 'bots'
+    ? 'bots'
+    : search.tab === 'moderation'
+      ? 'moderation'
+      : search.tab === 'audit'
+        ? 'audit'
+        : search.tab === 'customize'
+          ? 'customize'
+          : 'overview'
+  const availableTabs = isAdmin
+    ? ['overview', 'bots', 'moderation', 'audit', 'customize']
+    : ['moderation', 'audit']
+  const currentTab = availableTabs.includes(requestedTab) ? requestedTab : availableTabs[0]
+  const tabs = isAdmin
+    ? [
+        { id: 'overview', label: 'Overview' },
+        { id: 'bots', label: 'Bots' },
+        { id: 'moderation', label: 'Moderation' },
+        { id: 'audit', label: 'Audit Log' },
+        { id: 'customize', label: 'Customize' },
+      ]
+    : [
+        { id: 'moderation', label: 'Moderation' },
+        { id: 'audit', label: 'Audit Log' },
+      ]
   const [inviteFilter, setInviteFilter] = useState<'all' | 'active' | 'used' | 'revoked' | 'expired'>('active')
   const [inviteQuery, setInviteQuery] = useState('')
   const [memberFilter, setMemberFilter] = useState<'all' | 'active' | 'disabled' | 'moderators'>('active')
@@ -36,19 +61,19 @@ export function AdminRoute() {
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['admin', 'stats'],
     queryFn: admin.stats,
-    enabled: currentTab === 'overview',
+    enabled: isAdmin && currentTab === 'overview',
   })
 
   const { data: users, isLoading: usersLoading } = useQuery({
     queryKey: ['admin', 'users'],
     queryFn: admin.users,
-    enabled: currentTab === 'overview',
+    enabled: isAdmin && currentTab === 'overview',
   })
 
   const { data: invites, isLoading: invitesLoading } = useQuery({
     queryKey: ['admin', 'invites'],
     queryFn: invitesApi.list,
-    enabled: currentTab === 'overview',
+    enabled: isAdmin && currentTab === 'overview',
   })
 
   const deferredModerationQuery = useDeferredValue(moderationQuery)
@@ -85,7 +110,7 @@ export function AdminRoute() {
   const { data: bots, isLoading: botsLoading } = useQuery({
     queryKey: ['admin', 'bots'],
     queryFn: admin.bots,
-    enabled: currentTab === 'bots',
+    enabled: isAdmin && currentTab === 'bots',
   })
 
   const createBot = useMutation({
@@ -100,8 +125,9 @@ export function AdminRoute() {
       setShowCreateBot(false)
       toast.success('Bot created')
     },
-    onError: (error: any) => {
-      toast.error(error?.message || 'Failed to create bot')
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to create bot'
+      toast.error(message)
     },
   })
 
@@ -488,17 +514,11 @@ export function AdminRoute() {
       </div>
 
       <div className="mb-8 flex flex-wrap gap-2">
-        {[
-          { id: 'overview', label: 'Overview' },
-          { id: 'bots', label: 'Bots' },
-          { id: 'moderation', label: 'Moderation' },
-          { id: 'audit', label: 'Audit Log' },
-          { id: 'customize', label: 'Customize' },
-        ].map((tab) => (
+        {tabs.map((tab) => (
           <Link
             key={tab.id}
             to="/admin"
-            search={{ tab: tab.id === 'overview' ? undefined : tab.id }}
+            search={{ tab: tab.id }}
             className={`px-4 py-2 rounded-full text-sm font-bold transition-colors ${
               currentTab === tab.id
                 ? 'bg-accent-500 text-white'

@@ -154,6 +154,17 @@ authRouter.get("/me", async (c) => {
     return c.json({ error: "Session expired" }, 401);
   }
 
+  if (session.disabled_at) {
+    dbUtils.deleteSession(sessionId);
+    deleteCookie(c, COOKIE_NAME, {
+      httpOnly: COOKIE_OPTIONS.httpOnly,
+      secure: COOKIE_OPTIONS.secure,
+      sameSite: COOKIE_OPTIONS.sameSite,
+      path: COOKIE_OPTIONS.path,
+    });
+    return c.json({ error: "Account disabled" }, 403);
+  }
+
   return c.json(formatUser(session));
 });
 

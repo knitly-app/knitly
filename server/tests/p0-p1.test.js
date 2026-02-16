@@ -340,6 +340,18 @@ describe("P0 integration", () => {
     expect(logoutBody.success).toBe(true);
   });
 
+  test("disabled account cannot access /auth/me", async () => {
+    const passwordHash = await hashPassword("password123");
+    const userId = dbUtils.createUser("disabled-me@test.com", "disabledme", "Disabled Me", passwordHash);
+    const { sessionId } = dbUtils.createSession(userId);
+    dbUtils.disableUser(userId);
+
+    const meRes = await jsonReq("/api/auth/me", { cookie: sessionId });
+    expect(meRes.status).toBe(403);
+    const meBody = await meRes.json();
+    expect(meBody.error).toBe("Account disabled");
+  });
+
   test("create/get/delete post and feed", async () => {
     const passwordHash = await hashPassword("password123");
     const userId = dbUtils.createUser("poster@test.com", "poster", "Poster", passwordHash);
@@ -455,6 +467,9 @@ describe("P1 integration", () => {
     expect(meBody.followers).toBe(0);
     expect(meBody.following).toBe(0);
 
+    const unauthGet = await jsonReq(`/api/users/${userAId}`);
+    expect(unauthGet.status).toBe(401);
+
     const patchRes = await jsonReq("/api/users/me", {
       method: "PATCH",
       cookie: sessionA,
@@ -478,6 +493,11 @@ describe("P1 integration", () => {
     const getOther = await jsonReq(`/api/users/${userBId}`, { cookie: sessionA });
     const otherBody = await getOther.json();
     expect(otherBody.isFollowing).toBe(true);
+
+    const getByUsername = await jsonReq("/api/users/@bob", { cookie: sessionA });
+    expect(getByUsername.status).toBe(200);
+    const byUsernameBody = await getByUsername.json();
+    expect(byUsernameBody.id).toBe(String(userBId));
 
     const followersRes = await jsonReq(`/api/users/${userBId}/followers`, { cookie: sessionA });
     const followers = await followersRes.json();
@@ -503,8 +523,7 @@ describe("P1 integration", () => {
     expect(posts[0].userReaction).toBe("love");
 
     const postsAnon = await jsonReq(`/api/users/${userBId}/posts`);
-    const postsAnonBody = await postsAnon.json();
-    expect(postsAnonBody[0].userReaction).toBeNull();
+    expect(postsAnon.status).toBe(401);
   });
 
   test("react/unreact and notifications", async () => {
@@ -613,6 +632,87 @@ describe("P1 integration", () => {
     const posts = await postsRes.json();
     expect(posts.length).toBe(1);
     expect(posts[0].userReaction).toBeNull();
+
+    const anonymousSearch = await jsonReq("/api/search/posts?q=Hello");
+    expect(anonymousSearch.status).toBe(401);
+  });
+
+  test("search respects circle visibility", async () => {
+    const { userAId, userBId, sessionA, sessionB } = await seedTwoUsers();
+    const passwordHash = await hashPassword("password123");
+    const outsiderId = dbUtils.createUser("outsider@test.com", "outsider", "Outsider", passwordHash);
+    const { sessionId: outsiderSession } = dbUtils.createSession(outsiderId);
+
+    const circle = dbUtils.createCircle(userAId, "Private", "blue");
+    dbUtils.addCircleMember(circle.id, userBId);
+    const post = dbUtils.createPost(userAId, "Circle only secret");
+    dbUtils.setPostCircles(post.id, [circle.id]);
+
+    const ownerRes = await jsonReq("/api/search/posts?q=secret", { cookie: sessionA });
+    expect(ownerRes.status).toBe(200);
+    const ownerPosts = await ownerRes.json();
+    expect(ownerPosts.length).toBe(1);
+
+    const memberRes = await jsonReq("/api/search/posts?q=secret", { cookie: sessionB });
+    expect(memberRes.status).toBe(200);
+    const memberPosts = await memberRes.json();
+    expect(memberPosts.length).toBe(1);
+
+    const outsiderRes = await jsonReq("/api/search/posts?q=secret", { cookie: outsiderSession });
+    expect(outsiderRes.status).toBe(200);
+    const outsiderPosts = await outsiderRes.json();
+    expect(outsiderPosts.length).toBe(0);
+
+    const anonRes = await jsonReq("/api/search/posts?q=secret");
+    expect(anonRes.status).toBe(401);
+  });
+
+  test("private post blocks reactions/comments/votes for non-members", async () => {
+    const passwordHash = await hashPassword("password123");
+    const ownerId = dbUtils.createUser("private-owner@test.com", "private_owner", "Private Owner", passwordHash);
+    const memberId = dbUtils.createUser("private-member@test.com", "private_member", "Private Member", passwordHash);
+    const outsiderId = dbUtils.createUser("private-outsider@test.com", "private_outsider", "Private Outsider", passwordHash);
+    const { sessionId: outsiderSession } = dbUtils.createSession(outsiderId);
+
+    const circle = dbUtils.createCircle(ownerId, "Secret Circle", "blue");
+    dbUtils.addCircleMember(circle.id, memberId);
+    const post = dbUtils.createPost(ownerId, "Circle-only post");
+    dbUtils.setPostCircles(post.id, [circle.id]);
+
+    const reactRes = await jsonReq(`/api/posts/${post.id}/reactions`, {
+      method: "POST",
+      cookie: outsiderSession,
+      body: { type: "love" },
+    });
+    expect(reactRes.status).toBe(404);
+
+    const listComments = await jsonReq(`/api/posts/${post.id}/comments`, {
+      cookie: outsiderSession,
+    });
+    expect(listComments.status).toBe(404);
+
+    const addComment = await jsonReq(`/api/posts/${post.id}/comments`, {
+      method: "POST",
+      cookie: outsiderSession,
+      body: { content: "Should not work" },
+    });
+    expect(addComment.status).toBe(404);
+  });
+
+  test("cannot attach post to circles you do not own", async () => {
+    const passwordHash = await hashPassword("password123");
+    const ownerId = dbUtils.createUser("circle-owner@test.com", "circle_owner", "Circle Owner", passwordHash);
+    const outsiderId = dbUtils.createUser("circle-outsider@test.com", "circle_outsider", "Circle Outsider", passwordHash);
+    const { sessionId: outsiderSession } = dbUtils.createSession(outsiderId);
+
+    const circle = dbUtils.createCircle(ownerId, "Owner Circle", "blue");
+
+    const createRes = await jsonReq("/api/posts", {
+      method: "POST",
+      cookie: outsiderSession,
+      body: { content: "Try hijack", circleIds: [circle.id] },
+    });
+    expect(createRes.status).toBe(403);
   });
 
   test("invites flow", async () => {
@@ -700,6 +800,25 @@ describe("Admin panel", () => {
 
     const createRes = await jsonReq("/api/invites", { method: "POST", cookie: modSession });
     expect(createRes.status).toBe(403);
+  });
+
+  test("audit log does not expose full invite token to moderators", async () => {
+    const { sessionId: adminSession } = await seedAdminUser();
+    const { sessionId: modSession } = await seedModeratorUser();
+
+    const createInviteRes = await jsonReq("/api/invites", { method: "POST", cookie: adminSession });
+    expect(createInviteRes.status).toBe(201);
+    const createInviteBody = await createInviteRes.json();
+
+    const auditRes = await jsonReq("/api/admin/audit", { cookie: modSession });
+    expect(auditRes.status).toBe(200);
+    const auditBody = await auditRes.json();
+
+    const inviteEntry = auditBody.items.find((item) => item.actionType === "INVITE_CREATED");
+    expect(inviteEntry).toBeTruthy();
+    expect(inviteEntry.metadata.token).toBeUndefined();
+    expect(inviteEntry.metadata.tokenSuffix).toBeTruthy();
+    expect(inviteEntry.metadata.tokenSuffix).not.toBe(createInviteBody.token);
   });
 
   test("moderator cannot remove users", async () => {
