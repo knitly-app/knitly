@@ -197,17 +197,17 @@ export function AdminRoute() {
 
   const resetPassword = useMutation({
     mutationFn: admin.resetPassword,
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       const url = `${window.location.origin}/reset-password?token=${data.token}`
-      void navigator.clipboard.writeText(url).then(
-        () => toast.success('Reset link copied!'),
-        () => toast.error('Failed to copy reset link')
-      )
+      try {
+        await navigator.clipboard.writeText(url)
+        toast.success('Reset link copied!')
+      } catch {
+        toast.error('Failed to copy reset link')
+      }
       void queryClient.invalidateQueries({ queryKey: ['admin', 'audit'] })
     },
-    onError: () => {
-      toast.error('Failed to generate reset link')
-    },
+    onError: () => toast.error('Failed to generate reset link'),
   })
 
   const handleCopyInvite = (token: string) => {
@@ -282,15 +282,13 @@ export function AdminRoute() {
     })()
   }
 
-  const handleResetPassword = (userId: string, username: string) => {
-    void (async () => {
-      const ok = await confirm({
-        title: 'Reset Password',
-        message: `This will generate a one-time password reset link for @${username}. The link will be copied to your clipboard.`,
-        confirmText: 'Generate Link',
-      })
-      if (ok) resetPassword.mutate(userId)
-    })()
+  const handleResetPassword = async (userId: string, username: string) => {
+    const ok = await confirm({
+      title: 'Reset Password',
+      message: `This will generate a one-time password reset link for @${username}. The link will be copied to your clipboard.`,
+      confirmText: 'Generate Link',
+    })
+    if (ok) resetPassword.mutate(userId)
   }
 
   const moderationItems = moderationPages?.pages.flatMap((page) => page.items) ?? []
@@ -715,7 +713,7 @@ export function AdminRoute() {
 
                         {!isSelf && (
                           <button
-                            onClick={() => handleResetPassword(member.id, member.username)}
+                            onClick={() => void handleResetPassword(member.id, member.username)}
                             disabled={resetPassword.isPending}
                             className="px-3 py-2 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50"
                           >
