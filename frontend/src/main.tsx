@@ -285,6 +285,25 @@ const resetPasswordRoute = createRoute({
   }),
 })
 
+interface CustomRouteDefinition {
+  path: string
+  component: ComponentType
+}
+
+interface CustomExtModule {
+  customRoutes?: CustomRouteDefinition[]
+}
+
+const customModules = import.meta.glob<CustomExtModule>('../../custom/frontend/index.ts', { eager: true })
+const customModule = Object.values(customModules)[0]
+const customChildRoutes = (customModule?.customRoutes ?? []).map((r) =>
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: r.path,
+    component: withSuspense(r.component),
+  })
+)
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
@@ -302,6 +321,7 @@ const routeTree = rootRoute.addChildren([
   adminRoute,
   setupRoute,
   resetPasswordRoute,
+  ...customChildRoutes,
 ])
 
 const router = createRouter({

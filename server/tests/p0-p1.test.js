@@ -18,7 +18,7 @@ const { createApp } = await import("../src/app.js");
 const { COOKIE_NAME } = await import("../src/lib/constants.js");
 const { clearRateLimitStore } = await import("../src/middleware/rateLimit.js");
 
-const app = createApp();
+const app = await createApp();
 
 function resetDb() {
   db.exec("DELETE FROM audit_log");

@@ -14,7 +14,7 @@ const { COOKIE_NAME } = await import("../lib/constants.js");
 const { clearRateLimitStore } = await import("../middleware/rateLimit.js");
 const { hashPassword } = await import("../lib/security.js");
 
-const app = createApp();
+const app = await createApp();
 
 function resetDb() {
   db.exec("DELETE FROM chat_presence");

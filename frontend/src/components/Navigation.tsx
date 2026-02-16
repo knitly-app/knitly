@@ -5,6 +5,22 @@ import { useUnreadCount } from '../hooks/useNotifications'
 import { useChatStatus } from '../hooks/useChat'
 import { useUIStore } from '../stores/ui'
 
+import type { LucideIcon } from 'lucide-preact'
+
+interface CustomNavItem {
+  to: string
+  label: string
+  icon: LucideIcon
+}
+
+interface CustomExtModule {
+  customNavItems?: CustomNavItem[]
+}
+
+const customModules = import.meta.glob<CustomExtModule>('../../../custom/frontend/index.ts', { eager: true })
+const customNavModule = Object.values(customModules)[0]
+const loadedCustomNavItems: CustomNavItem[] = customNavModule?.customNavItems ?? []
+
 export function Navigation() {
   const location = useLocation()
   const unreadCount = useUnreadCount()
@@ -85,7 +101,7 @@ export function Navigation() {
               >
                 <div className="relative">
                   <link.icon size={24} strokeWidth={active ? 2.5 : 2} />
-                  {link.badge && unreadCount > 0 && (
+                  {'badge' in link && link.badge && unreadCount > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-accent-500 rounded-full border-2 border-white" />
                   )}
                   {'chatBadge' in link && link.chatBadge && chatOnline > 0 && (
@@ -104,6 +120,29 @@ export function Navigation() {
             )
           })}
         </div>
+
+        {loadedCustomNavItems.length > 0 && (
+          <div className="space-y-4 w-full mt-2">
+            {loadedCustomNavItems.map((item) => {
+              const active = isActive(item.to)
+              const Icon = item.icon
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to as never}
+                  className={`w-full flex items-center justify-center lg:justify-start space-x-4 p-3 rounded-2xl transition-all ${
+                    active ? 'bg-accent-50 text-accent-600' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
+                  }`}
+                >
+                  <Icon size={24} strokeWidth={active ? 2.5 : 2} />
+                  <span className={`hidden lg:inline font-semibold ${active ? 'text-accent-600' : 'text-gray-700'}`}>
+                    {item.label}
+                  </span>
+                </Link>
+              )
+            })}
+          </div>
+        )}
 
         <div className="mt-10 w-full">
           <button

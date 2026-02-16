@@ -21,7 +21,7 @@ import { settingsRouter } from "./routes/settings.js";
 import { chatRouter } from "./routes/chat.js";
 import { setupRouter } from "./routes/setup.js";
 
-export function createApp() {
+export async function createApp() {
   const app = new Hono();
 
   app.use("*", logger());
@@ -56,6 +56,14 @@ export function createApp() {
   app.route("/api/settings", settingsRouter);
   app.route("/api/chat", chatRouter);
   app.route("/api/setup", setupRouter);
+
+  try {
+    const { customRouter } = await import("../../custom/server/index.js");
+    app.route("/api/custom", customRouter);
+    logInfo("Custom extensions loaded.");
+  } catch {
+    // No custom extensions
+  }
 
   if (useLocalStorage) {
     app.use("/uploads/*", serveStatic({ root: "../" }));

@@ -13,7 +13,7 @@ const { createApp } = await import("../app.js");
 const { COOKIE_NAME } = await import("../lib/constants.js");
 const { clearRateLimitStore } = await import("../middleware/rateLimit.js");
 
-const app = createApp();
+const app = await createApp();
 
 function resetDb() {
   db.exec("DELETE FROM chat_presence");

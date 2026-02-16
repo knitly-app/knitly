@@ -5,7 +5,8 @@
   "type": "module",
   "workspaces": [
     "frontend",
-    "server"
+    "server",
+    "custom"
   ],
   "scripts": {
     "dev": "concurrently \"bun run dev:frontend\" \"bun run dev:server\"",

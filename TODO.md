@@ -65,8 +65,11 @@ Core social features working: posts, comments, reactions, circles, notifications
 ---
 
 ### Extensibility
-- [ ] **Agent API** — API key auth, bot accounts, `since` param for content discovery (design doc exists)
-- [ ] **Plugin system** — Convention-based auto-discovery for custom pages/routes (design doc exists)
+- [x] **Agent API** — API key auth, bot accounts, `since` param for content discovery
+- [x] **Custom Extensions System** — Gitignored `custom/` directory with conditional loading, three initial features:
+  - [x] Homelab Portal — config-driven service card grid
+  - [x] AI Chat — streaming OpenRouter chat via AI SDK (ephemeral)
+  - [x] Image Generation — OpenRouter image gen with download + post-to-feed
 
 ## Phase 2 — Community Features
 

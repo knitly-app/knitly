@@ -15,7 +15,7 @@ const { clearRateLimitStore } = await import("../middleware/rateLimit.js");
 const { hashPassword } = await import("../lib/security.js");
 const { generateRandomToken } = await import("../lib/security.js");
 
-const app = createApp();
+const app = await createApp();
 
 function resetDb() {
   db.exec("DELETE FROM api_keys");

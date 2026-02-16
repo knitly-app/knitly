@@ -67,6 +67,9 @@ logs/
 *.log
 specs/
 
+# Custom extensions (private per-deployment features)
+custom/
+
 #AI Agents
 .claude
 CLAUDE.md
