@@ -2,7 +2,7 @@ import { useState, useMemo } from 'preact/hooks'
 import { useDeferredValue } from 'preact/compat'
 import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import { Link, useSearch } from '@tanstack/react-router'
-import { ArrowLeft, Users, FileText, Mail, TrendingUp, Copy, Ban, Plus, Search, Trash2, ShieldOff } from 'lucide-preact'
+import { ArrowLeft, Users, FileText, Mail, TrendingUp, Copy, Ban, Plus, Search, Trash2, ShieldOff, Key } from 'lucide-preact'
 import { admin, invites as invitesApi } from '../api/endpoints'
 import { AdminTableSkeleton } from '../components/Skeleton'
 import { getAvatarUrl } from '../utils/avatar'
@@ -195,6 +195,21 @@ export function AdminRoute() {
     },
   })
 
+  const resetPassword = useMutation({
+    mutationFn: admin.resetPassword,
+    onSuccess: (data) => {
+      const url = `${window.location.origin}/reset-password?token=${data.token}`
+      void navigator.clipboard.writeText(url).then(
+        () => toast.success('Reset link copied!'),
+        () => toast.error('Failed to copy reset link')
+      )
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'audit'] })
+    },
+    onError: () => {
+      toast.error('Failed to generate reset link')
+    },
+  })
+
   const handleCopyInvite = (token: string) => {
     void (async () => {
       const url = `${window.location.origin}/invite/${token}`
@@ -267,6 +282,17 @@ export function AdminRoute() {
     })()
   }
 
+  const handleResetPassword = (userId: string, username: string) => {
+    void (async () => {
+      const ok = await confirm({
+        title: 'Reset Password',
+        message: `This will generate a one-time password reset link for @${username}. The link will be copied to your clipboard.`,
+        confirmText: 'Generate Link',
+      })
+      if (ok) resetPassword.mutate(userId)
+    })()
+  }
+
   const moderationItems = moderationPages?.pages.flatMap((page) => page.items) ?? []
   const auditItems = auditPages?.pages.flatMap((page) => page.items) ?? []
 
@@ -282,6 +308,8 @@ export function AdminRoute() {
       INVITE_CREATED: 'Created invite',
       INVITE_REVOKED: 'Revoked invite',
       SESSIONS_REVOKED: 'Revoked sessions',
+      PASSWORD_RESET_GENERATED: 'Generated password reset link',
+      PASSWORD_RESET_COMPLETED: 'Completed password reset',
     }
     return map[action] || action
   }
@@ -684,6 +712,17 @@ export function AdminRoute() {
                           <ShieldOff size={14} className="inline mr-1" />
                           Revoke Sessions
                         </button>
+
+                        {!isSelf && (
+                          <button
+                            onClick={() => handleResetPassword(member.id, member.username)}
+                            disabled={resetPassword.isPending}
+                            className="px-3 py-2 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50"
+                          >
+                            <Key size={14} className="inline mr-1" />
+                            Reset Password
+                          </button>
+                        )}
                       </>
                     )}
                   </div>

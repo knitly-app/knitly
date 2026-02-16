@@ -47,6 +47,7 @@ const AdminRoute = withSuspense(lazy(() => import('./routes/admin').then((m) => 
 const CirclesRoute = withSuspense(lazy(() => import('./routes/circles').then((m) => ({ default: m.CirclesRoute }))))
 const ChatRoute = withSuspense(lazy(() => import('./routes/chat').then((m) => ({ default: m.ChatRoute }))))
 const SetupRoute = withSuspense(lazy(() => import('./routes/setup').then((m) => ({ default: m.SetupWizard }))))
+const ResetPasswordRoute = withSuspense(lazy(() => import('./routes/reset-password').then((m) => ({ default: m.ResetPasswordRoute }))))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -275,6 +276,15 @@ const setupRoute = createRoute({
   component: SetupRoute,
 })
 
+const resetPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/reset-password',
+  component: ResetPasswordRoute,
+  validateSearch: (search: Record<string, unknown>) => ({
+    token: search.token as string | undefined,
+  }),
+})
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
@@ -291,6 +301,7 @@ const routeTree = rootRoute.addChildren([
   chatRoute,
   adminRoute,
   setupRoute,
+  resetPasswordRoute,
 ])
 
 const router = createRouter({

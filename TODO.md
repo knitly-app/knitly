@@ -12,8 +12,8 @@ Core social features working: posts, comments, reactions, circles, notifications
 
 ## Bugs
 
-- [ ] **Image auto-save** — Header/profile images should save on upload without requiring Save button
-- [ ] **Image cleanup** — Old images not deleted on replace (5 images on server, should be 2)
+- [x] ~~Image auto-save~~ — Header/profile images save on upload
+- [x] ~~Image cleanup~~ — Old images cleaned up on replace
 - [ ] **Heart icon styling** — Should be black/white like other icons until someone actually reacts
 - [ ] **Mobile scroll bug** — Can scroll up and navigation leaves bottom of page
 - [ ] **Lobby mobile CSS** — Doesn't fit properly, scaling issues on mobile
@@ -31,18 +31,19 @@ Core social features working: posts, comments, reactions, circles, notifications
 ### Media
 - [x] **Video uploads** — 30s max, 720p, ffmpeg transcoding, CreatePostModal redesign
 - [x] ~~Profile header image~~ — Custom banner/cover photo for profiles
-- [ ] **Shared albums** — Collaborative photo collections
+- [ ] **Profile media tab** — Grid of all user's photos/videos on profile (like X/Twitter Media tab), click through to post
 
 ### Profile
 - [x] **Header/cover image upload** — Replace gradient with custom image
-- [ ] **Profile theme colors** — Let users pick accent color
+- [x] ~~Profile theme colors~~ — Scratched
 
 ### Content
-- [ ] **@ mentions** — Tag users in posts/comments
-- [ ] **Polls** — Simple voting on posts (moved from Phase 2)
+- [x] **@ mentions** — Tag users in posts/comments
+- [x] **Polls** — Simple voting on posts
 
 ### Account
-- [ ] **Password reset** — Email-based recovery flow
+- [ ] **Password reset** — Email-based recovery flow (design doc exists)
+- [ ] **Email change** — Allow users to update their email address
 - [ ] **Account deletion** — Self-service with confirmation
 
 ### Progressive Web App
@@ -62,6 +63,10 @@ Core social features working: posts, comments, reactions, circles, notifications
 - [ ] Exportable archive (zip download)
 
 ---
+
+### Extensibility
+- [ ] **Agent API** — API key auth, bot accounts, `since` param for content discovery (design doc exists)
+- [ ] **Plugin system** — Convention-based auto-discovery for custom pages/routes (design doc exists)
 
 ## Phase 2 — Community Features
 

@@ -149,6 +149,10 @@ export const auth = {
   signup: (data: SignupRequest) => api.post<User>('/auth/signup', data),
   me: () => api.get<User>('/auth/me'),
   logout: () => api.post('/auth/logout'),
+  validateResetToken: (token: string) =>
+    api.get<{ valid: boolean; reason?: string; username?: string; displayName?: string }>(`/auth/reset-password/${token}`),
+  resetPassword: (data: { token: string; password: string }) =>
+    api.post<{ success: boolean }>('/auth/reset-password', data),
 }
 
 export const users = {
@@ -288,6 +292,7 @@ export const admin = {
     }>('/admin/audit', { params: queryParams })
   },
   revokeUserSessions: (id: string) => api.post<{ success: true; id: string }>(`/admin/users/${id}/revoke-sessions`),
+  resetPassword: (id: string) => api.post<{ token: string; expiresAt: string }>(`/admin/users/${id}/reset-password`),
 }
 
 export interface ChatMessage {

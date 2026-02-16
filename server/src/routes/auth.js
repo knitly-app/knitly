@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { Hono } from "hono";
 import { z } from "zod";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
@@ -153,4 +154,61 @@ authRouter.get("/me", async (c) => {
   }
 
   return c.json(formatUser(session));
+});
+
+const ResetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(8),
+});
+
+authRouter.use("/reset-password/*", authRateLimit);
+authRouter.use("/reset-password", authRateLimit);
+
+authRouter.get("/reset-password/:token", (c) => {
+  const token = c.req.param("token");
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+  const record = dbUtils.getResetToken(tokenHash);
+  if (!record) return c.json({ valid: false, reason: "invalid" });
+
+  if (new Date(record.expires_at).getTime() < Date.now()) {
+    dbUtils.deleteResetToken(tokenHash);
+    return c.json({ valid: false, reason: "expired" });
+  }
+
+  if (record.disabled_at) return c.json({ valid: false, reason: "disabled" });
+
+  return c.json({ valid: true, username: record.username, displayName: record.display_name });
+});
+
+authRouter.post("/reset-password", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { token, password } = ResetPasswordSchema.parse(body);
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+    const record = dbUtils.getResetToken(tokenHash);
+    if (!record) return c.json({ error: "Invalid or expired token" }, 400);
+
+    if (new Date(record.expires_at).getTime() < Date.now()) {
+      dbUtils.deleteResetToken(tokenHash);
+      return c.json({ error: "Token expired" }, 400);
+    }
+
+    if (record.disabled_at) return c.json({ error: "Account disabled" }, 403);
+
+    const passwordHash = await hashPassword(password);
+    dbUtils.updatePasswordHash(record.user_id, passwordHash);
+    dbUtils.deleteSessionsByUser(record.user_id);
+    dbUtils.deleteResetToken(tokenHash);
+    dbUtils.createAuditEntry(record.user_id, "PASSWORD_RESET_COMPLETED", "user", record.user_id);
+
+    return c.json({ success: true });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json({ error: "Invalid input", details: error.errors }, 400);
+    }
+    logError("Password reset error.");
+    return c.json({ error: "Password reset failed" }, 500);
+  }
 });

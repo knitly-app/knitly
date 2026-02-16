@@ -1,5 +1,7 @@
+import crypto from "crypto";
 import { Hono } from "hono";
 import { dbUtils } from "../lib/db.js";
+import { generateRandomToken } from "../lib/security.js";
 import { ensureSession, requireRole } from "../middleware/auth.js";
 
 export const adminRouter = new Hono();
@@ -229,4 +231,23 @@ adminRouter.post("/users/:id/revoke-sessions", requireRole("admin"), (c) => {
   dbUtils.createAuditEntry(currentUser.id, "SESSIONS_REVOKED", "user", userId);
 
   return c.json({ success: true, id: String(userId) });
+});
+
+adminRouter.post("/users/:id/reset-password", requireRole("admin"), (c) => {
+  const currentUser = c.get("user");
+  const { userId, error } = parseUserId(c);
+  if (error) return c.json({ error }, 400);
+
+  const user = dbUtils.getUserById(userId);
+  if (!user) return c.json({ error: "User not found" }, 404);
+  if (user.role === "admin") return c.json({ error: "Cannot reset owner password" }, 400);
+
+  const token = generateRandomToken(32);
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+  dbUtils.createResetToken(userId, tokenHash, expiresAt);
+  dbUtils.createAuditEntry(currentUser.id, "PASSWORD_RESET_GENERATED", "user", userId);
+
+  return c.json({ token, expiresAt });
 });
