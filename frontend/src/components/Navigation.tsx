@@ -76,7 +76,7 @@ export function Navigation() {
 
         <div className="relative -mt-10">
           <button
-            onClick={openCreatePost}
+            onClick={() => openCreatePost()}
             aria-label="New Moment"
             className="w-12 h-12 bg-accent-500 rounded-full shadow-xl flex items-center justify-center transition-transform active:scale-90 hover:bg-accent-600"
           >
@@ -228,7 +228,7 @@ export function Navigation() {
 
         <div className="mt-6 w-full">
           <button
-            onClick={openCreatePost}
+            onClick={() => openCreatePost()}
             className="w-full flex items-center justify-center lg:justify-start space-x-4 p-3 bg-accent-500 text-white rounded-2xl transition-all shadow-sm hover:bg-accent-600"
           >
             <Plus size={24} aria-hidden="true" />

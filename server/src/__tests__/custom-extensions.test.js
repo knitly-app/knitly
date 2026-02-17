@@ -9,6 +9,8 @@ process.env.DATABASE_PATH = `/tmp/knitly-custom-ext-test-${testId}.db`;
 process.env.USE_LOCAL_STORAGE = "true";
 process.env.LOCAL_UPLOAD_DIR = `/tmp/knitly-uploads-${testId}`;
 process.env.BASE_URL = "http://localhost:3000";
+process.env.ANTHROPIC_API_KEY = "";
+process.env.REPLICATE_API_KEY = "";
 
 const { dbUtils, db } = await import("../lib/db.js");
 const { createApp } = await import("../app.js");
@@ -17,6 +19,7 @@ const { clearRateLimitStore } = await import("../middleware/rateLimit.js");
 const { hashPassword } = await import("../lib/security.js");
 
 const app = await createApp();
+const GENERATED_DIR = path.resolve("..", "uploads", "generated");
 
 function resetDb() {
   db.exec("DELETE FROM api_keys");
@@ -63,9 +66,15 @@ async function seedAdmin() {
   adminSession = dbUtils.createSession(adminId).sessionId;
 }
 
+async function resetGeneratedImagesDir() {
+  await fs.rm(GENERATED_DIR, { recursive: true, force: true });
+  await fs.mkdir(GENERATED_DIR, { recursive: true });
+}
+
 beforeEach(async () => {
   resetDb();
   clearRateLimitStore();
+  await resetGeneratedImagesDir();
   await seedAdmin();
 });
 
@@ -238,7 +247,7 @@ describe("Generated image cleanup", () => {
     const oldFile = "old-unreferenced.webp";
     await writeTestImage(oldFile, 25 * 60 * 60 * 1000);
 
-    const origDir = path.resolve("..", "uploads", "generated");
+    const origDir = GENERATED_DIR;
 
     await fs.mkdir(origDir, { recursive: true });
     await fs.copyFile(path.join(testGenDir, oldFile), path.join(origDir, oldFile));
@@ -256,7 +265,7 @@ describe("Generated image cleanup", () => {
     const { cleanupGeneratedImages } = await import("../../../custom/server/image-gen/routes.js");
 
     const refFile = `referenced-${crypto.randomUUID()}.webp`;
-    const origDir = path.resolve("..", "uploads", "generated");
+    const origDir = GENERATED_DIR;
     await fs.mkdir(origDir, { recursive: true });
     await fs.writeFile(path.join(origDir, refFile), "fake-image");
     const pastTime = new Date(Date.now() - 25 * 60 * 60 * 1000);
@@ -278,7 +287,7 @@ describe("Generated image cleanup", () => {
     const { cleanupGeneratedImages } = await import("../../../custom/server/image-gen/routes.js");
 
     const newFile = `new-${crypto.randomUUID()}.webp`;
-    const origDir = path.resolve("..", "uploads", "generated");
+    const origDir = GENERATED_DIR;
     await fs.mkdir(origDir, { recursive: true });
     await fs.writeFile(path.join(origDir, newFile), "fake-image");
 
