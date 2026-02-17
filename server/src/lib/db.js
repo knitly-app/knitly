@@ -852,6 +852,10 @@ export const dbUtils = {
     db.prepare("UPDATE notifications SET read = 1 WHERE user_id = ?").run(userId);
   },
 
+  clearAllNotifications(userId) {
+    db.prepare("DELETE FROM notifications WHERE user_id = ?").run(userId);
+  },
+
   // INVITE
   createInvite(invitedBy) {
     const token = crypto.randomUUID();
@@ -1386,6 +1390,13 @@ export const dbUtils = {
       WHERE c.post_id = ? AND c.id > ? AND c.deleted_at IS NULL
       ORDER BY c.created_at ASC
     `).all(postId, sinceId);
+  },
+
+  isMediaUrlReferenced(urlFragment) {
+    const row = db.prepare(
+      `SELECT 1 FROM post_media WHERE url LIKE '%' || ? || '%' LIMIT 1`
+    ).get(urlFragment);
+    return !!row;
   },
 };
 

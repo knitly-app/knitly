@@ -223,6 +223,7 @@ export const notifications = {
   list: () => api.get<Notification[]>('/notifications'),
   markRead: (id: string) => api.patch(`/notifications/${id}/read`),
   markAllRead: () => api.post('/notifications/read-all'),
+  clearAll: () => api.delete('/notifications'),
 }
 
 export const search = {

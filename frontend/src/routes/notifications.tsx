@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { useNotifications, useMarkNotificationRead } from '../hooks/useNotifications'
+import { useNotifications, useMarkNotificationRead, useClearAllNotifications } from '../hooks/useNotifications'
 import { NotificationSkeleton } from '../components/Skeleton'
 import { getAvatarUrl } from '../utils/avatar'
 import { formatTimeAgo } from '../utils/time'
@@ -23,6 +23,7 @@ function getNotificationText(type: string): string {
 export function NotificationsRoute() {
   const { data: notifications, isLoading } = useNotifications()
   const markReadMutation = useMarkNotificationRead()
+  const clearAllMutation = useClearAllNotifications()
 
   const handleNotificationClick = (id: string, read: boolean) => {
     if (!read) {
@@ -47,7 +48,18 @@ export function NotificationsRoute() {
 
   return (
     <div className="w-full max-w-2xl mx-auto py-8 px-5">
-      <h2 className="text-2xl font-bold mb-8 text-gray-900">Activity</h2>
+      <div className="flex items-center justify-between mb-8">
+        <h2 className="text-2xl font-bold text-gray-900">Activity</h2>
+        {(notifications?.length ?? 0) > 0 && (
+          <button
+            onClick={() => clearAllMutation.mutate()}
+            disabled={clearAllMutation.isPending}
+            className="text-sm font-semibold text-gray-600 hover:text-red-600 bg-gray-100 hover:bg-red-50 px-4 py-1.5 rounded-full transition-colors disabled:opacity-50"
+          >
+            {clearAllMutation.isPending ? 'Clearing…' : 'Clear all'}
+          </button>
+        )}
+      </div>
 
       <div className="space-y-4">
         {notifications?.length === 0 ? (

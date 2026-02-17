@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 @theme {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+
   --color-accent-50: #fef2f2;
   --color-accent-100: #fee2e2;
   --color-accent-200: #fecaca;

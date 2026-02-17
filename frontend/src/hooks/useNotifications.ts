@@ -32,6 +32,17 @@ export function useMarkAllNotificationsRead() {
   })
 }
 
+export function useClearAllNotifications() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: notifications.clearAll,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['notifications'] })
+    },
+  })
+}
+
 export function useUnreadCount() {
   const { data: notifs } = useNotifications()
   return notifs?.filter((n) => !n.read).length ?? 0

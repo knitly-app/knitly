@@ -1,5 +1,7 @@
-import { beforeEach, describe, expect, test } from "bun:test";
+import { afterAll, beforeEach, describe, expect, test } from "bun:test";
 import crypto from "crypto";
+import fs from "fs/promises";
+import path from "path";
 
 const testId = crypto.randomUUID();
 process.env.NODE_ENV = "test";
@@ -114,7 +116,7 @@ describe("Custom extensions - AI chat", () => {
     });
     expect(res.status).toBe(503);
     const data = await res.json();
-    expect(data.error).toContain("API key");
+    expect(data.error).toContain("Anthropic");
   });
 });
 
@@ -180,5 +182,115 @@ describe("Custom extensions - route mounting", () => {
     expect(healthRes.status).toBe(200);
     const data = await healthRes.json();
     expect(data.status).toBe("ok");
+  });
+});
+
+describe("isMediaUrlReferenced", () => {
+  test("returns false when no posts reference the URL", () => {
+    expect(dbUtils.isMediaUrlReferenced("nonexistent-image.webp")).toBe(false);
+  });
+
+  test("returns true when a post references the URL", () => {
+    const postId = dbUtils.createPost(adminId, "test post", [
+      { url: "/uploads/generated/test-image-abc.webp", type: "image" },
+    ]).id;
+    expect(postId).toBeTruthy();
+    expect(dbUtils.isMediaUrlReferenced("test-image-abc.webp")).toBe(true);
+  });
+
+  test("returns false after the referencing post is deleted", () => {
+    const postId = dbUtils.createPost(adminId, "temp post", [
+      { url: "/uploads/generated/temp-image.webp", type: "image" },
+    ]).id;
+    expect(dbUtils.isMediaUrlReferenced("temp-image.webp")).toBe(true);
+
+    db.prepare("DELETE FROM post_media WHERE post_id = ?").run(postId);
+    expect(dbUtils.isMediaUrlReferenced("temp-image.webp")).toBe(false);
+  });
+});
+
+describe("Generated image cleanup", () => {
+  const testGenDir = `/tmp/knitly-gen-cleanup-${testId}`;
+
+  async function writeTestImage(filename, ageMs = 0) {
+    await fs.mkdir(testGenDir, { recursive: true });
+    const filepath = path.join(testGenDir, filename);
+    await fs.writeFile(filepath, "fake-image-data");
+    if (ageMs > 0) {
+      const past = new Date(Date.now() - ageMs);
+      await fs.utimes(filepath, past, past);
+    }
+    return filepath;
+  }
+
+  test("cleanup endpoint requires admin", async () => {
+    const pw = await hashPassword("password123");
+    const memberId = dbUtils.createUser(`member-${crypto.randomUUID()}@test.com`, `member-${crypto.randomUUID().slice(0, 8)}`, "Member", pw, "member");
+    const memberSession = dbUtils.createSession(memberId).sessionId;
+
+    const res = await jsonReq("/api/custom/image-gen/cleanup", { cookie: memberSession });
+    expect(res.status).toBe(403);
+  });
+
+  test("cleanup deletes old unreferenced images", async () => {
+    const { cleanupGeneratedImages } = await import("../../../custom/server/image-gen/routes.js");
+
+    const oldFile = "old-unreferenced.webp";
+    await writeTestImage(oldFile, 25 * 60 * 60 * 1000);
+
+    const origDir = path.resolve("..", "uploads", "generated");
+
+    await fs.mkdir(origDir, { recursive: true });
+    await fs.copyFile(path.join(testGenDir, oldFile), path.join(origDir, oldFile));
+    const pastTime = new Date(Date.now() - 25 * 60 * 60 * 1000);
+    await fs.utimes(path.join(origDir, oldFile), pastTime, pastTime);
+
+    const result = await cleanupGeneratedImages();
+    expect(result.deleted).toBeGreaterThanOrEqual(1);
+
+    const exists = await fs.access(path.join(origDir, oldFile)).then(() => true).catch(() => false);
+    expect(exists).toBe(false);
+  });
+
+  test("cleanup keeps referenced images", async () => {
+    const { cleanupGeneratedImages } = await import("../../../custom/server/image-gen/routes.js");
+
+    const refFile = `referenced-${crypto.randomUUID()}.webp`;
+    const origDir = path.resolve("..", "uploads", "generated");
+    await fs.mkdir(origDir, { recursive: true });
+    await fs.writeFile(path.join(origDir, refFile), "fake-image");
+    const pastTime = new Date(Date.now() - 25 * 60 * 60 * 1000);
+    await fs.utimes(path.join(origDir, refFile), pastTime, pastTime);
+
+    dbUtils.createPost(adminId, "post with image", [
+      { url: `/uploads/generated/${refFile}`, type: "image" },
+    ]);
+
+    await cleanupGeneratedImages();
+
+    const exists = await fs.access(path.join(origDir, refFile)).then(() => true).catch(() => false);
+    expect(exists).toBe(true);
+
+    await fs.unlink(path.join(origDir, refFile)).catch(() => {});
+  });
+
+  test("cleanup keeps images younger than 24h", async () => {
+    const { cleanupGeneratedImages } = await import("../../../custom/server/image-gen/routes.js");
+
+    const newFile = `new-${crypto.randomUUID()}.webp`;
+    const origDir = path.resolve("..", "uploads", "generated");
+    await fs.mkdir(origDir, { recursive: true });
+    await fs.writeFile(path.join(origDir, newFile), "fake-image");
+
+    await cleanupGeneratedImages();
+
+    const exists = await fs.access(path.join(origDir, newFile)).then(() => true).catch(() => false);
+    expect(exists).toBe(true);
+
+    await fs.unlink(path.join(origDir, newFile)).catch(() => {});
+  });
+
+  afterAll(async () => {
+    await fs.rm(testGenDir, { recursive: true, force: true }).catch(() => {});
   });
 });

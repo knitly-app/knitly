@@ -66,18 +66,19 @@ function ReactionButton({
     <div className="relative" ref={pickerRef}>
       <button
         onClick={() => setShowPicker(!showPicker)}
-        className={`flex items-center space-x-2 p-2 rounded-xl transition-all ${
+        aria-label={`React to post${total > 0 ? `, ${total} reaction${total !== 1 ? 's' : ''}` : ''}`}
+        className={`flex items-center space-x-2 p-2.5 rounded-xl transition-all ${
           userReaction
             ? 'text-accent-500 bg-accent-50'
             : 'text-gray-400 hover:text-accent-500 hover:bg-accent-50'
         }`}
       >
-        {total > 0 ? (
-          <span className="text-lg">{currentEmoji || '❤️'}</span>
+        {userReaction ? (
+          <span className="text-lg leading-none">{currentEmoji}</span>
         ) : (
           <Heart size={20} />
         )}
-        {total > 0 && <span className="text-sm font-medium">{total}</span>}
+        <span className="text-sm font-medium">{total > 0 ? total : ''}</span>
       </button>
 
       {showPicker && (
@@ -331,20 +332,20 @@ export function PostCard({ post, author, currentUserId, onReact, onDelete, onEdi
         </>
       )}
 
-      <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-        <div className="flex items-center space-x-3">
+      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+        <div className="flex items-center space-x-2">
           <ReactionButton
             reactions={post.reactions}
             userReaction={post.userReaction}
             onReact={(type) => onReact?.(post.id, type, post.userReaction)}
           />
-          <ReactionSummary reactions={post.reactions} />
+          {Object.values(post.reactions).filter(Boolean).length > 1 && <ReactionSummary reactions={post.reactions} />}
         </div>
 
         <Link
           to="/post/$id"
           params={{ id: post.id }}
-          className="flex items-center space-x-2 p-2 rounded-xl text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-all"
+          className="flex items-center space-x-2 p-2.5 rounded-xl text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-all"
         >
           <MessageCircle size={20} />
           <span className="text-sm font-medium">{post.comments}</span>
@@ -352,7 +353,8 @@ export function PostCard({ post, author, currentUserId, onReact, onDelete, onEdi
 
         <button
           onClick={() => { void handleShare() }}
-          className="flex items-center space-x-2 p-2 rounded-xl transition-all text-gray-400 hover:text-green-500 hover:bg-green-50"
+          aria-label="Copy link"
+          className="flex items-center space-x-2 p-2.5 rounded-xl transition-all text-gray-400 hover:text-green-500 hover:bg-green-50"
         >
           <Share2 size={20} />
         </button>

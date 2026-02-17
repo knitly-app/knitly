@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { media as mediaApi, type MediaItem } from '../api/endpoints'
 import { useCircles } from '../hooks/useCircles'
 import { useCreatePost } from '../hooks/usePosts'
+import { useUIStore } from '../stores/ui'
 import { CirclePills } from './CirclePills'
 import { MentionAutocomplete, type MentionAutocompleteHandle } from './MentionAutocomplete'
 import { useToast } from './Toast'
@@ -14,9 +15,11 @@ interface CreatePostModalProps {
 type MediaMode = 'none' | 'photos' | 'video' | 'poll'
 
 export function CreatePostModal({ onClose }: CreatePostModalProps) {
+  const initialMedia = useUIStore((s) => s.initialMedia)
   const [content, setContent] = useState('')
-  const [mediaMode, setMediaMode] = useState<MediaMode>('none')
+  const [mediaMode, setMediaMode] = useState<MediaMode>(initialMedia ? 'photos' : 'none')
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [preAttachedMedia, setPreAttachedMedia] = useState(initialMedia)
   const [isUploading, setIsUploading] = useState(false)
   const [selectedCircleId, setSelectedCircleId] = useState<string | null>(null)
   const [pollQuestion, setPollQuestion] = useState('')
@@ -124,6 +127,7 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
 
   const clearMedia = () => {
     setSelectedFiles([])
+    setPreAttachedMedia(null)
     if (mediaMode !== 'poll') setMediaMode('none')
   }
 
@@ -155,7 +159,7 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
   const handleSubmit = async () => {
     const hasPoll = mediaMode === 'poll' && pollQuestion.trim()
     const validPollOptions = pollOptions.filter(o => o.trim())
-    if (!content.trim() && selectedFiles.length === 0 && !hasPoll) return
+    if (!content.trim() && selectedFiles.length === 0 && !preAttachedMedia && !hasPoll) return
     if (hasPoll && validPollOptions.length < 2) {
       toast.error('Poll needs at least 2 options')
       return
@@ -165,8 +169,12 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
       setIsUploading(true)
       let uploadedMedia: MediaItem[] = []
 
+      if (preAttachedMedia) {
+        uploadedMedia.push({ url: preAttachedMedia.url, type: preAttachedMedia.type, sortOrder: 0 } as MediaItem)
+      }
+
       if (selectedFiles.length > 0) {
-        uploadedMedia = await Promise.all(
+        const fileMedia = await Promise.all(
           selectedFiles.map(async (file) => {
             const presign = await mediaApi.presign({
               contentType: file.type || (mediaMode === 'video' ? 'video/mp4' : 'image/jpeg'),
@@ -182,6 +190,7 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
             return mediaApi.complete({ key: presign.key })
           })
         )
+        uploadedMedia.push(...fileMedia)
       }
 
       await createPost.mutateAsync({
@@ -202,7 +211,7 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
 
   const hasPoll = mediaMode === 'poll' && pollQuestion.trim()
   const validPollOptions = pollOptions.filter(o => o.trim())
-  const canSubmit = (content.trim() || selectedFiles.length > 0 || (hasPoll && validPollOptions.length >= 2)) && !createPost.isPending && !isUploading
+  const canSubmit = (content.trim() || selectedFiles.length > 0 || preAttachedMedia || (hasPoll && validPollOptions.length >= 2)) && !createPost.isPending && !isUploading
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
@@ -254,7 +263,7 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
             />
           </div>
 
-          {mediaMode === 'photos' && previews.length > 0 && (
+          {mediaMode === 'photos' && (previews.length > 0 || preAttachedMedia) && (
             <div className="relative mb-4">
               <button
                 onClick={clearMedia}
@@ -263,6 +272,11 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
                 <X size={16} />
               </button>
               <div className="grid grid-cols-3 gap-2 rounded-xl overflow-hidden">
+                {preAttachedMedia && (
+                  <div className="relative aspect-square bg-gray-100">
+                    <img src={preAttachedMedia.url} alt="" className="w-full h-full object-cover" />
+                  </div>
+                )}
                 {previews.map((url) => (
                   <div key={url} className="relative aspect-square bg-gray-100">
                     <img src={url} alt="" className="w-full h-full object-cover" />

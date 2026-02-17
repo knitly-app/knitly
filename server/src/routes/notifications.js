@@ -38,3 +38,9 @@ notificationsRouter.post("/read-all", async (c) => {
   dbUtils.markAllNotificationsRead(currentUser.id);
   return c.json({ success: true });
 });
+
+notificationsRouter.delete("/", async (c) => {
+  const currentUser = c.get("user");
+  dbUtils.clearAllNotifications(currentUser.id);
+  return c.json({ success: true });
+});

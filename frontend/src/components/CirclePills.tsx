@@ -30,7 +30,10 @@ export function CirclePills({ circles, selectedId, onSelect, showAdd, onAdd }: C
   const isAllSelected = selectedId === null
 
   return (
-    <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+    <div
+      className="flex items-center gap-2 overflow-x-auto scrollbar-hide"
+      style={{ maskImage: 'linear-gradient(to right, black calc(100% - 3rem), transparent 100%)' }}
+    >
       <button
         type="button"
         onClick={() => onSelect(null)}
