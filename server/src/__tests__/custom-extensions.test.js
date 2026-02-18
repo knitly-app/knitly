@@ -172,6 +172,74 @@ describe("Custom extensions - image generation", () => {
     expect(data.images).toBeArray();
     expect(data.images.length).toBe(0);
   });
+
+  test("GET /api/custom/image-gen/gallery includes videos and images", async () => {
+    const imageFile = `gallery-image-${crypto.randomUUID()}.webp`;
+    const videoFile = `gallery-video-${crypto.randomUUID()}.mp4`;
+
+    await fs.mkdir(GENERATED_DIR, { recursive: true });
+    await fs.writeFile(path.join(GENERATED_DIR, imageFile), "fake-image-data");
+    await fs.writeFile(path.join(GENERATED_DIR, videoFile), "fake-video-data");
+
+    const res = await jsonReq("/api/custom/image-gen/gallery", { cookie: adminSession });
+    expect(res.status).toBe(200);
+    const data = await res.json();
+
+    expect(data.images).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ filename: imageFile, type: "image" }),
+        expect.objectContaining({ filename: videoFile, type: "video" }),
+      ]),
+    );
+  });
+});
+
+describe("Custom extensions - video generation", () => {
+  test("POST /api/custom/image-gen/generate-video requires auth", async () => {
+    const res = await jsonReq("/api/custom/image-gen/generate-video", {
+      method: "POST",
+      body: { prompt: "a cat video" },
+    });
+    expect(res.status).toBe(401);
+  });
+
+  test("POST /api/custom/image-gen/generate-video validates prompt", async () => {
+    const res = await jsonReq("/api/custom/image-gen/generate-video", {
+      method: "POST",
+      cookie: adminSession,
+      body: {},
+    });
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toContain("prompt");
+  });
+
+  test("POST /api/custom/image-gen/generate-video returns 503 without API key", async () => {
+    const res = await jsonReq("/api/custom/image-gen/generate-video", {
+      method: "POST",
+      cookie: adminSession,
+      body: { prompt: "a cat video" },
+    });
+    expect(res.status).toBe(503);
+    const data = await res.json();
+    expect(data.error).toContain("API key");
+  });
+
+  test("POST /api/custom/image-gen/generate-video validates aspect ratio", async () => {
+    const res = await jsonReq("/api/custom/image-gen/generate-video", {
+      method: "POST",
+      cookie: adminSession,
+      body: { prompt: "a cat video", aspectRatio: "4:3" },
+    });
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toContain("Invalid aspect ratio");
+  });
+
+  test("GET /api/custom/image-gen/video-status/:id requires auth", async () => {
+    const res = await jsonReq("/api/custom/image-gen/video-status/test-id");
+    expect(res.status).toBe(401);
+  });
 });
 
 describe("Custom extensions - route mounting", () => {
@@ -218,10 +286,10 @@ describe("isMediaUrlReferenced", () => {
   });
 });
 
-describe("Generated image cleanup", () => {
+describe("Generated media cleanup", () => {
   const testGenDir = `/tmp/knitly-gen-cleanup-${testId}`;
 
-  async function writeTestImage(filename, ageMs = 0) {
+  async function writeTestMedia(filename, ageMs = 0) {
     await fs.mkdir(testGenDir, { recursive: true });
     const filepath = path.join(testGenDir, filename);
     await fs.writeFile(filepath, "fake-image-data");
@@ -242,10 +310,10 @@ describe("Generated image cleanup", () => {
   });
 
   test("cleanup deletes old unreferenced images", async () => {
-    const { cleanupGeneratedImages } = await import("../../../custom/server/image-gen/routes.js");
+    const { cleanupGeneratedMedia } = await import("../../../custom/server/image-gen/routes.js");
 
     const oldFile = "old-unreferenced.webp";
-    await writeTestImage(oldFile, 25 * 60 * 60 * 1000);
+    await writeTestMedia(oldFile, 25 * 60 * 60 * 1000);
 
     const origDir = GENERATED_DIR;
 
@@ -254,7 +322,7 @@ describe("Generated image cleanup", () => {
     const pastTime = new Date(Date.now() - 25 * 60 * 60 * 1000);
     await fs.utimes(path.join(origDir, oldFile), pastTime, pastTime);
 
-    const result = await cleanupGeneratedImages();
+    const result = await cleanupGeneratedMedia();
     expect(result.deleted).toBeGreaterThanOrEqual(1);
 
     const exists = await fs.access(path.join(origDir, oldFile)).then(() => true).catch(() => false);
@@ -262,7 +330,7 @@ describe("Generated image cleanup", () => {
   });
 
   test("cleanup keeps referenced images", async () => {
-    const { cleanupGeneratedImages } = await import("../../../custom/server/image-gen/routes.js");
+    const { cleanupGeneratedMedia } = await import("../../../custom/server/image-gen/routes.js");
 
     const refFile = `referenced-${crypto.randomUUID()}.webp`;
     const origDir = GENERATED_DIR;
@@ -275,7 +343,7 @@ describe("Generated image cleanup", () => {
       { url: `/uploads/generated/${refFile}`, type: "image" },
     ]);
 
-    await cleanupGeneratedImages();
+    await cleanupGeneratedMedia();
 
     const exists = await fs.access(path.join(origDir, refFile)).then(() => true).catch(() => false);
     expect(exists).toBe(true);
@@ -284,19 +352,58 @@ describe("Generated image cleanup", () => {
   });
 
   test("cleanup keeps images younger than 24h", async () => {
-    const { cleanupGeneratedImages } = await import("../../../custom/server/image-gen/routes.js");
+    const { cleanupGeneratedMedia } = await import("../../../custom/server/image-gen/routes.js");
 
     const newFile = `new-${crypto.randomUUID()}.webp`;
     const origDir = GENERATED_DIR;
     await fs.mkdir(origDir, { recursive: true });
     await fs.writeFile(path.join(origDir, newFile), "fake-image");
 
-    await cleanupGeneratedImages();
+    await cleanupGeneratedMedia();
 
     const exists = await fs.access(path.join(origDir, newFile)).then(() => true).catch(() => false);
     expect(exists).toBe(true);
 
     await fs.unlink(path.join(origDir, newFile)).catch(() => {});
+  });
+
+  test("cleanup deletes old unreferenced videos", async () => {
+    const { cleanupGeneratedMedia } = await import("../../../custom/server/image-gen/routes.js");
+
+    const oldVideo = `old-unreferenced-${crypto.randomUUID()}.mp4`;
+    const origDir = GENERATED_DIR;
+    await fs.mkdir(origDir, { recursive: true });
+    await fs.writeFile(path.join(origDir, oldVideo), "fake-video");
+    const pastTime = new Date(Date.now() - 25 * 60 * 60 * 1000);
+    await fs.utimes(path.join(origDir, oldVideo), pastTime, pastTime);
+
+    const result = await cleanupGeneratedMedia();
+    expect(result.deleted).toBeGreaterThanOrEqual(1);
+
+    const exists = await fs.access(path.join(origDir, oldVideo)).then(() => true).catch(() => false);
+    expect(exists).toBe(false);
+  });
+
+  test("cleanup keeps referenced videos", async () => {
+    const { cleanupGeneratedMedia } = await import("../../../custom/server/image-gen/routes.js");
+
+    const refVideo = `referenced-${crypto.randomUUID()}.mp4`;
+    const origDir = GENERATED_DIR;
+    await fs.mkdir(origDir, { recursive: true });
+    await fs.writeFile(path.join(origDir, refVideo), "fake-video");
+    const pastTime = new Date(Date.now() - 25 * 60 * 60 * 1000);
+    await fs.utimes(path.join(origDir, refVideo), pastTime, pastTime);
+
+    dbUtils.createPost(adminId, "post with video", [
+      { url: `/uploads/generated/${refVideo}`, type: "video" },
+    ]);
+
+    await cleanupGeneratedMedia();
+
+    const exists = await fs.access(path.join(origDir, refVideo)).then(() => true).catch(() => false);
+    expect(exists).toBe(true);
+
+    await fs.unlink(path.join(origDir, refVideo)).catch(() => {});
   });
 
   afterAll(async () => {
