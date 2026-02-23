@@ -8,7 +8,7 @@ export const VIDEO_CONTENT_TYPES = new Set([
   "video/x-m4v",
 ]);
 
-export const MAX_VIDEO_DURATION = 30;
+export const MAX_VIDEO_DURATION = 60;
 export const MAX_VIDEO_FILE_SIZE = 50 * 1024 * 1024;
 export const VIDEO_OUTPUT_HEIGHT = 720;
 
