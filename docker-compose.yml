@@ -1,0 +1,18 @@
+services:
+  knitly:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - knitly-data:/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - BASE_URL=http://localhost:3000
+      - DATABASE_PATH=/data/knitly.db
+      - LOCAL_UPLOAD_DIR=/data/uploads
+      - USE_LOCAL_STORAGE=true
+    restart: unless-stopped
+
+volumes:
+  knitly-data:

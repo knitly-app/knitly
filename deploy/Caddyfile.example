@@ -1,0 +1,7 @@
+# Caddy reverse proxy for Knitly
+# Replace your-domain.com with your actual domain
+# Caddy handles HTTPS automatically via Let's Encrypt
+
+your-domain.com {
+    reverse_proxy localhost:3000
+}

@@ -1,0 +1,25 @@
+#!/sbin/openrc-run
+# Knitly OpenRC service file
+# Copy to /etc/init.d/knitly and chmod +x
+# Update paths below to match your installation
+
+name="knitly"
+description="Knitly social network"
+
+# Update these paths to your Bun install and Knitly directory
+command="/usr/local/bin/bun"
+command_args="run --cwd /opt/knitly/server start"
+command_user="knitly"
+command_background="yes"
+pidfile="/run/${RC_SVCNAME}.pid"
+
+start_pre() {
+    if [ -f /opt/knitly/server/.env.production ]; then
+        export $(grep -v '^#' /opt/knitly/server/.env.production | xargs)
+    fi
+}
+
+depend() {
+    need net
+    after firewall
+}

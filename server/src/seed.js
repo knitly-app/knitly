@@ -5,17 +5,22 @@ import { logInfo, logError } from "./lib/logging.js";
 async function seed() {
   logInfo("Seeding database...");
 
-  const existingAdmin = dbUtils.getUserByEmail("mike@mk3y.com");
+  const email = process.env.ADMIN_EMAIL || "admin@example.com";
+  const username = process.env.ADMIN_USERNAME || "admin";
+  const displayName = process.env.ADMIN_DISPLAY_NAME || "Admin";
+  const password = process.env.ADMIN_PASSWORD || "changeme123";
+
+  const existingAdmin = dbUtils.getUserByEmail(email);
   if (existingAdmin) {
     logInfo("Admin user already exists.");
     return;
   }
 
-  const passwordHash = await hashPassword("password123");
+  const passwordHash = await hashPassword(password);
   const userId = dbUtils.createUser(
-    "mike@mk3y.com",
-    "mike",
-    "Mike",
+    email,
+    username,
+    displayName,
     passwordHash,
     "admin"
   );

@@ -25,9 +25,8 @@ frontend/.vite/
 .env.local
 .env.production
 
-# Deployment (instance-specific)
+# Deployment (instance-specific scripts only)
 deploy.sh
-/deploy/
 
 # IDE
 .idea/
@@ -47,7 +46,8 @@ next-env.d.ts
 #misc
 /_backup
 /.idea
-/docs/plans/
+docs/
+static/
 
 # Editor directories and files
 ._*

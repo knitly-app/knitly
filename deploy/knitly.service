@@ -1,0 +1,15 @@
+[Unit]
+Description=Knitly social network
+After=network.target
+
+[Service]
+Type=simple
+User=knitly
+WorkingDirectory=/opt/knitly/server
+EnvironmentFile=/opt/knitly/server/.env.production
+ExecStart=/usr/local/bin/bun run start
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

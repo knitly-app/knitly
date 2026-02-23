@@ -70,5 +70,18 @@ export async function createApp() {
     logInfo("Local uploads enabled.");
   }
 
+  if (process.env.NODE_ENV === "production") {
+    app.use("/*", serveStatic({ root: "../frontend/dist" }));
+    app.get("*", async (c) => {
+      const fs = await import("node:fs");
+      const html = fs.readFileSync(
+        new URL("../../../frontend/dist/index.html", import.meta.url),
+        "utf-8"
+      );
+      return c.html(html);
+    });
+    logInfo("Serving frontend SPA.");
+  }
+
   return app;
 }
