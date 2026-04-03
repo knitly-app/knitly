@@ -1,4 +1,5 @@
 import { Play } from 'lucide-preact'
+import { useNavigate } from '@tanstack/react-router'
 import type { Post, MediaItem } from '../api/endpoints'
 import { useLightbox } from '../stores/lightbox'
 
@@ -13,6 +14,8 @@ interface MediaGridProps {
 }
 
 export function MediaGrid({ posts }: MediaGridProps) {
+  const navigate = useNavigate()
+
   const flatMedia: FlatMediaItem[] = posts.flatMap((post) =>
     (post.media ?? []).map((media, indexInPost) => ({
       media,
@@ -30,16 +33,21 @@ export function MediaGrid({ posts }: MediaGridProps) {
           type="button"
           key={`${item.post.id}-${item.indexInPost}`}
           onClick={() => {
-            const postMedia = item.post.media ?? []
+            if (item.media.type === 'video') {
+              void navigate({ to: '/post/$id', params: { id: item.post.id } })
+              return
+            }
+            const imageMedia = (item.post.media ?? []).filter((m) => m.type !== 'video')
+            const imageIndex = imageMedia.findIndex((m) => m.url === item.media.url)
             useLightbox.getState().open(
-              postMedia.map((m) => ({ url: m.url, alt: "Post media" })),
-              item.indexInPost
+              imageMedia.map((m) => ({ url: m.url, alt: "Post media" })),
+              imageIndex >= 0 ? imageIndex : 0
             )
           }}
-          className="relative aspect-square bg-gray-100 overflow-hidden cursor-zoom-in rounded-lg"
+          className={`relative aspect-square bg-gray-100 overflow-hidden rounded-lg ${item.media.type === 'video' ? 'cursor-pointer' : 'cursor-zoom-in'}`}
         >
           <img
-            src={item.media.type === 'video' ? item.media.thumbnailUrl : item.media.url}
+            src={item.media.type === 'video' ? (item.media.thumbnailUrl || item.media.url) : item.media.url}
             alt={`Media ${i + 1}`}
             className="w-full h-full object-cover"
             loading="lazy"

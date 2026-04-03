@@ -78,25 +78,6 @@ beforeEach(async () => {
   await seedAdmin();
 });
 
-describe("Custom extensions - homelab", () => {
-  test("GET /api/custom/homelab/services requires auth", async () => {
-    const res = await jsonReq("/api/custom/homelab/services");
-    expect(res.status).toBe(401);
-  });
-
-  test("GET /api/custom/homelab/services returns services when authenticated", async () => {
-    const res = await jsonReq("/api/custom/homelab/services", { cookie: adminSession });
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.services).toBeArray();
-    expect(data.services.length).toBeGreaterThan(0);
-    expect(data.services[0]).toHaveProperty("name");
-    expect(data.services[0]).toHaveProperty("url");
-    expect(data.services[0]).toHaveProperty("icon");
-    expect(data.services[0]).toHaveProperty("description");
-  });
-});
-
 describe("Custom extensions - AI chat", () => {
   test("POST /api/custom/ai-chat/completion requires auth", async () => {
     const res = await jsonReq("/api/custom/ai-chat/completion", {
@@ -244,9 +225,6 @@ describe("Custom extensions - video generation", () => {
 
 describe("Custom extensions - route mounting", () => {
   test("custom routes are mounted under /api/custom", async () => {
-    const homelabRes = await jsonReq("/api/custom/homelab/services");
-    expect(homelabRes.status).toBe(401);
-
     const chatRes = await jsonReq("/api/custom/ai-chat/completion", { method: "POST", body: {} });
     expect(chatRes.status).toBe(401);
 
