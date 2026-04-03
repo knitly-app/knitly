@@ -177,7 +177,8 @@ usersRouter.get("/:id/posts", ensureSession, async (c) => {
   const userId = resolveUserId(id, currentUser);
   if (!userId) return c.json({ error: "Not found" }, 404);
 
-  const posts = dbUtils.getUserPosts(userId, 50, currentUser.id);
+  const mediaOnly = c.req.query("mediaOnly") === "true";
+  const posts = dbUtils.getUserPosts(userId, 50, currentUser.id, mediaOnly);
   const reactionsMap = dbUtils.getUserReactionsMap(currentUser.id, posts.map(p => p.id));
   return c.json(posts.map(p => {
     const poll = dbUtils.getPoll(p.id);

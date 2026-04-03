@@ -1218,3 +1218,105 @@ describe("Account Management", () => {
     });
   });
 });
+
+describe("Media Only Posts", () => {
+  test("returns only media posts when mediaOnly=true", async () => {
+    const { userAId, sessionA } = await seedTwoUsers();
+
+    dbUtils.createPost(userAId, "With image", [
+      { url: "http://example.com/a.jpg", width: 100, height: 100, type: "image", sortOrder: 1 },
+    ]);
+    dbUtils.createPost(userAId, "With video", [
+      { url: "http://example.com/b.mp4", width: 1920, height: 1080, type: "video", sortOrder: 1 },
+    ]);
+    dbUtils.createPost(userAId, "Text only");
+
+    const res = await jsonReq(`/api/users/${userAId}/posts?mediaOnly=true`, { cookie: sessionA });
+    expect(res.status).toBe(200);
+    const posts = await res.json();
+    expect(posts.length).toBe(2);
+    expect(posts.every(p => p.media && p.media.length > 0)).toBe(true);
+  });
+
+  test("returns all posts when mediaOnly is absent", async () => {
+    const { userAId, sessionA } = await seedTwoUsers();
+
+    dbUtils.createPost(userAId, "With image", [
+      { url: "http://example.com/a.jpg", width: 100, height: 100, type: "image", sortOrder: 1 },
+    ]);
+    dbUtils.createPost(userAId, "With video", [
+      { url: "http://example.com/b.mp4", width: 1920, height: 1080, type: "video", sortOrder: 1 },
+    ]);
+    dbUtils.createPost(userAId, "Text only");
+
+    const res = await jsonReq(`/api/users/${userAId}/posts`, { cookie: sessionA });
+    expect(res.status).toBe(200);
+    const posts = await res.json();
+    expect(posts.length).toBe(3);
+  });
+
+  test("returns empty array when user has no media posts", async () => {
+    const { userAId, sessionA } = await seedTwoUsers();
+
+    dbUtils.createPost(userAId, "Text one");
+    dbUtils.createPost(userAId, "Text two");
+
+    const res = await jsonReq(`/api/users/${userAId}/posts?mediaOnly=true`, { cookie: sessionA });
+    expect(res.status).toBe(200);
+    const posts = await res.json();
+    expect(posts.length).toBe(0);
+  });
+
+  test("media posts include their media items", async () => {
+    const { userAId, sessionA } = await seedTwoUsers();
+
+    dbUtils.createPost(userAId, "Rich media", [
+      { url: "http://example.com/photo.jpg", width: 800, height: 600, type: "image", sortOrder: 1 },
+      { url: "http://example.com/clip.mp4", width: 1920, height: 1080, type: "video", sortOrder: 2 },
+    ]);
+
+    const res = await jsonReq(`/api/users/${userAId}/posts?mediaOnly=true`, { cookie: sessionA });
+    expect(res.status).toBe(200);
+    const posts = await res.json();
+    expect(posts.length).toBe(1);
+    expect(posts[0].media.length).toBe(2);
+
+    const img = posts[0].media.find(m => m.type === "image");
+    expect(img.url).toBe("http://example.com/photo.jpg");
+    expect(img.width).toBe(800);
+    expect(img.height).toBe(600);
+
+    const vid = posts[0].media.find(m => m.type === "video");
+    expect(vid.url).toBe("http://example.com/clip.mp4");
+  });
+
+  test("circle visibility still respected with mediaOnly", async () => {
+    const { userAId, userBId, sessionB } = await seedTwoUsers();
+    const passwordHash = await hashPassword("password123");
+    const outsiderId = dbUtils.createUser("outsider@test.com", "outsider", "Outsider", passwordHash);
+    const { sessionId: outsiderSession } = dbUtils.createSession(outsiderId);
+
+    const circle = dbUtils.createCircle(userAId, "Private", "blue");
+    dbUtils.addCircleMember(circle.id, userBId);
+
+    const circlePost = dbUtils.createPost(userAId, "Circle media", [
+      { url: "http://example.com/secret.jpg", width: 100, height: 100, type: "image", sortOrder: 1 },
+    ]);
+    dbUtils.setPostCircles(circlePost.id, [circle.id]);
+
+    dbUtils.createPost(userAId, "Public media", [
+      { url: "http://example.com/public.jpg", width: 100, height: 100, type: "image", sortOrder: 1 },
+    ]);
+
+    const memberRes = await jsonReq(`/api/users/${userAId}/posts?mediaOnly=true`, { cookie: sessionB });
+    expect(memberRes.status).toBe(200);
+    const memberPosts = await memberRes.json();
+    expect(memberPosts.length).toBe(2);
+
+    const outsiderRes = await jsonReq(`/api/users/${userAId}/posts?mediaOnly=true`, { cookie: outsiderSession });
+    expect(outsiderRes.status).toBe(200);
+    const outsiderPosts = await outsiderRes.json();
+    expect(outsiderPosts.length).toBe(1);
+    expect(outsiderPosts[0].content).toBe("Public media");
+  });
+});

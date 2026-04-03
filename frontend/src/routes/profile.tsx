@@ -1,3 +1,4 @@
+import { useState } from 'preact/hooks'
 import { useQuery } from '@tanstack/react-query'
 import { useParams, Link } from '@tanstack/react-router'
 import { MapPin, Link as LinkIcon, Settings, Shield } from 'lucide-preact'
@@ -5,8 +6,11 @@ import { users, posts as postsApi } from '../api/endpoints'
 import { useAuth } from '../hooks/useAuth'
 import { PostCard } from '../components/PostCard'
 import { ProfileHeaderSkeleton, PostCardSkeleton } from '../components/Skeleton'
-import { useReaction, useDeletePost, useEditPost } from '../hooks/usePosts'
+import { useReaction, useDeletePost, useEditPost, useUserMedia } from '../hooks/usePosts'
 import { getAvatarUrl } from '../utils/avatar'
+import { MediaGrid } from '../components/MediaGrid'
+import { ProfileTabs } from '../components/ProfileTabs'
+import { MediaGridSkeleton } from '../components/MediaGridSkeleton'
 
 export function ProfileRoute() {
   const params = useParams({ from: '/profile/$id' })
@@ -14,6 +18,8 @@ export function ProfileRoute() {
   const reactionMutation = useReaction()
   const deletePost = useDeletePost()
   const editPost = useEditPost()
+
+  const [activeTab, setActiveTab] = useState<'posts' | 'media'>('posts')
 
   const userId = params.id === 'me' ? currentUser?.id : params.id
   const isOwnProfile = params.id === 'me' || params.id === currentUser?.id
@@ -29,6 +35,9 @@ export function ProfileRoute() {
     queryFn: () => postsApi.userPosts(userId!),
     enabled: !!userId,
   })
+
+  const { data: mediaPosts, isLoading: mediaLoading } = useUserMedia(userId!)
+  const mediaCount = mediaPosts?.reduce((sum, p) => sum + (p.media?.length ?? 0), 0) ?? 0
 
   if (userLoading) {
     return (
@@ -130,34 +139,55 @@ export function ProfileRoute() {
         </div>
       </div>
 
-      <div className="space-y-6">
-        {postsLoading ? (
-          <div className="space-y-6">
-            <PostCardSkeleton />
-            <PostCardSkeleton />
-          </div>
-        ) : posts?.length === 0 ? (
+      <ProfileTabs
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        postCount={posts?.length ?? 0}
+        mediaCount={mediaCount}
+      />
+
+      {activeTab === 'posts' && (
+        <div className="space-y-6">
+          {postsLoading ? (
+            <div className="space-y-6">
+              <PostCardSkeleton />
+              <PostCardSkeleton />
+            </div>
+          ) : posts?.length === 0 ? (
+            <div className="text-center py-10">
+              <p className="text-gray-400">No posts yet</p>
+            </div>
+          ) : (
+            posts?.map((post) => (
+              <PostCard
+                key={post.id}
+                post={post}
+                author={user}
+                currentUserId={currentUser?.id}
+                onReact={(id, type, currentReaction) => reactionMutation.mutate({ id, type, currentReaction })}
+                onDelete={(id) => {
+                  deletePost.mutate(id)
+                }}
+                onEdit={(id, content) => {
+                  editPost.mutate({ id, content })
+                }}
+              />
+            ))
+          )}
+        </div>
+      )}
+
+      {activeTab === 'media' && (
+        mediaLoading ? (
+          <MediaGridSkeleton />
+        ) : mediaCount === 0 ? (
           <div className="text-center py-10">
-            <p className="text-gray-400">No posts yet</p>
+            <p className="text-gray-400">No photos or videos yet</p>
           </div>
         ) : (
-          posts?.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              author={user}
-              currentUserId={currentUser?.id}
-              onReact={(id, type, currentReaction) => reactionMutation.mutate({ id, type, currentReaction })}
-              onDelete={(id) => {
-                deletePost.mutate(id)
-              }}
-              onEdit={(id, content) => {
-                editPost.mutate({ id, content })
-              }}
-            />
-          ))
-        )}
-      </div>
+          <MediaGrid posts={mediaPosts!} />
+        )
+      )}
     </div>
   )
 }

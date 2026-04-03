@@ -33,6 +33,16 @@ export function useUserPosts(userId: string) {
   })
 }
 
+export function useUserMedia(userId: string) {
+  return useQuery({
+    queryKey: ['users', userId, 'media'],
+    queryFn: () => posts.userPosts(userId, true),
+    enabled: !!userId,
+    staleTime: 1000 * 60,
+    gcTime: 1000 * 60 * 5,
+  })
+}
+
 export function useCreatePost() {
   const queryClient = useQueryClient()
 

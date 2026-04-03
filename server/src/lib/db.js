@@ -494,7 +494,9 @@ export const dbUtils = {
     return this.getPost(id);
   },
 
-  getUserPosts(userId, limit = 50, viewerId = null) {
+  getUserPosts(userId, limit = 50, viewerId = null, mediaOnly = false) {
+    const mediaFilter = mediaOnly ? " AND p.id IN (SELECT post_id FROM post_media)" : "";
+
     if (viewerId === userId) {
       const rows = db.prepare(`
         SELECT
@@ -503,7 +505,7 @@ export const dbUtils = {
           (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND deleted_at IS NULL) as comments
         FROM posts p
         JOIN users u ON p.user_id = u.id
-        WHERE p.user_id = ? AND p.deleted_at IS NULL
+        WHERE p.user_id = ? AND p.deleted_at IS NULL${mediaFilter}
         ORDER BY p.created_at DESC
         LIMIT ?
       `).all(userId, limit);
@@ -519,7 +521,7 @@ export const dbUtils = {
       JOIN users u ON p.user_id = u.id
       LEFT JOIN post_circles pc ON p.id = pc.post_id
       LEFT JOIN circle_members cm ON pc.circle_id = cm.circle_id AND cm.user_id = ?
-      WHERE p.user_id = ? AND p.deleted_at IS NULL
+      WHERE p.user_id = ? AND p.deleted_at IS NULL${mediaFilter}
         AND (
           pc.post_id IS NULL
           OR cm.user_id IS NOT NULL

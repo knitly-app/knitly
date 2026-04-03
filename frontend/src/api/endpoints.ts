@@ -225,7 +225,11 @@ export const posts = {
   comments: (id: string) => api.get<Comment[]>(`/posts/${id}/comments`),
   addComment: (id: string, content: string) => api.post<Comment>(`/posts/${id}/comments`, { content }),
   deleteComment: (postId: string, commentId: string) => api.delete(`/posts/${postId}/comments/${commentId}`),
-  userPosts: (userId: string) => api.get<Post[]>(`/users/${userId}/posts`),
+  userPosts: (userId: string, mediaOnly?: boolean) => {
+    const params: Record<string, string> = {}
+    if (mediaOnly) params.mediaOnly = 'true'
+    return api.get<Post[]>(`/users/${userId}/posts`, { params })
+  },
 }
 
 export const notifications = {
