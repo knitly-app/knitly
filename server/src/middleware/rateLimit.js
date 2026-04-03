@@ -24,10 +24,10 @@ export function clearRateLimitStore() {
   rateLimitStore.clear();
 }
 
-function createRateLimiter(maxRequests, windowMs = 60 * 1000) {
+function createRateLimiter(name, maxRequests, windowMs = 60 * 1000) {
   return async (c, next) => {
     const ip = getClientIP(c);
-    const key = `${ip}:${maxRequests}`;
+    const key = `${ip}:${name}`;
     const now = Date.now();
 
     let entry = rateLimitStore.get(key);
@@ -57,7 +57,8 @@ function createRateLimiter(maxRequests, windowMs = 60 * 1000) {
   };
 }
 
-export const authRateLimit = createRateLimiter(5);
-export const searchRateLimit = createRateLimiter(20);
-export const generalRateLimit = createRateLimiter(100);
-export const apiKeyRateLimit = createRateLimiter(30);
+export const authRateLimit = createRateLimiter("auth", 5);
+export const forgotPasswordRateLimit = createRateLimiter("forgot-password", 3, 60 * 60 * 1000);
+export const searchRateLimit = createRateLimiter("search", 20);
+export const generalRateLimit = createRateLimiter("general", 100);
+export const apiKeyRateLimit = createRateLimiter("api-key", 30);

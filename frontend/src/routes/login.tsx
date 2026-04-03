@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks'
-import { useNavigate } from '@tanstack/react-router'
+import { useNavigate, Link } from '@tanstack/react-router'
 import { useAuth } from '../hooks/useAuth'
 import { useAppSettings } from '../hooks/useAppSettings'
 
@@ -64,6 +64,12 @@ export function LoginRoute() {
                 required
               />
             </div>
+          </div>
+
+          <div className="text-right mt-2">
+            <Link to="/forgot-password" className="text-sm text-accent-500 hover:underline">
+              Forgot password?
+            </Link>
           </div>
 
           <button

@@ -1,8 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth, type User } from '../api/endpoints'
+import { useToast } from '../components/Toast'
 
 export function useAuth() {
   const queryClient = useQueryClient()
+  const toast = useToast()
 
   const { data: user, isLoading, error } = useQuery({
     queryKey: ['auth', 'me'],
@@ -13,8 +15,11 @@ export function useAuth() {
 
   const loginMutation = useMutation({
     mutationFn: auth.login,
-    onSuccess: (data) => {
+    onSuccess: (data: User & { restoredFromDeletion?: boolean }) => {
       queryClient.setQueryData(['auth', 'me'], data)
+      if (data.restoredFromDeletion) {
+        toast.success('Your account has been restored.')
+      }
     },
   })
 
@@ -34,7 +39,7 @@ export function useAuth() {
   })
 
   return {
-    user: user as User | null,
+    user: user ?? null,
     isLoading,
     isAuthenticated: !!user,
     error,

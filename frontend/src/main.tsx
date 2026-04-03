@@ -48,6 +48,8 @@ const CirclesRoute = withSuspense(lazy(() => import('./routes/circles').then((m)
 const ChatRoute = withSuspense(lazy(() => import('./routes/chat').then((m) => ({ default: m.ChatRoute }))))
 const SetupRoute = withSuspense(lazy(() => import('./routes/setup').then((m) => ({ default: m.SetupWizard }))))
 const ResetPasswordRoute = withSuspense(lazy(() => import('./routes/reset-password').then((m) => ({ default: m.ResetPasswordRoute }))))
+const ForgotPasswordRoute = withSuspense(lazy(() => import('./routes/forgot-password').then((m) => ({ default: m.ForgotPasswordRoute }))))
+const ConfirmEmailRoute = withSuspense(lazy(() => import('./routes/confirm-email').then((m) => ({ default: m.ConfirmEmailRoute }))))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -285,6 +287,21 @@ const resetPasswordRoute = createRoute({
   }),
 })
 
+const forgotPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/forgot-password',
+  component: ForgotPasswordRoute,
+})
+
+const confirmEmailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/confirm-email',
+  component: ConfirmEmailRoute,
+  validateSearch: (search: Record<string, unknown>) => ({
+    token: search.token as string | undefined,
+  }),
+})
+
 interface CustomRouteDefinition {
   path: string
   component: ComponentType
@@ -321,6 +338,8 @@ const routeTree = rootRoute.addChildren([
   adminRoute,
   setupRoute,
   resetPasswordRoute,
+  forgotPasswordRoute,
+  confirmEmailRoute,
   ...customChildRoutes,
 ])
 

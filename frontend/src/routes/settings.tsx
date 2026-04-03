@@ -3,7 +3,7 @@ import { useNavigate, Link } from '@tanstack/react-router'
 import { ArrowLeft, LogOut, Camera, Users, ChevronRight, ImagePlus } from 'lucide-preact'
 import { useAuth } from '../hooks/useAuth'
 import { useAppSettings } from '../hooks/useAppSettings'
-import { users, media as mediaApi } from '../api/endpoints'
+import { users, media as mediaApi, auth } from '../api/endpoints'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '../components/Toast'
 import { getAvatarUrl } from '../utils/avatar'
@@ -308,6 +308,12 @@ export function SettingsRoute() {
         </Link>
       </div>
 
+      {user && <SecuritySection />}
+
+      <EmailSection currentEmail={user?.email} />
+
+      {user && <DangerZoneSection username={user.username} />}
+
       <div className="mt-8">
         <button
           onClick={handleLogout}
@@ -321,6 +327,272 @@ export function SettingsRoute() {
       <p className="text-center text-xs text-gray-300 mt-8">
         {appName} v1.0.0
       </p>
+    </div>
+  )
+}
+
+function SecuritySection() {
+  const toast = useToast()
+  const navigate = useNavigate()
+  const { logout } = useAuth()
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+
+  const changePasswordMutation = useMutation({
+    mutationFn: () => auth.changePassword({ currentPassword, newPassword }),
+    onSuccess: () => {
+      toast.success('Password changed. Please sign in again.')
+      logout()
+      void navigate({ to: '/login' })
+    },
+    onError: () => {
+      toast.error('Failed to change password')
+    },
+  })
+
+  const passwordTooShort = newPassword.length > 0 && newPassword.length < 8
+  const passwordMismatch = confirmPassword.length > 0 && newPassword !== confirmPassword
+  const canSubmit =
+    currentPassword.length > 0 &&
+    newPassword.length >= 8 &&
+    newPassword === confirmPassword &&
+    !changePasswordMutation.isPending
+
+  return (
+    <div className="bg-white rounded-4xl p-6 shadow-sm border border-gray-50 mb-6">
+      <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">Security</h3>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (canSubmit) changePasswordMutation.mutate()
+        }}
+        className="space-y-4"
+      >
+        {changePasswordMutation.isError && (
+          <div className="p-4 bg-red-50 text-red-600 rounded-2xl text-sm font-medium">
+            Incorrect current password
+          </div>
+        )}
+        <div>
+          <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+            Current Password
+          </label>
+          <input
+            type="password"
+            value={currentPassword}
+            onInput={(e) => setCurrentPassword((e.target as HTMLInputElement).value)}
+            className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-4 focus:ring-accent-50 focus:border-accent-300 transition-all"
+            placeholder="Enter current password"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+            New Password
+          </label>
+          <input
+            type="password"
+            value={newPassword}
+            onInput={(e) => setNewPassword((e.target as HTMLInputElement).value)}
+            className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-4 focus:ring-accent-50 focus:border-accent-300 transition-all"
+            placeholder="At least 8 characters"
+            minLength={8}
+          />
+          {passwordTooShort && (
+            <p className="mt-2 text-sm text-red-500">Password must be at least 8 characters</p>
+          )}
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+            Confirm New Password
+          </label>
+          <input
+            type="password"
+            value={confirmPassword}
+            onInput={(e) => setConfirmPassword((e.target as HTMLInputElement).value)}
+            className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-4 focus:ring-accent-50 focus:border-accent-300 transition-all"
+            placeholder="Re-enter new password"
+          />
+          {passwordMismatch && (
+            <p className="mt-2 text-sm text-red-500">Passwords do not match</p>
+          )}
+        </div>
+        <button
+          type="submit"
+          disabled={!canSubmit}
+          className="w-full py-3 bg-accent-500 text-white rounded-2xl font-bold shadow-lg shadow-accent-200 hover:bg-accent-600 transition-all disabled:opacity-50"
+        >
+          {changePasswordMutation.isPending ? 'Changing...' : 'Change Password'}
+        </button>
+      </form>
+    </div>
+  )
+}
+
+function EmailSection({ currentEmail }: { currentEmail?: string }) {
+  const toast = useToast()
+  const [newEmail, setNewEmail] = useState('')
+
+  const changeEmailMutation = useMutation({
+    mutationFn: () => auth.changeEmail(newEmail),
+    onSuccess: () => {
+      toast.success('Check your new email for a confirmation link')
+      setNewEmail('')
+    },
+    onError: () => {
+      toast.error('Failed to change email')
+    },
+  })
+
+  const canSubmit = newEmail.length > 0 && !changeEmailMutation.isPending
+
+  return (
+    <div className="bg-white rounded-4xl p-6 shadow-sm border border-gray-50 mb-6">
+      <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">Email</h3>
+      <div className="space-y-4">
+        {currentEmail && (
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+              Current Email
+            </label>
+            <p className="px-4 py-3 text-gray-600 bg-gray-50 rounded-2xl">{currentEmail}</p>
+          </div>
+        )}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (canSubmit) changeEmailMutation.mutate()
+          }}
+          className="space-y-4"
+        >
+          {changeEmailMutation.isError && (
+            <div className="p-4 bg-red-50 text-red-600 rounded-2xl text-sm font-medium">
+              Failed to update email
+            </div>
+          )}
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+              New Email
+            </label>
+            <input
+              type="email"
+              value={newEmail}
+              onInput={(e) => setNewEmail((e.target as HTMLInputElement).value)}
+              className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-4 focus:ring-accent-50 focus:border-accent-300 transition-all"
+              placeholder="new@example.com"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className="w-full py-3 bg-accent-500 text-white rounded-2xl font-bold shadow-lg shadow-accent-200 hover:bg-accent-600 transition-all disabled:opacity-50"
+          >
+            {changeEmailMutation.isPending ? 'Sending...' : 'Change Email'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function DangerZoneSection({ username }: { username: string }) {
+  const toast = useToast()
+  const navigate = useNavigate()
+  const { logout } = useAuth()
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [deletePassword, setDeletePassword] = useState('')
+  const [confirmUsername, setConfirmUsername] = useState('')
+
+  const deleteMutation = useMutation({
+    mutationFn: () => auth.deleteAccount(deletePassword),
+    onSuccess: () => {
+      toast.success('Account scheduled for deletion')
+      logout()
+      void navigate({ to: '/login' })
+    },
+    onError: () => {
+      toast.error('Failed to delete account. Check your password.')
+    },
+  })
+
+  const canDelete =
+    deletePassword.length > 0 &&
+    confirmUsername === username &&
+    !deleteMutation.isPending
+
+  return (
+    <div className="bg-red-50 rounded-4xl p-6 shadow-sm border border-red-200 mb-6">
+      <h3 className="text-sm font-bold text-red-600 uppercase tracking-widest mb-4">Danger Zone</h3>
+      {!showConfirm ? (
+        <button
+          onClick={() => setShowConfirm(true)}
+          className="w-full py-3 bg-red-500 text-white rounded-2xl font-bold shadow-lg shadow-red-200 hover:bg-red-600 transition-all"
+        >
+          Delete Account
+        </button>
+      ) : (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (canDelete) deleteMutation.mutate()
+          }}
+          className="space-y-4"
+        >
+          <p className="text-sm text-red-700">
+            Your account will be scheduled for permanent deletion after a 30-day grace period.
+            During this time, you can sign in to cancel the deletion.
+          </p>
+          {deleteMutation.isError && (
+            <div className="p-4 bg-red-100 text-red-700 rounded-2xl text-sm font-medium">
+              Incorrect password
+            </div>
+          )}
+          <div>
+            <label className="block text-xs font-bold text-red-600 uppercase tracking-widest mb-2">
+              Password
+            </label>
+            <input
+              type="password"
+              value={deletePassword}
+              onInput={(e) => setDeletePassword((e.target as HTMLInputElement).value)}
+              className="w-full px-4 py-3 rounded-2xl border border-red-200 focus:outline-none focus:ring-4 focus:ring-red-50 focus:border-red-300 transition-all"
+              placeholder="Enter your password"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-red-600 uppercase tracking-widest mb-2">
+              Type your username to confirm
+            </label>
+            <input
+              type="text"
+              value={confirmUsername}
+              onInput={(e) => setConfirmUsername((e.target as HTMLInputElement).value)}
+              className="w-full px-4 py-3 rounded-2xl border border-red-200 focus:outline-none focus:ring-4 focus:ring-red-50 focus:border-red-300 transition-all"
+              placeholder={username}
+            />
+          </div>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setShowConfirm(false)
+                setDeletePassword('')
+                setConfirmUsername('')
+              }}
+              className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-2xl font-bold hover:bg-gray-300 transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!canDelete}
+              className="flex-1 py-3 bg-red-500 text-white rounded-2xl font-bold shadow-lg shadow-red-200 hover:bg-red-600 transition-all disabled:opacity-50"
+            >
+              {deleteMutation.isPending ? 'Deleting...' : 'Permanently Delete'}
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   )
 }

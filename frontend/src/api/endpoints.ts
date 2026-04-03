@@ -4,6 +4,7 @@ export interface User {
   id: string
   username: string
   displayName: string
+  email?: string
   avatar?: string
   header?: string
   bio?: string
@@ -174,6 +175,14 @@ export const auth = {
     api.get<{ valid: boolean; reason?: string; username?: string; displayName?: string }>(`/auth/reset-password/${token}`),
   resetPassword: (data: { token: string; password: string }) =>
     api.post<{ success: boolean }>('/auth/reset-password', data),
+  forgotPassword: (email: string) => api.post<{ success: boolean }>('/auth/forgot-password', { email }),
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    api.post<{ success: boolean }>('/auth/change-password', data),
+  changeEmail: (newEmail: string) => api.post<{ success: boolean }>('/auth/change-email', { newEmail }),
+  confirmEmail: (token: string) => api.get<{ success: boolean }>(`/auth/confirm-email/${token}`),
+  deleteAccount: (password: string) =>
+    api.post<{ success: boolean; deletionDate: string }>('/auth/delete-account', { password }),
+  cancelDeletion: () => api.post<{ success: boolean }>('/auth/cancel-deletion'),
 }
 
 export const users = {
