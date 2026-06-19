@@ -9,6 +9,7 @@ import { logError } from "../lib/logging.js";
 import { authRateLimit, forgotPasswordRateLimit } from "../middleware/rateLimit.js";
 import { sendPasswordResetEmail, sendEmailChangeConfirmation, sendAccountDeletionEmail } from "../lib/email.js";
 import { ensureSession } from "../middleware/auth.js";
+import { formatUser } from "../lib/formatters.js";
 
 const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
 
@@ -41,19 +42,6 @@ const LoginSchema = z.object({
   password: z.string().min(1),
 });
 
-function formatUser(user, includeEmail = false) {
-  const result = {
-    id: String(user.id || user.user_id),
-    username: user.username,
-    displayName: user.display_name,
-    avatar: user.avatar || undefined,
-    bio: user.bio || undefined,
-    role: user.role,
-    createdAt: user.created_at,
-  };
-  if (includeEmail && user.email) result.email = user.email;
-  return result;
-}
 
 const DELETION_GRACE_DAYS = 30;
 
@@ -107,7 +95,7 @@ authRouter.post("/signup", async (c) => {
     setCookie(c, COOKIE_NAME, sessionId, COOKIE_OPTIONS);
 
     const user = dbUtils.getUserById(userId);
-    return c.json(formatUser(user, true), 201);
+    return c.json(formatUser(user, { includeEmail: true }), 201);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return c.json({ error: "Invalid input", details: error.errors }, 400);
@@ -140,13 +128,13 @@ authRouter.post("/login", async (c) => {
       dbUtils.createAuditEntry(user.id, "ACCOUNT_DELETION_CANCELLED", "user", user.id, { reason: "login_during_grace_period" });
       const { sessionId } = dbUtils.createSession(user.id);
       setCookie(c, COOKIE_NAME, sessionId, COOKIE_OPTIONS);
-      return c.json({ ...formatUser(user, true), restoredFromDeletion: true });
+      return c.json({ ...formatUser(user, { includeEmail: true }), restoredFromDeletion: true });
     }
 
     const { sessionId } = dbUtils.createSession(user.id);
     setCookie(c, COOKIE_NAME, sessionId, COOKIE_OPTIONS);
 
-    return c.json(formatUser(user, true));
+    return c.json(formatUser(user, { includeEmail: true }));
   } catch (error) {
     if (error instanceof z.ZodError) {
       return c.json({ error: "Invalid input", details: error.errors }, 400);
@@ -181,7 +169,7 @@ authRouter.get("/me", async (c) => {
     return c.json({ error: "Account disabled" }, 403);
   }
 
-  return c.json(formatUser(session, true));
+  return c.json(formatUser(session, { includeEmail: true }));
 });
 
 const ResetPasswordSchema = z.object({

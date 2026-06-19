@@ -4,6 +4,7 @@ import { z } from "zod";
 import { dbUtils } from "../lib/db.js";
 import { hashPassword } from "../lib/security.js";
 import { COOKIE_NAME, COOKIE_OPTIONS } from "../lib/constants.js";
+import { formatUser } from "../lib/formatters.js";
 
 const LOGO_ICON_NAMES = [
   "Zap", "Rocket", "Sparkles", "Bot", "Cpu", "Terminal", "Code", "Braces",
@@ -23,18 +24,6 @@ const SetupSchema = z.object({
   appName: z.string().max(50).optional(),
   logoIcon: z.string().refine((v) => !v || LOGO_ICON_NAMES.includes(v)).optional(),
 });
-
-function formatUser(user) {
-  return {
-    id: String(user.id),
-    username: user.username,
-    displayName: user.display_name,
-    avatar: user.avatar || undefined,
-    bio: user.bio || undefined,
-    role: user.role,
-    createdAt: user.created_at,
-  };
-}
 
 export const setupRouter = new Hono();
 
