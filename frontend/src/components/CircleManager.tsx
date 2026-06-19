@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useConfirm } from './ConfirmModal'
 import { Spinner } from './Spinner'
 import { getAvatarUrl } from '../utils/avatar'
+import { queryKeys } from '../api/queryKeys'
 
 const COLORS = [
   { name: 'blue', class: 'bg-blue-500' },
@@ -220,7 +221,7 @@ function CircleItem({ circle, isExpanded, onToggle, onDelete }: {
 
 function CircleDetails({ circleId, onDelete }: { circleId: string; onDelete: () => void }) {
   const { data: circle, isLoading } = useCircle(circleId)
-  const { data: allUsers } = useQuery({ queryKey: ['users'], queryFn: usersApi.list })
+  const { data: allUsers } = useQuery({ queryKey: queryKeys.users.all(), queryFn: usersApi.list })
   const addMember = useAddCircleMember()
   const removeMember = useRemoveCircleMember()
   const [searchQuery, setSearchQuery] = useState('')

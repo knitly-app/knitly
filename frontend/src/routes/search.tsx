@@ -8,6 +8,7 @@ import { PostCard } from '../components/PostCard'
 import { ProfileCardSkeleton, PostCardSkeleton } from '../components/Skeleton'
 import { useReaction } from '../hooks/usePosts'
 import { useUIStore } from '../stores/ui'
+import { queryKeys } from '../api/queryKeys'
 
 export function SearchRoute() {
   const [query, setQuery] = useState('')
@@ -17,14 +18,14 @@ export function SearchRoute() {
   const reactionMutation = useReaction()
 
   const { data: users, isLoading } = useQuery({
-    queryKey: ['search', 'users', normalizedQuery],
+    queryKey: queryKeys.search.users(normalizedQuery),
     queryFn: () => searchApi.users(normalizedQuery),
     enabled: normalizedQuery.length >= 2 && mode === 'people',
     staleTime: 1000 * 30,
   })
 
   const { data: posts, isLoading: postsLoading } = useQuery({
-    queryKey: ['search', 'posts', normalizedQuery],
+    queryKey: queryKeys.search.posts(normalizedQuery),
     queryFn: () => searchApi.posts(normalizedQuery),
     enabled: normalizedQuery.length >= 2 && mode === 'posts',
     staleTime: 1000 * 30,

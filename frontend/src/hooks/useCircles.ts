@@ -1,12 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { circles } from '../api/endpoints'
 import { useToast } from '../components/Toast'
+import { queryKeys } from '../api/queryKeys'
 
 export const MAX_CIRCLES = 4
 
 export function useCircles() {
   const query = useQuery({
-    queryKey: ['circles'],
+    queryKey: queryKeys.circles.all(),
     queryFn: circles.list,
   })
 
@@ -20,7 +21,7 @@ export function useCircles() {
 
 export function useCircle(id: string) {
   return useQuery({
-    queryKey: ['circles', id],
+    queryKey: queryKeys.circles.detail(id),
     queryFn: () => circles.get(id),
     enabled: !!id,
   })
@@ -32,14 +33,14 @@ export function useCreateCircle() {
 
   return useMutation({
     mutationFn: async (data: Parameters<typeof circles.create>[0]) => {
-      const currentCircles = queryClient.getQueryData<unknown[]>(['circles']) ?? []
+      const currentCircles = queryClient.getQueryData<unknown[]>(queryKeys.circles.all()) ?? []
       if (currentCircles.length >= MAX_CIRCLES) {
         throw new Error(`Maximum of ${MAX_CIRCLES} circles allowed`)
       }
       return circles.create(data)
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['circles'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.circles.all() })
       toast.success('Circle created')
     },
     onError: (error: Error) => {
@@ -56,8 +57,8 @@ export function useUpdateCircle() {
     mutationFn: ({ id, ...data }: { id: string; name?: string; color?: string }) =>
       circles.update(id, data),
     onSuccess: (_, { id }) => {
-      void queryClient.invalidateQueries({ queryKey: ['circles'] })
-      void queryClient.invalidateQueries({ queryKey: ['circles', id] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.circles.all() })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.circles.detail(id) })
       toast.success('Circle updated')
     },
     onError: () => {
@@ -73,7 +74,7 @@ export function useDeleteCircle() {
   return useMutation({
     mutationFn: circles.delete,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['circles'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.circles.all() })
       toast.success('Circle deleted')
     },
     onError: () => {
@@ -89,8 +90,8 @@ export function useAddCircleMember() {
     mutationFn: ({ circleId, userIds }: { circleId: string; userIds: number[] }) =>
       circles.addMembers(circleId, userIds),
     onSuccess: (_, { circleId }) => {
-      void queryClient.invalidateQueries({ queryKey: ['circles', circleId] })
-      void queryClient.invalidateQueries({ queryKey: ['circles'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.circles.detail(circleId) })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.circles.all() })
     },
   })
 }
@@ -102,8 +103,8 @@ export function useRemoveCircleMember() {
     mutationFn: ({ circleId, userId }: { circleId: string; userId: string }) =>
       circles.removeMember(circleId, userId),
     onSuccess: (_, { circleId }) => {
-      void queryClient.invalidateQueries({ queryKey: ['circles', circleId] })
-      void queryClient.invalidateQueries({ queryKey: ['circles'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.circles.detail(circleId) })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.circles.all() })
     },
   })
 }

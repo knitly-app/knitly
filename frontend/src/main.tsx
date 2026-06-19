@@ -18,6 +18,7 @@ import { ConfirmProvider } from './components/ConfirmModal'
 import { Lightbox } from './components/Lightbox'
 import { auth, posts, users, setup, type User } from './api/endpoints'
 import { PUBLIC_ROUTES } from './routes/constants'
+import { queryKeys } from './api/queryKeys'
 
 function RouteLoader() {
   return <div className="flex-1 flex items-center justify-center py-12" />
@@ -66,7 +67,7 @@ type RouterContext = {
 }
 
 const authQueryOptions = {
-  queryKey: ['auth', 'me'],
+  queryKey: queryKeys.auth.me(),
   queryFn: auth.me,
   retry: false,
   staleTime: 1000 * 60 * 5,
@@ -178,11 +179,11 @@ const profileRoute = createRoute({
 
     await Promise.all([
       context.queryClient.ensureQueryData({
-        queryKey: ['users', userId],
+        queryKey: queryKeys.users.detail(userId),
         queryFn: () => users.get(userId),
       }),
       context.queryClient.ensureQueryData({
-        queryKey: ['users', userId, 'posts'],
+        queryKey: queryKeys.users.posts(userId),
         queryFn: () => posts.userPosts(userId),
       }),
     ])
@@ -192,11 +193,11 @@ const profileRoute = createRoute({
 const loadPost = async (context: RouterContext, postId: string) => {
   await Promise.all([
     context.queryClient.ensureQueryData({
-      queryKey: ['posts', postId],
+      queryKey: queryKeys.posts.detail(postId),
       queryFn: () => posts.get(postId),
     }),
     context.queryClient.prefetchQuery({
-      queryKey: ['posts', postId, 'comments'],
+      queryKey: queryKeys.posts.comments(postId),
       queryFn: () => posts.comments(postId),
     }),
   ])

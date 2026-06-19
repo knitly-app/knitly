@@ -12,6 +12,7 @@ import { useAuth } from '../hooks/useAuth'
 import { formatTimeAgo } from '../utils/time'
 import { getInviteStatus } from '../utils/invites'
 import { CustomizeTab } from '../components/CustomizeTab'
+import { queryKeys } from '../api/queryKeys'
 
 export function AdminRoute() {
   const queryClient = useQueryClient()
@@ -59,19 +60,19 @@ export function AdminRoute() {
   const [showApiKey, setShowApiKey] = useState(false)
 
   const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['admin', 'stats'],
+    queryKey: queryKeys.admin.stats(),
     queryFn: admin.stats,
     enabled: isAdmin && currentTab === 'overview',
   })
 
   const { data: users, isLoading: usersLoading } = useQuery({
-    queryKey: ['admin', 'users'],
+    queryKey: queryKeys.admin.users(),
     queryFn: admin.users,
     enabled: isAdmin && currentTab === 'overview',
   })
 
   const { data: invites, isLoading: invitesLoading } = useQuery({
-    queryKey: ['admin', 'invites'],
+    queryKey: queryKeys.admin.invites(),
     queryFn: invitesApi.list,
     enabled: isAdmin && currentTab === 'overview',
   })
@@ -86,7 +87,7 @@ export function AdminRoute() {
     fetchNextPage: fetchMoreModeration,
     isFetchingNextPage: isFetchingMoreModeration,
   } = useInfiniteQuery({
-    queryKey: ['admin', 'content', normalizedModerationQuery],
+    queryKey: queryKeys.admin.content(normalizedModerationQuery),
     queryFn: ({ pageParam }) => admin.content({ cursor: pageParam, q: normalizedModerationQuery }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
@@ -100,7 +101,7 @@ export function AdminRoute() {
     fetchNextPage: fetchMoreAudit,
     isFetchingNextPage: isFetchingMoreAudit,
   } = useInfiniteQuery({
-    queryKey: ['admin', 'audit'],
+    queryKey: queryKeys.admin.audit(),
     queryFn: ({ pageParam }) => admin.auditLog({ cursor: pageParam }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
@@ -108,7 +109,7 @@ export function AdminRoute() {
   })
 
   const { data: bots, isLoading: botsLoading } = useQuery({
-    queryKey: ['admin', 'bots'],
+    queryKey: queryKeys.admin.bots(),
     queryFn: admin.bots,
     enabled: isAdmin && currentTab === 'bots',
   })
@@ -116,7 +117,7 @@ export function AdminRoute() {
   const createBot = useMutation({
     mutationFn: admin.createBot,
     onSuccess: (data) => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'bots'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.bots() })
       setCreatedApiKey(data.apiKey)
       setShowApiKey(true)
       setNewBotUsername('')
@@ -134,7 +135,7 @@ export function AdminRoute() {
   const regenerateBotKey = useMutation({
     mutationFn: admin.regenerateBotKey,
     onSuccess: (data) => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'bots'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.bots() })
       setCreatedApiKey(data.apiKey)
       setShowApiKey(true)
       toast.success('Key regenerated')
@@ -145,7 +146,7 @@ export function AdminRoute() {
   const revokeBotKey = useMutation({
     mutationFn: admin.revokeBotKey,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'bots'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.bots() })
       toast.success('Key revoked')
     },
     onError: () => toast.error('Failed to revoke key'),
@@ -154,7 +155,7 @@ export function AdminRoute() {
   const deleteBot = useMutation({
     mutationFn: admin.deleteBot,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'bots'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.bots() })
       toast.success('Bot deleted')
     },
     onError: () => toast.error('Failed to delete bot'),
@@ -163,8 +164,8 @@ export function AdminRoute() {
   const createInvite = useMutation({
     mutationFn: invitesApi.create,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'invites'] })
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.invites() })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.stats() })
       toast.success('Invite created')
     },
     onError: () => {
@@ -175,8 +176,8 @@ export function AdminRoute() {
   const revokeInvite = useMutation({
     mutationFn: (token: string) => invitesApi.revoke(token),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'invites'] })
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.invites() })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.stats() })
       toast.success('Invite revoked')
     },
     onError: () => {
@@ -187,7 +188,7 @@ export function AdminRoute() {
   const disableUser = useMutation({
     mutationFn: admin.disableUser,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() })
       toast.success('User disabled')
     },
     onError: () => {
@@ -198,7 +199,7 @@ export function AdminRoute() {
   const enableUser = useMutation({
     mutationFn: admin.enableUser,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() })
       toast.success('User enabled')
     },
     onError: () => {
@@ -209,7 +210,7 @@ export function AdminRoute() {
   const promoteUser = useMutation({
     mutationFn: admin.promoteUser,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() })
       toast.success('Promoted to moderator')
     },
     onError: () => {
@@ -220,7 +221,7 @@ export function AdminRoute() {
   const demoteUser = useMutation({
     mutationFn: admin.demoteUser,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() })
       toast.success('Demoted to member')
     },
     onError: () => {
@@ -231,7 +232,7 @@ export function AdminRoute() {
   const removeUser = useMutation({
     mutationFn: admin.removeUser,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() })
       toast.success('User removed')
     },
     onError: () => {
@@ -243,11 +244,11 @@ export function AdminRoute() {
     mutationFn: ({ id, type }: { id: string; type: 'post' | 'comment' }) =>
       admin.deleteContent(id, type),
     onSuccess: (data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'content'] })
-      void queryClient.invalidateQueries({ queryKey: ['feed'] })
-      void queryClient.invalidateQueries({ queryKey: ['posts'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.content() })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.feed.all() })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.posts.all() })
       if (variables.type === 'comment' && data.postId) {
-        void queryClient.invalidateQueries({ queryKey: ['posts', data.postId, 'comments'] })
+        void queryClient.invalidateQueries({ queryKey: queryKeys.posts.comments(data.postId) })
       }
       toast.success('Content removed')
     },
@@ -259,8 +260,8 @@ export function AdminRoute() {
   const transferOwnership = useMutation({
     mutationFn: admin.transferOwnership,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
-      void queryClient.invalidateQueries({ queryKey: ['auth', 'me'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.me() })
       toast.success('Ownership transferred')
     },
     onError: () => {
@@ -271,7 +272,7 @@ export function AdminRoute() {
   const revokeUserSessions = useMutation({
     mutationFn: admin.revokeUserSessions,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'audit'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.audit() })
       toast.success('Sessions revoked')
     },
     onError: () => {
@@ -289,7 +290,7 @@ export function AdminRoute() {
       } catch {
         toast.error('Failed to copy reset link')
       }
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'audit'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.audit() })
     },
     onError: () => toast.error('Failed to generate reset link'),
   })

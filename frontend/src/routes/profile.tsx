@@ -11,6 +11,7 @@ import { getAvatarUrl } from '../utils/avatar'
 import { MediaGrid } from '../components/MediaGrid'
 import { ProfileTabs } from '../components/ProfileTabs'
 import { MediaGridSkeleton } from '../components/MediaGridSkeleton'
+import { queryKeys } from '../api/queryKeys'
 
 export function ProfileRoute() {
   const params = useParams({ from: '/profile/$id' })
@@ -25,13 +26,13 @@ export function ProfileRoute() {
   const isOwnProfile = params.id === 'me' || params.id === currentUser?.id
 
   const { data: user, isLoading: userLoading } = useQuery({
-    queryKey: ['users', userId],
+    queryKey: queryKeys.users.detail(userId!),
     queryFn: () => users.get(userId!),
     enabled: !!userId,
   })
 
   const { data: posts, isLoading: postsLoading } = useQuery({
-    queryKey: ['users', userId, 'posts'],
+    queryKey: queryKeys.users.posts(userId!),
     queryFn: () => postsApi.userPosts(userId!),
     enabled: !!userId,
   })

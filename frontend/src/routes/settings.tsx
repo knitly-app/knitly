@@ -8,6 +8,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '../components/Toast'
 import { getAvatarUrl } from '../utils/avatar'
 import { useCircles } from '../hooks/useCircles'
+import { queryKeys } from '../api/queryKeys'
 
 export function SettingsRoute() {
   const { logout, user } = useAuth()
@@ -42,10 +43,10 @@ export function SettingsRoute() {
   const updateProfile = useMutation({
     mutationFn: (payload: typeof formValues) => users.update('me', payload),
     onSuccess: (updated) => {
-      queryClient.setQueryData(['auth', 'me'], updated)
-      void queryClient.invalidateQueries({ queryKey: ['users'] })
-      void queryClient.invalidateQueries({ queryKey: ['feed'] })
-      void queryClient.invalidateQueries({ queryKey: ['posts'] })
+      queryClient.setQueryData(queryKeys.auth.me(), updated)
+      void queryClient.invalidateQueries({ queryKey: queryKeys.users.all() })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.feed.all() })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.posts.all() })
       setDraft({})
       toast.success('Profile saved')
     },

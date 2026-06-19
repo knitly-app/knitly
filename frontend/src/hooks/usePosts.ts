@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import { posts, type Post, type Comment, type User, type ReactionType, type CreatePostData } from '../api/endpoints'
 import { useToast } from '../components/Toast'
+import { queryKeys } from '../api/queryKeys'
 
 export function useFeed(circleId?: string) {
   return useInfiniteQuery({
-    queryKey: circleId ? ['feed', circleId] : ['feed'],
+    queryKey: queryKeys.feed.byCircle(circleId),
     queryFn: ({ pageParam }) => posts.feed(pageParam, circleId),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
@@ -15,7 +16,7 @@ export function useFeed(circleId?: string) {
 
 export function usePost(id: string) {
   return useQuery({
-    queryKey: ['posts', id],
+    queryKey: queryKeys.posts.detail(id),
     queryFn: () => posts.get(id),
     enabled: !!id,
     staleTime: 1000 * 60,
@@ -25,7 +26,7 @@ export function usePost(id: string) {
 
 export function useUserPosts(userId: string) {
   return useQuery({
-    queryKey: ['users', userId, 'posts'],
+    queryKey: queryKeys.users.posts(userId),
     queryFn: () => posts.userPosts(userId),
     enabled: !!userId,
     staleTime: 1000 * 60,
@@ -35,7 +36,7 @@ export function useUserPosts(userId: string) {
 
 export function useUserMedia(userId: string) {
   return useQuery({
-    queryKey: ['users', userId, 'media'],
+    queryKey: queryKeys.users.media(userId),
     queryFn: () => posts.userPosts(userId, true),
     enabled: !!userId,
     staleTime: 1000 * 60,
@@ -49,7 +50,7 @@ export function useCreatePost() {
   return useMutation({
     mutationFn: (data: CreatePostData) => posts.create(data),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['feed'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.feed.all() })
     },
   })
 }
@@ -61,8 +62,8 @@ export function useReaction() {
     mutationFn: ({ id, type, currentReaction }: { id: string; type: ReactionType; currentReaction: ReactionType | null }) =>
       currentReaction === type ? posts.unreact(id) : posts.react(id, type),
     onMutate: async ({ id, type, currentReaction }) => {
-      await queryClient.cancelQueries({ queryKey: ['posts', id] })
-      const previous = queryClient.getQueryData<Post>(['posts', id])
+      await queryClient.cancelQueries({ queryKey: queryKeys.posts.detail(id) })
+      const previous = queryClient.getQueryData<Post>(queryKeys.posts.detail(id))
       if (previous) {
         const newReactions = { ...previous.reactions }
         // Remove old reaction count
@@ -75,7 +76,7 @@ export function useReaction() {
         if (!isToggleOff) {
           newReactions[type] = (newReactions[type] || 0) + 1
         }
-        queryClient.setQueryData<Post>(['posts', id], {
+        queryClient.setQueryData<Post>(queryKeys.posts.detail(id), {
           ...previous,
           reactions: newReactions,
           userReaction: isToggleOff ? null : type,
@@ -85,19 +86,19 @@ export function useReaction() {
     },
     onError: (_err, { id }, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(['posts', id], context.previous)
+        queryClient.setQueryData(queryKeys.posts.detail(id), context.previous)
       }
     },
     onSettled: (_data, _err, { id }) => {
-      void queryClient.invalidateQueries({ queryKey: ['posts', id] })
-      void queryClient.invalidateQueries({ queryKey: ['feed'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.posts.detail(id) })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.feed.all() })
     },
   })
 }
 
 export function usePostComments(postId: string) {
   return useQuery({
-    queryKey: ['posts', postId, 'comments'],
+    queryKey: queryKeys.posts.comments(postId),
     queryFn: () => posts.comments(postId),
     enabled: !!postId,
     staleTime: 1000 * 30,
@@ -112,12 +113,12 @@ export function useAddComment() {
     mutationFn: ({ postId, content }: { postId: string; content: string }) =>
       posts.addComment(postId, content),
     onMutate: async ({ postId, content }) => {
-      await queryClient.cancelQueries({ queryKey: ['posts', postId, 'comments'] })
-      await queryClient.cancelQueries({ queryKey: ['posts', postId] })
+      await queryClient.cancelQueries({ queryKey: queryKeys.posts.comments(postId) })
+      await queryClient.cancelQueries({ queryKey: queryKeys.posts.detail(postId) })
 
-      const previousComments = queryClient.getQueryData<Comment[]>(['posts', postId, 'comments'])
-      const previousPost = queryClient.getQueryData<Post>(['posts', postId])
-      const user = queryClient.getQueryData<User>(['auth', 'me'])
+      const previousComments = queryClient.getQueryData<Comment[]>(queryKeys.posts.comments(postId))
+      const previousPost = queryClient.getQueryData<Post>(queryKeys.posts.detail(postId))
+      const user = queryClient.getQueryData<User>(queryKeys.auth.me())
 
       if (user) {
         const optimisticComment: Comment = {
@@ -130,13 +131,13 @@ export function useAddComment() {
           content,
           createdAt: new Date().toISOString(),
         }
-        queryClient.setQueryData<Comment[]>(['posts', postId, 'comments'], (old) =>
+        queryClient.setQueryData<Comment[]>(queryKeys.posts.comments(postId), (old) =>
           old ? [...old, optimisticComment] : [optimisticComment]
         )
       }
 
       if (previousPost) {
-        queryClient.setQueryData<Post>(['posts', postId], {
+        queryClient.setQueryData<Post>(queryKeys.posts.detail(postId), {
           ...previousPost,
           comments: previousPost.comments + 1,
         })
@@ -146,15 +147,15 @@ export function useAddComment() {
     },
     onError: (_err, { postId }, context) => {
       if (context?.previousComments) {
-        queryClient.setQueryData(['posts', postId, 'comments'], context.previousComments)
+        queryClient.setQueryData(queryKeys.posts.comments(postId), context.previousComments)
       }
       if (context?.previousPost) {
-        queryClient.setQueryData(['posts', postId], context.previousPost)
+        queryClient.setQueryData(queryKeys.posts.detail(postId), context.previousPost)
       }
     },
     onSettled: (_data, _err, { postId }) => {
-      void queryClient.invalidateQueries({ queryKey: ['posts', postId, 'comments'] })
-      void queryClient.invalidateQueries({ queryKey: ['posts', postId] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.posts.comments(postId) })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.posts.detail(postId) })
     },
   })
 }
@@ -166,10 +167,10 @@ export function useDeletePost(options?: { onSuccess?: (postId: string) => void }
   return useMutation({
     mutationFn: (postId: string) => posts.delete(postId),
     onSuccess: (_data, postId) => {
-      void queryClient.invalidateQueries({ queryKey: ['feed'] })
-      void queryClient.invalidateQueries({ queryKey: ['users'] })
-      void queryClient.invalidateQueries({ queryKey: ['posts'] })
-      queryClient.removeQueries({ queryKey: ['posts', postId] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.feed.all() })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.users.all() })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.posts.all() })
+      queryClient.removeQueries({ queryKey: queryKeys.posts.detail(postId) })
       toast.success('Post deleted')
       options?.onSuccess?.(postId)
     },
@@ -186,9 +187,9 @@ export function useEditPost() {
   return useMutation({
     mutationFn: ({ id, content }: { id: string; content: string }) => posts.update(id, content),
     onSuccess: (updated) => {
-      queryClient.setQueryData(['posts', updated.id], updated)
-      void queryClient.invalidateQueries({ queryKey: ['feed'] })
-      void queryClient.invalidateQueries({ queryKey: ['users'] })
+      queryClient.setQueryData(queryKeys.posts.detail(updated.id), updated)
+      void queryClient.invalidateQueries({ queryKey: queryKeys.feed.all() })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.users.all() })
       toast.success('Post updated')
     },
     onError: () => {
@@ -204,8 +205,8 @@ export function useDeleteComment() {
     mutationFn: ({ postId, commentId }: { postId: string; commentId: string }) =>
       posts.deleteComment(postId, commentId),
     onSuccess: (_data, { postId }) => {
-      void queryClient.invalidateQueries({ queryKey: ['posts', postId, 'comments'] })
-      void queryClient.invalidateQueries({ queryKey: ['posts', postId] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.posts.comments(postId) })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.posts.detail(postId) })
     },
   })
 }
@@ -217,10 +218,10 @@ export function useVotePoll() {
     mutationFn: ({ postId, optionId }: { postId: string; optionId: string }) =>
       posts.vote(postId, optionId),
     onSuccess: (data, { postId }) => {
-      queryClient.setQueryData<Post>(['posts', postId], (old) =>
+      queryClient.setQueryData<Post>(queryKeys.posts.detail(postId), (old) =>
         old ? { ...old, poll: data.poll } : old
       )
-      void queryClient.invalidateQueries({ queryKey: ['feed'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.feed.all() })
     },
   })
 }
