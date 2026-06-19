@@ -38,8 +38,7 @@ describe("formatUser", () => {
   });
 
   it("falls back to user_id (session join shape)", () => {
-    const { id, ...rest } = baseUserRow;
-    expect(formatUser({ ...rest, user_id: 7 }).id).toBe("7");
+    expect(formatUser({ ...baseUserRow, id: undefined, user_id: 7 }).id).toBe("7");
   });
 
   it("excludes email unless requested", () => {
