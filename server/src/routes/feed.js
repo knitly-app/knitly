@@ -18,10 +18,12 @@ feedRouter.get("/", ensureSession, async (c) => {
 
   const postIds = results.map(p => p.id);
   const userReactions = dbUtils.getUserReactionsMap(currentUser.id, postIds);
+  const polls = dbUtils.getPollsMap(postIds);
+  const pollVotes = dbUtils.getUserPollVotesMap(currentUser.id, [...polls.values()].map(p => p.id));
 
   const formatted = results.map(p => {
-    const poll = dbUtils.getPoll(p.id);
-    const userVote = poll ? dbUtils.getUserPollVote(currentUser.id, poll.id) : null;
+    const poll = polls.get(p.id) || null;
+    const userVote = poll ? pollVotes.get(poll.id) ?? null : null;
     return formatPost(p, { userReaction: userReactions.get(p.id) || null, poll, userVote });
   });
 

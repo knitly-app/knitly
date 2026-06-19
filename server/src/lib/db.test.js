@@ -29,7 +29,8 @@ const EXPECTED_METHODS = [
   "canUserViewPost", "getSetting", "setSetting", "getAllSettings", "setSettings",
   "getChatMessages", "createChatMessage", "getRecentChatMessage", "cleanupOldChatMessages",
   "updateChatPresence", "getChatOnlineUsers", "cleanupStalePresence", "removeChatPresence",
-  "createPoll", "getPoll", "getUserPollVote", "votePoll", "createResetToken", "getResetToken",
+  "createPoll", "getPoll", "getPollsMap", "getUserPollVote", "getUserPollVotesMap", "votePoll",
+  "createResetToken", "getResetToken",
   "deleteResetToken", "deleteResetTokensByUser", "updatePasswordHash", "createEmailChangeToken",
   "getEmailChangeToken", "deleteEmailChangeToken", "deleteEmailChangeTokensByUser",
   "updateUserEmail", "getAdminCount", "getPasswordHash", "createApiKey", "getApiKeyByHash",
@@ -106,6 +107,25 @@ describe("dbUtils cross-domain wiring (smoke)", () => {
     expect(poll.options.length).toBe(2);
     dbUtils.votePoll(bob, poll.id, poll.options[0].id);
     expect(dbUtils.getUserPollVote(bob, poll.id)).toBe(poll.options[0].id);
+  });
+
+  it("batch poll loaders match per-post loaders", () => {
+    const p1 = dbUtils.createPost(alice, "batch poll 1");
+    const p2 = dbUtils.createPost(alice, "batch poll 2 (no poll)");
+    dbUtils.createPoll(p1.id, "Pick", ["X", "Y"]);
+    const single = dbUtils.getPoll(p1.id);
+    dbUtils.votePoll(alice, single.id, single.options[1].id);
+
+    const pollsMap = dbUtils.getPollsMap([p1.id, p2.id]);
+    expect(pollsMap.get(p1.id)).toEqual(dbUtils.getPoll(p1.id));
+    expect(pollsMap.has(p2.id)).toBe(false); // no poll -> absent
+
+    const votesMap = dbUtils.getUserPollVotesMap(alice, [single.id]);
+    expect(votesMap.get(single.id)).toBe(dbUtils.getUserPollVote(alice, single.id));
+  });
+
+  it("getPollsMap returns empty Map for no ids", () => {
+    expect(dbUtils.getPollsMap([]).size).toBe(0);
   });
 
   it("settings round-trip via this.getSetting", () => {

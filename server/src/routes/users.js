@@ -135,10 +135,13 @@ usersRouter.get("/:id/posts", ensureSession, async (c) => {
 
   const mediaOnly = c.req.query("mediaOnly") === "true";
   const posts = dbUtils.getUserPosts(userId, 50, currentUser.id, mediaOnly);
-  const reactionsMap = dbUtils.getUserReactionsMap(currentUser.id, posts.map(p => p.id));
+  const postIds = posts.map(p => p.id);
+  const reactionsMap = dbUtils.getUserReactionsMap(currentUser.id, postIds);
+  const polls = dbUtils.getPollsMap(postIds);
+  const pollVotes = dbUtils.getUserPollVotesMap(currentUser.id, [...polls.values()].map(p => p.id));
   return c.json(posts.map(p => {
-    const poll = dbUtils.getPoll(p.id);
-    const userVote = poll ? dbUtils.getUserPollVote(currentUser.id, poll.id) : null;
+    const poll = polls.get(p.id) || null;
+    const userVote = poll ? pollVotes.get(poll.id) ?? null : null;
     return formatPost(p, { userReaction: reactionsMap.get(p.id) ?? null, poll, userVote });
   }));
 });
