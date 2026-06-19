@@ -66,26 +66,29 @@ export async function getVideoMetadata(filePath) {
   });
 }
 
+export function evaluateVideoMetadata(meta) {
+  if (meta.duration > MAX_VIDEO_DURATION) {
+    return {
+      valid: false,
+      error: "duration_exceeded",
+      duration: meta.duration,
+      maxDuration: MAX_VIDEO_DURATION,
+    };
+  }
+
+  return {
+    valid: true,
+    duration: meta.duration,
+    width: meta.width,
+    height: meta.height,
+    codec: meta.codec,
+  };
+}
+
 export async function validateVideo(filePath) {
   try {
     const meta = await getVideoMetadata(filePath);
-
-    if (meta.duration > MAX_VIDEO_DURATION) {
-      return {
-        valid: false,
-        error: "duration_exceeded",
-        duration: meta.duration,
-        maxDuration: MAX_VIDEO_DURATION,
-      };
-    }
-
-    return {
-      valid: true,
-      duration: meta.duration,
-      width: meta.width,
-      height: meta.height,
-      codec: meta.codec,
-    };
+    return evaluateVideoMetadata(meta);
   } catch (err) {
     console.warn("[VIDEO] Validation failed:", err.message);
     return { valid: false, error: "invalid_video" };
