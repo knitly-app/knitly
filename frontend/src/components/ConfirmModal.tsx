@@ -2,7 +2,7 @@ import { createContext } from 'preact'
 import { useContext, useState } from 'preact/hooks'
 import { AlertTriangle } from 'lucide-preact'
 
-interface ConfirmOptions {
+export interface ConfirmOptions {
   title?: string
   message: string
   confirmText?: string

@@ -2,12 +2,13 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useSearch } from '@tanstack/react-router'
 import { auth } from '../api/endpoints'
 import { AuthLayout, AuthCard } from '../components/AuthLayout'
+import { queryKeys } from '../api/queryKeys'
 
 export function ConfirmEmailRoute() {
   const { token } = useSearch({ from: '/confirm-email' })
 
   const { isLoading, isSuccess, isError } = useQuery({
-    queryKey: ['confirm-email', token],
+    queryKey: queryKeys.auth.confirmEmail(token!),
     queryFn: () => auth.confirmEmail(token!),
     enabled: !!token,
     retry: false,

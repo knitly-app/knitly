@@ -4,11 +4,12 @@ import { Search } from 'lucide-preact'
 import { users } from '../api/endpoints'
 import { ProfileCard } from '../components/ProfileCard'
 import { ProfileCardSkeleton } from '../components/Skeleton'
+import { queryKeys } from '../api/queryKeys'
 
 export function MembersRoute() {
   const [query, setQuery] = useState('')
   const { data: members, isLoading, error } = useQuery({
-    queryKey: ['members'],
+    queryKey: queryKeys.members(),
     queryFn: users.list,
   })
 

@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from '@tanstack/react-router'
 import { invites } from '../api/endpoints'
 import { useAuth } from '../hooks/useAuth'
 import { useAppSettings } from '../hooks/useAppSettings'
+import { queryKeys } from '../api/queryKeys'
 
 export function InviteRoute() {
   const params = useParams({ from: '/invite/$token' })
@@ -11,7 +12,7 @@ export function InviteRoute() {
   const appName = useAppSettings((s) => s.appName)
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['invite', params.token],
+    queryKey: queryKeys.invite(params.token),
     queryFn: () => invites.validate(params.token),
   })
 

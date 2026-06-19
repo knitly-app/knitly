@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'preact/hooks'
+import { useState } from 'preact/hooks'
 import { useDeferredValue } from 'preact/compat'
 import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import { Link, useSearch } from '@tanstack/react-router'
@@ -7,11 +7,14 @@ import { admin, invites as invitesApi } from '../api/endpoints'
 import { AdminTableSkeleton } from '../components/Skeleton'
 import { getAvatarUrl } from '../utils/avatar'
 import { useToast } from '../components/Toast'
-import { useConfirm } from '../components/ConfirmModal'
+import { useConfirm, type ConfirmOptions } from '../components/ConfirmModal'
 import { useAuth } from '../hooks/useAuth'
 import { formatTimeAgo } from '../utils/time'
 import { getInviteStatus } from '../utils/invites'
 import { CustomizeTab } from '../components/CustomizeTab'
+import { queryKeys } from '../api/queryKeys'
+import { filterInvites, countInvitesByStatus, filterMembers, countMembers } from '../utils/adminFilters'
+import { formatAuditAction } from '../utils/adminAudit'
 
 export function AdminRoute() {
   const queryClient = useQueryClient()
@@ -59,19 +62,19 @@ export function AdminRoute() {
   const [showApiKey, setShowApiKey] = useState(false)
 
   const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['admin', 'stats'],
+    queryKey: queryKeys.admin.stats(),
     queryFn: admin.stats,
     enabled: isAdmin && currentTab === 'overview',
   })
 
   const { data: users, isLoading: usersLoading } = useQuery({
-    queryKey: ['admin', 'users'],
+    queryKey: queryKeys.admin.users(),
     queryFn: admin.users,
     enabled: isAdmin && currentTab === 'overview',
   })
 
   const { data: invites, isLoading: invitesLoading } = useQuery({
-    queryKey: ['admin', 'invites'],
+    queryKey: queryKeys.admin.invites(),
     queryFn: invitesApi.list,
     enabled: isAdmin && currentTab === 'overview',
   })
@@ -86,7 +89,7 @@ export function AdminRoute() {
     fetchNextPage: fetchMoreModeration,
     isFetchingNextPage: isFetchingMoreModeration,
   } = useInfiniteQuery({
-    queryKey: ['admin', 'content', normalizedModerationQuery],
+    queryKey: queryKeys.admin.content(normalizedModerationQuery),
     queryFn: ({ pageParam }) => admin.content({ cursor: pageParam, q: normalizedModerationQuery }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
@@ -100,7 +103,7 @@ export function AdminRoute() {
     fetchNextPage: fetchMoreAudit,
     isFetchingNextPage: isFetchingMoreAudit,
   } = useInfiniteQuery({
-    queryKey: ['admin', 'audit'],
+    queryKey: queryKeys.admin.audit(),
     queryFn: ({ pageParam }) => admin.auditLog({ cursor: pageParam }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
@@ -108,7 +111,7 @@ export function AdminRoute() {
   })
 
   const { data: bots, isLoading: botsLoading } = useQuery({
-    queryKey: ['admin', 'bots'],
+    queryKey: queryKeys.admin.bots(),
     queryFn: admin.bots,
     enabled: isAdmin && currentTab === 'bots',
   })
@@ -116,7 +119,7 @@ export function AdminRoute() {
   const createBot = useMutation({
     mutationFn: admin.createBot,
     onSuccess: (data) => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'bots'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.bots() })
       setCreatedApiKey(data.apiKey)
       setShowApiKey(true)
       setNewBotUsername('')
@@ -134,7 +137,7 @@ export function AdminRoute() {
   const regenerateBotKey = useMutation({
     mutationFn: admin.regenerateBotKey,
     onSuccess: (data) => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'bots'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.bots() })
       setCreatedApiKey(data.apiKey)
       setShowApiKey(true)
       toast.success('Key regenerated')
@@ -145,7 +148,7 @@ export function AdminRoute() {
   const revokeBotKey = useMutation({
     mutationFn: admin.revokeBotKey,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'bots'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.bots() })
       toast.success('Key revoked')
     },
     onError: () => toast.error('Failed to revoke key'),
@@ -154,7 +157,7 @@ export function AdminRoute() {
   const deleteBot = useMutation({
     mutationFn: admin.deleteBot,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'bots'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.bots() })
       toast.success('Bot deleted')
     },
     onError: () => toast.error('Failed to delete bot'),
@@ -163,8 +166,8 @@ export function AdminRoute() {
   const createInvite = useMutation({
     mutationFn: invitesApi.create,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'invites'] })
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.invites() })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.stats() })
       toast.success('Invite created')
     },
     onError: () => {
@@ -175,8 +178,8 @@ export function AdminRoute() {
   const revokeInvite = useMutation({
     mutationFn: (token: string) => invitesApi.revoke(token),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'invites'] })
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.invites() })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.stats() })
       toast.success('Invite revoked')
     },
     onError: () => {
@@ -187,7 +190,7 @@ export function AdminRoute() {
   const disableUser = useMutation({
     mutationFn: admin.disableUser,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() })
       toast.success('User disabled')
     },
     onError: () => {
@@ -198,7 +201,7 @@ export function AdminRoute() {
   const enableUser = useMutation({
     mutationFn: admin.enableUser,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() })
       toast.success('User enabled')
     },
     onError: () => {
@@ -209,7 +212,7 @@ export function AdminRoute() {
   const promoteUser = useMutation({
     mutationFn: admin.promoteUser,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() })
       toast.success('Promoted to moderator')
     },
     onError: () => {
@@ -220,7 +223,7 @@ export function AdminRoute() {
   const demoteUser = useMutation({
     mutationFn: admin.demoteUser,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() })
       toast.success('Demoted to member')
     },
     onError: () => {
@@ -231,7 +234,7 @@ export function AdminRoute() {
   const removeUser = useMutation({
     mutationFn: admin.removeUser,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() })
       toast.success('User removed')
     },
     onError: () => {
@@ -243,11 +246,11 @@ export function AdminRoute() {
     mutationFn: ({ id, type }: { id: string; type: 'post' | 'comment' }) =>
       admin.deleteContent(id, type),
     onSuccess: (data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'content'] })
-      void queryClient.invalidateQueries({ queryKey: ['feed'] })
-      void queryClient.invalidateQueries({ queryKey: ['posts'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.content() })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.feed.all() })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.posts.all() })
       if (variables.type === 'comment' && data.postId) {
-        void queryClient.invalidateQueries({ queryKey: ['posts', data.postId, 'comments'] })
+        void queryClient.invalidateQueries({ queryKey: queryKeys.posts.comments(data.postId) })
       }
       toast.success('Content removed')
     },
@@ -259,8 +262,8 @@ export function AdminRoute() {
   const transferOwnership = useMutation({
     mutationFn: admin.transferOwnership,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
-      void queryClient.invalidateQueries({ queryKey: ['auth', 'me'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.me() })
       toast.success('Ownership transferred')
     },
     onError: () => {
@@ -271,7 +274,7 @@ export function AdminRoute() {
   const revokeUserSessions = useMutation({
     mutationFn: admin.revokeUserSessions,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'audit'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.audit() })
       toast.success('Sessions revoked')
     },
     onError: () => {
@@ -289,7 +292,7 @@ export function AdminRoute() {
       } catch {
         toast.error('Failed to copy reset link')
       }
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'audit'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.audit() })
     },
     onError: () => toast.error('Failed to generate reset link'),
   })
@@ -306,135 +309,112 @@ export function AdminRoute() {
     })()
   }
 
-  const handleDisableUser = (userId: string) => {
+  const confirmThenMutate = (options: ConfirmOptions, run: () => void) => {
     void (async () => {
-      const ok = await confirm({
+      if (await confirm(options)) run()
+    })()
+  }
+
+  const handleDisableUser = (userId: string) =>
+    confirmThenMutate(
+      {
         title: 'Disable User',
         message: 'They will be logged out and cannot log back in.',
         confirmText: 'Disable',
         danger: true,
-      })
-      if (ok) disableUser.mutate(userId)
-    })()
-  }
+      },
+      () => disableUser.mutate(userId)
+    )
 
-  const handleRemoveUser = (userId: string) => {
-    void (async () => {
-      const ok = await confirm({
+  const handleRemoveUser = (userId: string) =>
+    confirmThenMutate(
+      {
         title: 'Remove User',
         message: 'This removes the user and their content.',
         confirmText: 'Remove',
         danger: true,
-      })
-      if (ok) removeUser.mutate(userId)
-    })()
-  }
+      },
+      () => removeUser.mutate(userId)
+    )
 
-  const handleDeleteContent = (id: string, type: 'post' | 'comment') => {
-    void (async () => {
-      const ok = await confirm({
+  const handleDeleteContent = (id: string, type: 'post' | 'comment') =>
+    confirmThenMutate(
+      {
         title: type === 'post' ? 'Remove Post' : 'Remove Comment',
         message: 'This content will no longer be visible.',
         confirmText: 'Remove',
         danger: true,
-      })
-      if (ok) deleteContent.mutate({ id, type })
-    })()
-  }
+      },
+      () => deleteContent.mutate({ id, type })
+    )
 
-  const handleTransferOwnership = (userId: string, username: string) => {
-    void (async () => {
-      const ok = await confirm({
+  const handleTransferOwnership = (userId: string, username: string) =>
+    confirmThenMutate(
+      {
         title: 'Transfer Ownership',
         message: `This will make @${username} the owner and demote you to member. This cannot be undone.`,
         confirmText: 'Transfer',
         danger: true,
-      })
-      if (ok) transferOwnership.mutate(userId)
-    })()
-  }
+      },
+      () => transferOwnership.mutate(userId)
+    )
 
-  const handleRevokeUserSessions = (userId: string, username: string) => {
-    void (async () => {
-      const ok = await confirm({
+  const handleRevokeUserSessions = (userId: string, username: string) =>
+    confirmThenMutate(
+      {
         title: 'Revoke All Sessions',
         message: `This will immediately log out @${username} from all devices.`,
         confirmText: 'Revoke',
         danger: true,
-      })
-      if (ok) revokeUserSessions.mutate(userId)
-    })()
-  }
+      },
+      () => revokeUserSessions.mutate(userId)
+    )
 
-  const handleResetPassword = async (userId: string, username: string) => {
-    const ok = await confirm({
-      title: 'Reset Password',
-      message: `This will generate a one-time password reset link for @${username}. The link will be copied to your clipboard.`,
-      confirmText: 'Generate Link',
-    })
-    if (ok) resetPassword.mutate(userId)
-  }
+  const handleResetPassword = (userId: string, username: string) =>
+    confirmThenMutate(
+      {
+        title: 'Reset Password',
+        message: `This will generate a one-time password reset link for @${username}. The link will be copied to your clipboard.`,
+        confirmText: 'Generate Link',
+      },
+      () => resetPassword.mutate(userId)
+    )
 
-  const handleRegenerateKey = (botId: string, username: string) => {
-    void (async () => {
-      const ok = await confirm({
+  const handleRegenerateKey = (botId: string, username: string) =>
+    confirmThenMutate(
+      {
         title: 'Regenerate API Key',
         message: `This will revoke the current key for @${username} and generate a new one.`,
         confirmText: 'Regenerate',
         danger: true,
-      })
-      if (ok) regenerateBotKey.mutate(botId)
-    })()
-  }
+      },
+      () => regenerateBotKey.mutate(botId)
+    )
 
-  const handleRevokeKey = (botId: string, username: string) => {
-    void (async () => {
-      const ok = await confirm({
+  const handleRevokeKey = (botId: string, username: string) =>
+    confirmThenMutate(
+      {
         title: 'Revoke API Key',
         message: `@${username} will no longer be able to authenticate via API.`,
         confirmText: 'Revoke',
         danger: true,
-      })
-      if (ok) revokeBotKey.mutate(botId)
-    })()
-  }
+      },
+      () => revokeBotKey.mutate(botId)
+    )
 
-  const handleDeleteBot = (botId: string, username: string) => {
-    void (async () => {
-      const ok = await confirm({
+  const handleDeleteBot = (botId: string, username: string) =>
+    confirmThenMutate(
+      {
         title: 'Delete Bot',
         message: `This will permanently remove @${username} and all its content.`,
         confirmText: 'Delete',
         danger: true,
-      })
-      if (ok) deleteBot.mutate(botId)
-    })()
-  }
+      },
+      () => deleteBot.mutate(botId)
+    )
 
   const moderationItems = moderationPages?.pages.flatMap((page) => page.items) ?? []
   const auditItems = auditPages?.pages.flatMap((page) => page.items) ?? []
-
-  const formatActionType = (action: string) => {
-    const map: Record<string, string> = {
-      USER_DISABLED: 'Disabled user',
-      USER_ENABLED: 'Enabled user',
-      USER_PROMOTED_MODERATOR: 'Promoted to moderator',
-      USER_DEMOTED_MODERATOR: 'Demoted from moderator',
-      OWNERSHIP_TRANSFERRED: 'Transferred ownership',
-      USER_REMOVED: 'Removed user',
-      CONTENT_DELETED: 'Deleted content',
-      INVITE_CREATED: 'Created invite',
-      INVITE_REVOKED: 'Revoked invite',
-      SESSIONS_REVOKED: 'Revoked sessions',
-      PASSWORD_RESET_GENERATED: 'Generated password reset link',
-      PASSWORD_RESET_COMPLETED: 'Completed password reset',
-      BOT_CREATED: 'Created bot',
-      BOT_DELETED: 'Deleted bot',
-      BOT_KEY_REGENERATED: 'Regenerated bot key',
-      BOT_KEY_REVOKED: 'Revoked bot key',
-    }
-    return map[action] || action
-  }
 
   const statCards = [
     { icon: Users, label: 'Total Users', value: stats?.users ?? 0, color: 'bg-blue-500' },
@@ -443,61 +423,12 @@ export function AdminRoute() {
   ]
 
   const inviteItems = invites ?? []
-  const normalizedInviteQuery = inviteQuery.trim().toLowerCase()
-
-  const inviteCounts = useMemo(
-    () =>
-      inviteItems.reduce(
-        (counts, invite) => {
-          const status = getInviteStatus(invite)
-          return {
-            ...counts,
-            all: counts.all + 1,
-            [status]: counts[status] + 1,
-          }
-        },
-        { all: 0, active: 0, used: 0, revoked: 0, expired: 0 }
-      ),
-    [inviteItems]
-  )
-
-  const filteredInvites = inviteItems.filter((invite) => {
-    const status = getInviteStatus(invite)
-    if (inviteFilter !== 'all' && inviteFilter !== status) return false
-    if (!normalizedInviteQuery) return true
-    const tokenMatch = invite.token.toLowerCase().includes(normalizedInviteQuery)
-    const usedByMatch = invite.usedBy?.username?.toLowerCase().includes(normalizedInviteQuery)
-    const invitedByMatch = invite.invitedBy?.username?.toLowerCase().includes(normalizedInviteQuery)
-    return tokenMatch || usedByMatch || invitedByMatch
-  })
+  const inviteCounts = countInvitesByStatus(inviteItems)
+  const filteredInvites = filterInvites(inviteItems, inviteFilter, inviteQuery)
 
   const memberItems = users ?? []
-  const normalizedMemberQuery = memberQuery.trim().toLowerCase()
-
-  const memberCounts = useMemo(
-    () =>
-      memberItems.reduce(
-        (counts, member) => ({
-          ...counts,
-          all: counts.all + 1,
-          disabled: counts.disabled + (member.disabledAt ? 1 : 0),
-          active: counts.active + (member.disabledAt ? 0 : 1),
-          moderators: counts.moderators + (member.role === 'moderator' ? 1 : 0),
-        }),
-        { all: 0, active: 0, disabled: 0, moderators: 0 }
-      ),
-    [memberItems]
-  )
-
-  const filteredMembers = memberItems.filter((member) => {
-    if (memberFilter === 'disabled' && !member.disabledAt) return false
-    if (memberFilter === 'active' && member.disabledAt) return false
-    if (memberFilter === 'moderators' && member.role !== 'moderator') return false
-    if (!normalizedMemberQuery) return true
-    const name = member.displayName?.toLowerCase() ?? ''
-    const username = member.username?.toLowerCase() ?? ''
-    return name.includes(normalizedMemberQuery) || username.includes(normalizedMemberQuery)
-  })
+  const memberCounts = countMembers(memberItems)
+  const filteredMembers = filterMembers(memberItems, memberFilter, memberQuery)
 
   return (
     <div className="w-full max-w-4xl mx-auto py-4 md:py-8 px-4 md:px-0">
@@ -832,7 +763,7 @@ export function AdminRoute() {
 
                         {!isSelf && (
                           <button
-                            onClick={() => void handleResetPassword(member.id, member.username)}
+                            onClick={() => handleResetPassword(member.id, member.username)}
                             disabled={resetPassword.isPending}
                             className="px-3 py-2 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50"
                           >
@@ -1259,7 +1190,7 @@ export function AdminRoute() {
                       </span>
                     </div>
                     <div className="text-sm text-gray-700">
-                      {formatActionType(entry.actionType)}
+                      {formatAuditAction(entry.actionType)}
                       {entry.targetId && (
                         <span className="text-gray-400"> (ID: {entry.targetId})</span>
                       )}

@@ -6,6 +6,7 @@ import {
   MAX_VIDEO_FILE_SIZE,
   VIDEO_OUTPUT_HEIGHT,
   getVideoMetadata,
+  evaluateVideoMetadata,
   validateVideo,
   processVideo,
   extractThumbnail,
@@ -30,8 +31,8 @@ describe("video constants", () => {
     expect(VIDEO_CONTENT_TYPES.has("video/avi")).toBe(false);
   });
 
-  it("exports MAX_VIDEO_DURATION as 30", () => {
-    expect(MAX_VIDEO_DURATION).toBe(30);
+  it("exports MAX_VIDEO_DURATION as 60", () => {
+    expect(MAX_VIDEO_DURATION).toBe(60);
   });
 
   it("exports MAX_VIDEO_FILE_SIZE as 50MB", () => {
@@ -83,12 +84,32 @@ describe("validateVideo", () => {
     expect(result.codec).toBe("h264");
   });
 
-  it("rejects video over 30 seconds", async () => {
+  it("accepts the long fixture (35s, under the 60s limit)", async () => {
     const result = await validateVideo(TEST_VIDEO_LONG);
+    expect(result.valid).toBe(true);
+    expect(result.duration).toBeGreaterThan(30);
+  });
+
+  it("rejects metadata over the duration limit", () => {
+    const result = evaluateVideoMetadata({
+      duration: MAX_VIDEO_DURATION + 1,
+      width: 320,
+      height: 240,
+      codec: "h264",
+    });
     expect(result.valid).toBe(false);
     expect(result.error).toBe("duration_exceeded");
-    expect(result.duration).toBeGreaterThan(30);
-    expect(result.maxDuration).toBe(30);
+    expect(result.maxDuration).toBe(MAX_VIDEO_DURATION);
+  });
+
+  it("accepts metadata at the duration limit", () => {
+    const result = evaluateVideoMetadata({
+      duration: MAX_VIDEO_DURATION,
+      width: 320,
+      height: 240,
+      codec: "h264",
+    });
+    expect(result.valid).toBe(true);
   });
 
   it("rejects files that ffprobe cannot parse", async () => {

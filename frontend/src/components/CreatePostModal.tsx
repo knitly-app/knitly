@@ -167,7 +167,7 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
 
     try {
       setIsUploading(true)
-      let uploadedMedia: MediaItem[] = []
+      const uploadedMedia: MediaItem[] = []
 
       if (preAttachedMedia) {
         uploadedMedia.push({ url: preAttachedMedia.url, type: preAttachedMedia.type, sortOrder: 0 } as MediaItem)

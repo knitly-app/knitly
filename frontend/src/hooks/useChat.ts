@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'preact/hooks'
 import { chat, type ChatMessage } from '../api/endpoints'
+import { queryKeys } from '../api/queryKeys'
 
 export function useChatMessages() {
   const queryClient = useQueryClient()
@@ -9,18 +10,18 @@ export function useChatMessages() {
   const previousUsersRef = useRef<Set<string>>(new Set())
 
   const accumulatedQuery = useQuery({
-    queryKey: ['chat', 'messages', 'accumulated'],
+    queryKey: queryKeys.chat.messagesAccumulated(),
     queryFn: () => [] as ChatMessage[],
     staleTime: Infinity,
   })
 
   const { isLoading, isError, refetch } = useQuery({
-    queryKey: ['chat', 'messages'],
+    queryKey: queryKeys.chat.messages(),
     queryFn: async () => {
       const result = await chat.messages(lastIdRef.current)
       if (result.messages.length > 0) {
         lastIdRef.current = result.messages[result.messages.length - 1].id
-        queryClient.setQueryData<ChatMessage[]>(['chat', 'messages', 'accumulated'], (prev = []) => {
+        queryClient.setQueryData<ChatMessage[]>(queryKeys.chat.messagesAccumulated(), (prev = []) => {
           const existingIds = new Set(prev.map((m) => m.id))
           const newMessages = result.messages.filter((m) => !existingIds.has(m.id))
           return newMessages.length > 0 ? [...prev, ...newMessages] : prev
@@ -35,7 +36,7 @@ export function useChatMessages() {
   const messages = accumulatedQuery.data ?? []
 
   const presenceQuery = useQuery({
-    queryKey: ['chat', 'presence'],
+    queryKey: queryKeys.chat.presence(),
     queryFn: chat.presence,
     refetchInterval: 30000,
   })
@@ -70,7 +71,7 @@ export function useChatMessages() {
   const sendMutation = useMutation({
     mutationFn: chat.send,
     onSuccess: (newMessage) => {
-      queryClient.setQueryData<ChatMessage[]>(['chat', 'messages', 'accumulated'], (prev = []) => {
+      queryClient.setQueryData<ChatMessage[]>(queryKeys.chat.messagesAccumulated(), (prev = []) => {
         if (prev.some((m) => m.id === newMessage.id)) return prev
         lastIdRef.current = newMessage.id
         return [...prev, newMessage]
@@ -94,7 +95,7 @@ export function useChatMessages() {
 
 export function useChatStatus() {
   const { data } = useQuery({
-    queryKey: ['chat', 'status'],
+    queryKey: queryKeys.chat.status(),
     queryFn: chat.status,
     refetchInterval: 30000,
   })

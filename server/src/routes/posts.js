@@ -4,41 +4,14 @@ import { ensureSession } from "../middleware/auth.js";
 import { sanitizeText } from "../lib/sanitize.js";
 import { deleteObject, extractKeyFromUrl } from "../lib/media.js";
 import { parseMentions, resolveMentions } from "../lib/mentions.js";
+import { formatPost, formatComment, formatPoll } from "../lib/formatters.js";
 
 export const postsRouter = new Hono();
 
 const VALID_REACTIONS = ["love", "haha", "hugs", "celebrate"];
 
-function formatPost(post, userReaction = null, circleIds = null, poll = null, userVote = null) {
-  return {
-    id: String(post.id),
-    userId: String(post.user_id),
-    content: post.content,
-    media: post.media || [],
-    createdAt: post.created_at,
-    reactions: post.reactions || {},
-    userReaction,
-    comments: post.comments,
-    circleIds: circleIds ?? dbUtils.getPostCircles(post.id).map(String),
-    poll: poll ? {
-      id: String(poll.id),
-      question: poll.question,
-      userVote: userVote ? String(userVote) : null,
-      totalVotes: poll.totalVotes,
-      options: poll.options.map(opt => ({
-        id: String(opt.id),
-        optionText: opt.option_text,
-        voteCount: opt.vote_count,
-        sortOrder: opt.sort_order,
-      })),
-    } : null,
-    author: {
-      username: post.username,
-      displayName: post.display_name,
-      avatar: post.avatar || undefined,
-      role: post.role || undefined,
-    },
-  };
+function formatPostWithCircles(post, opts = {}) {
+  return formatPost(post, { ...opts, circleIds: dbUtils.getPostCircles(post.id).map(String) });
 }
 
 postsRouter.get("/:id", ensureSession, async (c) => {
@@ -55,7 +28,7 @@ postsRouter.get("/:id", ensureSession, async (c) => {
   const userReaction = currentUser ? dbUtils.getUserReaction(currentUser.id, postId) : null;
   const poll = dbUtils.getPoll(postId);
   const userVote = poll ? dbUtils.getUserPollVote(currentUser.id, poll.id) : null;
-  return c.json(formatPost(post, userReaction, null, poll, userVote));
+  return c.json(formatPostWithCircles(post, { userReaction, poll, userVote }));
 });
 
 postsRouter.post("/", ensureSession, async (c) => {
@@ -150,7 +123,7 @@ postsRouter.post("/", ensureSession, async (c) => {
   }
 
   const userReaction = dbUtils.getUserReaction(currentUser.id, post.id);
-  return c.json(formatPost(post, userReaction, null, poll, null), 201);
+  return c.json(formatPostWithCircles(post, { userReaction, poll }), 201);
 });
 
 postsRouter.patch("/:id", ensureSession, async (c) => {
@@ -172,7 +145,7 @@ postsRouter.patch("/:id", ensureSession, async (c) => {
 
   const updated = dbUtils.updatePost(postId, content);
   const userReaction = dbUtils.getUserReaction(currentUser.id, postId);
-  return c.json(formatPost(updated, userReaction));
+  return c.json(formatPostWithCircles(updated, { userReaction }));
 });
 
 postsRouter.delete("/:id", ensureSession, async (c) => {
@@ -268,17 +241,7 @@ postsRouter.get("/:id/comments", ensureSession, async (c) => {
     ? dbUtils.getCommentsSince(postId, sinceId)
     : dbUtils.getComments(postId);
 
-  return c.json(comments.map(comment => ({
-    id: String(comment.id),
-    postId: String(comment.post_id),
-    userId: String(comment.user_id),
-    username: comment.username,
-    displayName: comment.display_name,
-    avatar: comment.avatar || undefined,
-    role: comment.role || undefined,
-    content: comment.content,
-    createdAt: comment.created_at,
-  })));
+  return c.json(comments.map(formatComment));
 });
 
 postsRouter.post("/:id/comments", ensureSession, async (c) => {
@@ -311,17 +274,7 @@ postsRouter.post("/:id/comments", ensureSession, async (c) => {
     }
   }
 
-  return c.json({
-    id: String(comment.id),
-    postId: String(comment.post_id),
-    userId: String(comment.user_id),
-    username: comment.username,
-    displayName: comment.display_name,
-    avatar: comment.avatar || undefined,
-    role: comment.role || undefined,
-    content: comment.content,
-    createdAt: comment.created_at,
-  }, 201);
+  return c.json(formatComment(comment), 201);
 });
 
 postsRouter.delete("/:postId/comments/:commentId", ensureSession, async (c) => {
@@ -364,18 +317,5 @@ postsRouter.post("/:id/vote", ensureSession, async (c) => {
   const updatedPoll = dbUtils.getPoll(postId);
   const userVote = dbUtils.getUserPollVote(currentUser.id, poll.id);
 
-  return c.json({
-    poll: {
-      id: String(updatedPoll.id),
-      question: updatedPoll.question,
-      userVote: userVote ? String(userVote) : null,
-      totalVotes: updatedPoll.totalVotes,
-      options: updatedPoll.options.map(opt => ({
-        id: String(opt.id),
-        optionText: opt.option_text,
-        voteCount: opt.vote_count,
-        sortOrder: opt.sort_order,
-      })),
-    },
-  });
+  return c.json({ poll: formatPoll(updatedPoll, userVote) });
 });

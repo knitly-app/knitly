@@ -2,6 +2,7 @@ import { useState, useRef, useImperativeHandle, forwardRef } from 'preact/compat
 import { useQuery } from '@tanstack/react-query'
 import { search as searchApi, type User } from '../api/endpoints'
 import { getAvatarUrl } from '../utils/avatar'
+import { queryKeys } from '../api/queryKeys'
 
 export interface MentionAutocompleteHandle {
   handleKeyDown: (e: KeyboardEvent) => boolean
@@ -26,7 +27,7 @@ export const MentionAutocomplete = forwardRef<MentionAutocompleteHandle, Mention
     }
 
     const { data: users = [], isLoading } = useQuery({
-      queryKey: ['mention-search', query],
+      queryKey: queryKeys.search.mentions(query),
       queryFn: () => searchApi.users(query),
       enabled: visible && query.length >= 2,
       staleTime: 1000 * 30,

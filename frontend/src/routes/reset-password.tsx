@@ -3,6 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { Link, useSearch } from '@tanstack/react-router'
 import { auth } from '../api/endpoints'
 import { AuthLayout, AuthCard } from '../components/AuthLayout'
+import { queryKeys } from '../api/queryKeys'
 
 const VALIDATION_MESSAGES: Record<string, string> = {
   expired: 'This reset link has expired.',
@@ -16,7 +17,7 @@ export function ResetPasswordRoute() {
   const [confirmPassword, setConfirmPassword] = useState('')
 
   const { data: validation, isLoading: validating } = useQuery({
-    queryKey: ['auth', 'reset-token', token],
+    queryKey: queryKeys.auth.resetToken(token!),
     queryFn: () => auth.validateResetToken(token!),
     enabled: !!token,
     retry: false,

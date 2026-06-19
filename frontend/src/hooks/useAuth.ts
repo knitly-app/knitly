@@ -1,13 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth, type User } from '../api/endpoints'
 import { useToast } from '../components/Toast'
+import { queryKeys } from '../api/queryKeys'
 
 export function useAuth() {
   const queryClient = useQueryClient()
   const toast = useToast()
 
   const { data: user, isLoading, error } = useQuery({
-    queryKey: ['auth', 'me'],
+    queryKey: queryKeys.auth.me(),
     queryFn: auth.me,
     retry: false,
     staleTime: 1000 * 60 * 5,
@@ -16,7 +17,7 @@ export function useAuth() {
   const loginMutation = useMutation({
     mutationFn: auth.login,
     onSuccess: (data: User & { restoredFromDeletion?: boolean }) => {
-      queryClient.setQueryData(['auth', 'me'], data)
+      queryClient.setQueryData(queryKeys.auth.me(), data)
       if (data.restoredFromDeletion) {
         toast.success('Your account has been restored.')
       }
@@ -26,14 +27,14 @@ export function useAuth() {
   const signupMutation = useMutation({
     mutationFn: auth.signup,
     onSuccess: (data) => {
-      queryClient.setQueryData(['auth', 'me'], data)
+      queryClient.setQueryData(queryKeys.auth.me(), data)
     },
   })
 
   const logoutMutation = useMutation({
     mutationFn: auth.logout,
     onSuccess: () => {
-      queryClient.setQueryData(['auth', 'me'], null)
+      queryClient.setQueryData(queryKeys.auth.me(), null)
       queryClient.clear()
     },
   })

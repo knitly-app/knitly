@@ -2,59 +2,15 @@ import { Hono } from "hono";
 import { dbUtils } from "../lib/db.js";
 import { ensureSession } from "../middleware/auth.js";
 import { extractKeyFromUrl, deleteObject } from "../lib/media.js";
+import { formatUserProfile, formatPost } from "../lib/formatters.js";
 
 export const usersRouter = new Hono();
 
-function formatUser(user) {
-  return {
-    id: String(user.id),
-    username: user.username,
-    displayName: user.display_name,
-    avatar: user.avatar || undefined,
-    header: user.header || undefined,
-    bio: user.bio || undefined,
-    location: user.location || undefined,
-    website: user.website || undefined,
-    role: user.role,
-    createdAt: user.created_at,
-  };
-}
-
 function formatUserWithCounts(user) {
   return {
-    ...formatUser(user),
+    ...formatUserProfile(user),
     followers: dbUtils.getFollowerCount(user.id),
     following: dbUtils.getFollowingCount(user.id),
-  };
-}
-
-function formatPost(post, userReaction = null, poll = null, userVote = null) {
-  return {
-    id: String(post.id),
-    userId: String(post.user_id),
-    content: post.content,
-    media: post.media || [],
-    createdAt: post.created_at,
-    reactions: post.reactions || {},
-    userReaction,
-    comments: post.comments,
-    poll: poll ? {
-      id: String(poll.id),
-      question: poll.question,
-      userVote: userVote ? String(userVote) : null,
-      totalVotes: poll.totalVotes,
-      options: poll.options.map(opt => ({
-        id: String(opt.id),
-        optionText: opt.option_text,
-        voteCount: opt.vote_count,
-        sortOrder: opt.sort_order,
-      })),
-    } : null,
-    author: {
-      username: post.username,
-      displayName: post.display_name,
-      avatar: post.avatar || undefined,
-    },
   };
 }
 
@@ -74,7 +30,7 @@ function resolveUserId(id, currentUser) {
 
 usersRouter.get("/", ensureSession, async (c) => {
   const users = dbUtils.getAllUsers();
-  return c.json(users.map(u => formatUser(u)));
+  return c.json(users.map(u => formatUserProfile(u)));
 });
 
 usersRouter.get("/:id", ensureSession, async (c) => {
@@ -133,7 +89,7 @@ usersRouter.get("/:id/followers", ensureSession, async (c) => {
   if (!userId) return c.json({ error: "Not found" }, 404);
 
   const followers = dbUtils.getFollowers(userId);
-  return c.json(followers.map(u => formatUser(u)));
+  return c.json(followers.map(u => formatUserProfile(u)));
 });
 
 usersRouter.get("/:id/following", ensureSession, async (c) => {
@@ -143,7 +99,7 @@ usersRouter.get("/:id/following", ensureSession, async (c) => {
   if (!userId) return c.json({ error: "Not found" }, 404);
 
   const following = dbUtils.getFollowing(userId);
-  return c.json(following.map(u => formatUser(u)));
+  return c.json(following.map(u => formatUserProfile(u)));
 });
 
 usersRouter.post("/:id/follow", ensureSession, async (c) => {
@@ -179,10 +135,13 @@ usersRouter.get("/:id/posts", ensureSession, async (c) => {
 
   const mediaOnly = c.req.query("mediaOnly") === "true";
   const posts = dbUtils.getUserPosts(userId, 50, currentUser.id, mediaOnly);
-  const reactionsMap = dbUtils.getUserReactionsMap(currentUser.id, posts.map(p => p.id));
+  const postIds = posts.map(p => p.id);
+  const reactionsMap = dbUtils.getUserReactionsMap(currentUser.id, postIds);
+  const polls = dbUtils.getPollsMap(postIds);
+  const pollVotes = dbUtils.getUserPollVotesMap(currentUser.id, [...polls.values()].map(p => p.id));
   return c.json(posts.map(p => {
-    const poll = dbUtils.getPoll(p.id);
-    const userVote = poll ? dbUtils.getUserPollVote(currentUser.id, poll.id) : null;
-    return formatPost(p, reactionsMap.get(p.id) ?? null, poll, userVote);
+    const poll = polls.get(p.id) || null;
+    const userVote = poll ? pollVotes.get(poll.id) ?? null : null;
+    return formatPost(p, { userReaction: reactionsMap.get(p.id) ?? null, poll, userVote });
   }));
 });

@@ -1,9 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { notifications } from '../api/endpoints'
+import { queryKeys } from '../api/queryKeys'
 
 export function useNotifications() {
   return useQuery({
-    queryKey: ['notifications'],
+    queryKey: queryKeys.notifications(),
     queryFn: notifications.list,
     refetchOnWindowFocus: true,
     staleTime: 60000,
@@ -16,7 +17,7 @@ export function useMarkNotificationRead() {
   return useMutation({
     mutationFn: notifications.markRead,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['notifications'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.notifications() })
     },
   })
 }
@@ -27,7 +28,7 @@ export function useMarkAllNotificationsRead() {
   return useMutation({
     mutationFn: notifications.markAllRead,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['notifications'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.notifications() })
     },
   })
 }
@@ -38,7 +39,7 @@ export function useClearAllNotifications() {
   return useMutation({
     mutationFn: notifications.clearAll,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['notifications'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.notifications() })
     },
   })
 }

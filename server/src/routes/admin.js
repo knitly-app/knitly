@@ -3,23 +3,11 @@ import { Hono } from "hono";
 import { dbUtils } from "../lib/db.js";
 import { generateRandomToken } from "../lib/security.js";
 import { ensureSession, requireRole } from "../middleware/auth.js";
+import { formatAdminUser } from "../lib/formatters.js";
 
 export const adminRouter = new Hono();
 
 adminRouter.use("/*", ensureSession);
-
-function formatUser(user) {
-  return {
-    id: String(user.id),
-    username: user.username,
-    displayName: user.display_name,
-    avatar: user.avatar || undefined,
-    bio: user.bio || undefined,
-    role: user.role,
-    disabledAt: user.disabled_at || null,
-    createdAt: user.created_at,
-  };
-}
 
 function parseUserId(c) {
   const userId = parseInt(c.req.param("id"), 10);
@@ -47,7 +35,7 @@ function sanitizeAuditMetadata(actionType, rawMetadata) {
 
 adminRouter.get("/users", requireRole("admin", "moderator"), (c) => {
   const users = dbUtils.getAllUsers();
-  return c.json(users.map(formatUser));
+  return c.json(users.map(formatAdminUser));
 });
 
 adminRouter.post("/users/:id/disable", requireRole("admin", "moderator"), (c) => {

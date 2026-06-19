@@ -13,6 +13,7 @@ import { useToast } from '../components/Toast'
 import { getAvatarUrl } from '../utils/avatar'
 import { renderMarkdown } from '../utils/markdown'
 import { BotBadge } from '../components/BotBadge'
+import { queryKeys } from '../api/queryKeys'
 
 export function PostRoute() {
   const params = useParams({ strict: false })
@@ -41,7 +42,7 @@ export function PostRoute() {
   const editPost = useEditPost()
 
   const { data: post, isLoading } = useQuery({
-    queryKey: ['posts', postId],
+    queryKey: queryKeys.posts.detail(postId),
     queryFn: () => postsApi.get(postId),
     enabled: !!postId,
   })
