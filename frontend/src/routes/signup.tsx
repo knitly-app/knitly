@@ -14,6 +14,7 @@ export function SignupRoute() {
   const navigate = useNavigate()
   const search = useSearch({ from: '/signup' })
   const appName = useAppSettings((s) => s.appName)
+  const circlesEnabled = useAppSettings((s) => s.circlesEnabled)
 
   useEffect(() => {
     if (!search.invite) {
@@ -49,7 +50,11 @@ export function SignupRoute() {
         displayName,
         inviteToken: search.invite,
       })
-      setShowOnboarding(true)
+      if (circlesEnabled) {
+        setShowOnboarding(true)
+      } else {
+        handleOnboardingComplete()
+      }
     } catch {
       // error handled by hook
     }

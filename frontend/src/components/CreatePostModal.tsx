@@ -1,6 +1,7 @@
 import { BarChart3, ImagePlus, Minus, Plus, Video, X } from 'lucide-preact'
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { media as mediaApi, type MediaItem } from '../api/endpoints'
+import { useAppSettings } from '../hooks/useAppSettings'
 import { useCircles } from '../hooks/useCircles'
 import { useCreatePost } from '../hooks/usePosts'
 import { useUIStore } from '../stores/ui'
@@ -36,6 +37,7 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
   }>({ visible: false, query: '', position: { top: 0, left: 0 }, startIndex: 0 })
   const createPost = useCreatePost()
   const { data: circles = [] } = useCircles()
+  const circlesEnabled = useAppSettings((s) => s.circlesEnabled)
   const toast = useToast()
   const prevUrlsRef = useRef<string[]>([])
 
@@ -234,15 +236,17 @@ export function CreatePostModal({ onClose }: CreatePostModalProps) {
         </div>
 
         <div className="p-4">
-          <div className="mb-3">
-            <CirclePills
-              circles={circles}
-              selectedId={selectedCircleId}
-              onSelect={setSelectedCircleId}
-              showAdd={circles.length < 4}
-              onAdd={() => window.open('/circles', '_blank')}
-            />
-          </div>
+          {circlesEnabled && (
+            <div className="mb-3">
+              <CirclePills
+                circles={circles}
+                selectedId={selectedCircleId}
+                onSelect={setSelectedCircleId}
+                showAdd={circles.length < 4}
+                onAdd={() => window.open('/circles', '_blank')}
+              />
+            </div>
+          )}
 
           <div className="relative">
             <textarea

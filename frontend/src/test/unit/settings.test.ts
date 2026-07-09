@@ -13,6 +13,10 @@ describe("DEFAULT_APP_SETTINGS", () => {
   it("has expected default logoIcon", () => {
     expect(DEFAULT_APP_SETTINGS.logoIcon).toBe("Zap");
   });
+
+  it("has circles enabled by default", () => {
+    expect(DEFAULT_APP_SETTINGS.circlesEnabled).toBe(true);
+  });
 });
 
 describe("LOGO_ICON_NAMES", () => {
@@ -52,9 +56,17 @@ describe("normalizeAppSettings", () => {
     expect(result.logoIcon).toBe("Rocket");
   });
 
+  it("defaults circlesEnabled to true when missing", () => {
+    expect(normalizeAppSettings({}).circlesEnabled).toBe(true);
+  });
+
+  it("respects circlesEnabled false", () => {
+    expect(normalizeAppSettings({ circlesEnabled: false }).circlesEnabled).toBe(false);
+  });
+
   it("uses both provided values when both are given", () => {
     const result = normalizeAppSettings({ appName: "Foo", logoIcon: "Star" });
-    expect(result).toEqual({ appName: "Foo", logoIcon: "Star" });
+    expect(result).toEqual({ appName: "Foo", logoIcon: "Star", circlesEnabled: true });
   });
 
   it("falls back to defaults when appName is empty string", () => {

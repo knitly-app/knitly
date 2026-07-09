@@ -86,7 +86,8 @@ postsRouter.post("/", ensureSession, async (c) => {
     return c.json({ error: "Content or media required" }, 400);
   }
 
-  const circleIds = Array.isArray(body.circleIds)
+  const circlesEnabled = dbUtils.getSetting("circlesEnabled") !== "false";
+  const circleIds = circlesEnabled && Array.isArray(body.circleIds)
     ? [...new Set(body.circleIds.map(Number).filter((id) => Number.isInteger(id) && id > 0))]
     : [];
 

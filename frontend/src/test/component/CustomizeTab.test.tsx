@@ -13,6 +13,7 @@ beforeEach(() => {
   useAppSettings.setState({
     appName: DEFAULT_APP_SETTINGS.appName,
     logoIcon: DEFAULT_APP_SETTINGS.logoIcon,
+    circlesEnabled: DEFAULT_APP_SETTINGS.circlesEnabled,
     isLoaded: true,
     isFetching: false,
     isSaving: false,
@@ -116,6 +117,29 @@ describe("CustomizeTab — logo icon picker", () => {
     const saveBtn = screen.getByText("Save Changes").closest("button")!;
     // Clicking the already-selected icon — no change expected
     expect(saveBtn).toHaveAttribute("disabled");
+  });
+});
+
+describe("CustomizeTab — circles toggle", () => {
+  it("renders the circles switch as enabled by default", async () => {
+    await renderTab();
+    const toggle = screen.getByRole("switch", { name: "Enable circles" });
+    expect(toggle.getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByText("Enabled")).toBeInTheDocument();
+  });
+
+  it("toggling circles enables Save and PUTs circlesEnabled false", async () => {
+    fetchMock = mockFetch(
+      jsonResponse({ appName: "Knitly", logoIcon: "Zap", circlesEnabled: false })
+    );
+    await renderTab();
+    fireEvent.click(screen.getByRole("switch", { name: "Enable circles" }));
+    expect(screen.getByText("Disabled")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Save Changes"));
+    await waitFor(() => {
+      const putCall = fetchMock.calls.find((c) => c.method === "PUT");
+      expect(putCall?.body).toMatchObject({ circlesEnabled: false });
+    });
   });
 });
 

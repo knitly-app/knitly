@@ -13,14 +13,17 @@ export type LogoIconName = typeof LOGO_ICON_NAMES[number];
 export const DEFAULT_APP_SETTINGS = {
   appName: "Knitly",
   logoIcon: "Zap" as LogoIconName,
+  circlesEnabled: true,
 };
 
 export interface AppSettings {
   appName: string;
   logoIcon: LogoIconName;
+  circlesEnabled: boolean;
 }
 
 export const normalizeAppSettings = (settings: Partial<AppSettings> = {}): AppSettings => ({
   appName: settings.appName || DEFAULT_APP_SETTINGS.appName,
   logoIcon: settings.logoIcon || DEFAULT_APP_SETTINGS.logoIcon,
+  circlesEnabled: settings.circlesEnabled !== false,
 });

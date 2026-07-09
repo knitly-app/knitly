@@ -21,6 +21,7 @@ beforeEach(() => {
   useAppSettings.setState({
     appName: "Knitly",
     logoIcon: "Zap",
+    circlesEnabled: true,
     isLoaded: true,
     isFetching: false,
     isSaving: false,
@@ -274,6 +275,27 @@ describe("FeedRoute — circle filter pills", () => {
     expect(addBtns.length).toBeGreaterThan(0);
     // Clicking it triggers onAdd -> navigate to /circles (no crash is the assertion)
     fireEvent.click(addBtns[0]);
+  });
+});
+
+describe("FeedRoute — circles disabled", () => {
+  it("shows circle pills when circles are enabled", async () => {
+    await renderFeed({
+      pages: [makeFeedResponse([makePost()])],
+      circles: [{ id: "c1", name: "Family", color: "red" }],
+    });
+    await waitFor(() => expect(screen.getByText("Hello feed")).toBeInTheDocument());
+    expect(screen.getAllByText("Family").length).toBeGreaterThan(0);
+  });
+
+  it("hides circle pills when circles are disabled", async () => {
+    useAppSettings.setState({ circlesEnabled: false });
+    await renderFeed({
+      pages: [makeFeedResponse([makePost()])],
+      circles: [{ id: "c1", name: "Family", color: "red" }],
+    });
+    await waitFor(() => expect(screen.getByText("Hello feed")).toBeInTheDocument());
+    expect(screen.queryByText("Family")).not.toBeInTheDocument();
   });
 });
 
