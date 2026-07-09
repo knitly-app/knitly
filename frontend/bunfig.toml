@@ -1,2 +1,3 @@
 [test]
 tsconfig = "./tsconfig.test.json"
+preload = ["./src/test/vite-macros.ts", "./src/test/register-dom.ts", "./src/test/setup.ts"]
