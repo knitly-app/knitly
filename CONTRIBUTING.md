@@ -46,6 +46,7 @@ deploy/       Example configs (Caddy, systemd, env)
 - **No useCallback** — ever
 - **No useEffect** unless syncing with external systems
 - **No barrel files** (index.ts re-exports)
+- **Zod for server route input** — when touching a route with inline validation, move its checks to a Zod schema (`server/src/routes/auth.js` is the reference)
 - **No comments** unless the logic is genuinely non-obvious
 - Self-documenting names over explanatory comments
 
