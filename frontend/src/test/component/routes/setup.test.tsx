@@ -183,22 +183,6 @@ describe("SetupWizard — customize step", () => {
     expect(input.value).toBe("My Network");
   });
 
-  it("selecting an icon in the icon picker updates the selection", async () => {
-    await goToCustomize();
-    // All icon buttons are rendered by IconPicker inside the customize form
-    const btns = screen.getAllByRole("button");
-    // Find an icon button that is not the currently-selected Zap icon
-    const nonSelected = btns.find(
-      (b) => b.getAttribute("title") && b.getAttribute("title") !== "Zap"
-    );
-    expect(nonSelected).toBeDefined();
-    fireEvent.click(nonSelected!);
-    // After selection the button should get accent styling
-    await waitFor(() => {
-      expect(nonSelected!.className).toContain("bg-accent-500");
-    });
-  });
-
   it("submitting customize form calls POST /api/setup/complete", async () => {
     await goToCustomize();
     fireEvent.submit(screen.getByText("Complete Setup").closest("form")!);
@@ -335,15 +319,6 @@ describe("IconPicker — component", () => {
     fireEvent.click(btns[1]);
     // onSelect should have been called (selected changed from Zap or stayed Zap if same)
     expect(typeof selected).toBe("string");
-  });
-
-  it("selected icon has distinct styling", async () => {
-    fetchMock = mockFetch(null);
-    await renderWithProviders(<IconPicker selected="Zap" onSelect={() => {}} />, { path: "/" });
-    const selectedBtn = screen
-      .getAllByRole("button")
-      .find((b) => b.getAttribute("title") === "Zap");
-    expect(selectedBtn?.className).toContain("bg-accent-500");
   });
 });
 

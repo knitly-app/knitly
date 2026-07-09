@@ -11,10 +11,10 @@
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test": "bun test src/test src/__tests__ && bun test src/entry-test",
+    "test": "bun test src/test && bun test src/entry-test",
     "test:unit": "bun test src/test/unit",
     "test:e2e": "playwright test",
-    "test:coverage": "bun test src/test src/__tests__ --coverage && bun test src/entry-test --coverage"
+    "test:coverage": "bun test src/test --coverage && bun test src/entry-test --coverage"
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.88",

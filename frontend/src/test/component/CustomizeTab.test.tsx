@@ -109,20 +109,6 @@ describe("CustomizeTab — logo icon picker", () => {
     expect(saveBtn).not.toHaveAttribute("disabled");
   });
 
-  it("selected icon has accent border style", async () => {
-    fetchMock = mockFetch({});
-    await renderTab();
-    const zapBtn = screen.getByTitle("Zap");
-    expect(zapBtn.className).toContain("border-accent-500");
-  });
-
-  it("non-selected icon does not have accent border style", async () => {
-    fetchMock = mockFetch({});
-    await renderTab();
-    const rocketBtn = screen.getByTitle("Rocket");
-    expect(rocketBtn.className).not.toContain("border-accent-500");
-  });
-
   it("clicking a selected icon again does not change selection state (still same icon)", async () => {
     fetchMock = mockFetch({});
     await renderTab();

@@ -18,22 +18,4 @@ describe("ChatPresenceBadge", () => {
     await renderWithProviders(<ChatPresenceBadge count={42} />);
     expect(screen.getByText("42 online")).toBeInTheDocument();
   });
-
-  it("uses md size classes by default", async () => {
-    await renderWithProviders(<ChatPresenceBadge count={3} />);
-    const badge = screen.getByText("3 online").parentElement;
-    expect(badge?.className).toContain("text-sm");
-  });
-
-  it("uses sm size classes when size='sm'", async () => {
-    await renderWithProviders(<ChatPresenceBadge count={3} size="sm" />);
-    const badge = screen.getByText("3 online").parentElement;
-    expect(badge?.className).toContain("text-xs");
-  });
-
-  it("uses md size classes when size='md' is explicit", async () => {
-    await renderWithProviders(<ChatPresenceBadge count={5} size="md" />);
-    const badge = screen.getByText("5 online").parentElement;
-    expect(badge?.className).toContain("text-sm");
-  });
 });

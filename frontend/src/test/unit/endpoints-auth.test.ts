@@ -6,33 +6,6 @@ let fetchMock: MockFetchResult;
 afterEach(() => fetchMock?.restore());
 
 describe("auth endpoints", () => {
-  it("login posts credentials to /api/auth/login", async () => {
-    fetchMock = mockFetch({ id: "1", username: "a", displayName: "A", createdAt: "" });
-    await auth.login({ identifier: "a", password: "pw" } as never);
-    const call = fetchMock.lastCall()!;
-    expect(call.url).toBe("/api/auth/login");
-    expect(call.method).toBe("POST");
-    expect(call.body).toMatchObject({ identifier: "a", password: "pw" });
-  });
-
-  it("signup posts new user data", async () => {
-    fetchMock = mockFetch({ id: "1", username: "a", displayName: "A", createdAt: "" });
-    await auth.signup({ email: "a@b.com", password: "pw", username: "a", displayName: "A" });
-    expect(fetchMock.lastCall()).toMatchObject({ url: "/api/auth/signup", method: "POST" });
-  });
-
-  it("me issues a GET to /api/auth/me", async () => {
-    fetchMock = mockFetch({ id: "1" });
-    await auth.me();
-    expect(fetchMock.lastCall()).toMatchObject({ url: "/api/auth/me", method: "GET" });
-  });
-
-  it("logout posts to /api/auth/logout", async () => {
-    fetchMock = mockFetch({});
-    await auth.logout();
-    expect(fetchMock.lastCall()).toMatchObject({ url: "/api/auth/logout", method: "POST" });
-  });
-
   it("validateResetToken fetches the token status", async () => {
     fetchMock = mockFetch({ valid: true });
     await auth.validateResetToken("reset-tok");

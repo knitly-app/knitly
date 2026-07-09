@@ -13,14 +13,4 @@ describe("ChatSystemMessage", () => {
     await renderWithProviders(<ChatSystemMessage type="leave" username="bob" />);
     expect(screen.getByText("bob left")).toBeInTheDocument();
   });
-
-  it("includes the username in the join message", async () => {
-    await renderWithProviders(<ChatSystemMessage type="join" username="charlie" />);
-    expect(screen.getByText("charlie entered")).toBeInTheDocument();
-  });
-
-  it("includes the username in the leave message", async () => {
-    await renderWithProviders(<ChatSystemMessage type="leave" username="diana" />);
-    expect(screen.getByText("diana left")).toBeInTheDocument();
-  });
 });

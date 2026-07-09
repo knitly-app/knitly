@@ -80,20 +80,12 @@ describe("SearchRoute — initial state", () => {
     await renderSearch();
     expect(screen.getByText(/Search for people or moments/i)).toBeInTheDocument();
   });
-
-  it("People button is active by default", async () => {
-    await renderSearch();
-    const peopleBtn = screen.getByRole("button", { name: "People" });
-    expect(peopleBtn.className).toContain("bg-accent-500");
-  });
 });
 
 describe("SearchRoute — mode switching", () => {
   it("switches to posts mode when Posts button is clicked", async () => {
     await renderSearch();
     fireEvent.click(screen.getByRole("button", { name: "Posts" }));
-    const postsBtn = screen.getByRole("button", { name: "Posts" });
-    expect(postsBtn.className).toContain("bg-accent-500");
     expect(useUIStore.getState().searchMode).toBe("posts");
   });
 

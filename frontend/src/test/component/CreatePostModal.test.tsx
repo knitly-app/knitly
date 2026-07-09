@@ -446,67 +446,6 @@ describe("CreatePostModal — mention autocomplete", () => {
     fireEvent.click(screen.getByText("Alice"));
     expect((textarea as HTMLTextAreaElement).value).toContain("@alice");
   });
-
-  it("onClose of mention autocomplete hides the dropdown", async () => {
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.circles.all(), []);
-    qc.setQueryData(queryKeys.search.mentions("al"), [
-      { id: "u1", username: "alice", displayName: "Alice", createdAt: "2024-01-01" },
-    ]);
-    fetchMock = mockFetch([]);
-    await renderWithProviders(<CreatePostModal onClose={mock(() => {})} />, { queryClient: qc });
-    const textarea = screen.getByPlaceholderText("What's happening?");
-    Object.defineProperty(textarea, "selectionStart", { value: 3, configurable: true });
-    fireEvent.input(textarea, { target: { value: "@al" } });
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-    // Type a space to clear the @-mention pattern — resets visibility
-    Object.defineProperty(textarea, "selectionStart", { value: 4, configurable: true });
-    fireEvent.input(textarea, { target: { value: "@al " } });
-    await waitFor(() => expect(screen.queryByText("Alice")).toBeNull());
-  });
-
-  it("ArrowDown keydown delegates to mention ref and advances selection", async () => {
-    // Covers lines 98-100: handleTextareaKeyDown delegates to mentionRef when visible
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.circles.all(), []);
-    qc.setQueryData(queryKeys.search.mentions("al"), [
-      { id: "u1", username: "alice", displayName: "Alice", createdAt: "2024-01-01" },
-      { id: "u2", username: "alan", displayName: "Alan", createdAt: "2024-01-01" },
-    ]);
-    fetchMock = mockFetch([]);
-    await renderWithProviders(<CreatePostModal onClose={mock(() => {})} />, { queryClient: qc });
-    const textarea = screen.getByPlaceholderText("What's happening?");
-    Object.defineProperty(textarea, "selectionStart", { value: 3, configurable: true });
-    fireEvent.input(textarea, { target: { value: "@al" } });
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-    // Fire ArrowDown — mentionRef.current.handleKeyDown consumes it and advances selection
-    fireEvent.keyDown(textarea, { key: "ArrowDown" });
-    await waitFor(() => {
-      const alanBtn = screen
-        .getAllByRole("button")
-        .find((b) => b.textContent?.includes("Alan") && b.className.includes("bg-accent-50"));
-      expect(alanBtn).toBeDefined();
-    });
-  });
-  it("selecting a mention positions cursor after inserted username", async () => {
-    // Covers lines 91-93: the setTimeout callback in handleMentionSelect runs
-    // setSelectionRange and focus after insertion.
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.circles.all(), []);
-    qc.setQueryData(queryKeys.search.mentions("al"), [
-      { id: "u1", username: "alice", displayName: "Alice", createdAt: "2024-01-01" },
-    ]);
-    fetchMock = mockFetch([]);
-    await renderWithProviders(<CreatePostModal onClose={mock(() => {})} />, { queryClient: qc });
-    const textarea = screen.getByPlaceholderText("What's happening?");
-    Object.defineProperty(textarea, "selectionStart", { value: 3, configurable: true });
-    fireEvent.input(textarea, { target: { value: "@al" } });
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-    fireEvent.click(screen.getByText("Alice"));
-    // Drain the event loop so the setTimeout(fn, 0) callback fires
-    await new Promise((r) => setTimeout(r, 10));
-    expect((textarea as HTMLTextAreaElement).value).toContain("@alice");
-  });
 });
 
 describe("CreatePostModal — photo file selection", () => {

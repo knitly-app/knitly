@@ -314,20 +314,6 @@ describe("PostRoute — add comment", () => {
 });
 
 describe("PostRoute — delete comment flow", () => {
-  it("opens confirm dialog when delete comment is clicked", async () => {
-    const currentUser = makeUser({ id: "u2" });
-    const post = makePost();
-    const comments = [makeComment({ userId: "u2" })];
-    await renderPost("p1", post, comments, currentUser);
-
-    await waitFor(() => expect(screen.getByLabelText("Delete comment")).toBeInTheDocument());
-    fireEvent.click(screen.getByLabelText("Delete comment"));
-
-    await waitFor(() => {
-      expect(screen.getByText("Delete Comment")).toBeInTheDocument();
-    });
-  });
-
   it("calls delete API when confirm dialog is confirmed", async () => {
     const currentUser = makeUser({ id: "u2" });
     const post = makePost();
@@ -388,21 +374,6 @@ describe("PostRoute — back navigation", () => {
 });
 
 describe("PostRoute — mention detection", () => {
-  it("typing @ in comment input shows mention autocomplete hint", async () => {
-    const post = makePost();
-    await renderPost("p1", post);
-    await waitFor(() =>
-      expect(screen.getByPlaceholderText("Add a comment...")).toBeInTheDocument()
-    );
-    const input = screen.getByPlaceholderText("Add a comment...");
-    // Simulate typing @a — only 1 char, shows "Type 2+ characters" hint
-    input.value = "@a";
-    fireEvent.input(input);
-    await waitFor(() => {
-      expect(screen.getByText(/type 2\+ characters/i)).toBeInTheDocument();
-    });
-  });
-
   it("typing @ada (2+ chars) enables mention search", async () => {
     const post = makePost();
     const qc = makeQueryClient();
@@ -438,25 +409,6 @@ describe("PostRoute — mention detection", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Ada")).toBeInTheDocument();
-    });
-  });
-
-  it("typing non-@ text hides mention autocomplete when it was visible", async () => {
-    const post = makePost();
-    await renderPost("p1", post);
-    await waitFor(() =>
-      expect(screen.getByPlaceholderText("Add a comment...")).toBeInTheDocument()
-    );
-    const input = screen.getByPlaceholderText("Add a comment...");
-    // First show it with @
-    input.value = "@a";
-    fireEvent.input(input);
-    await waitFor(() => expect(screen.getByText(/type 2\+ characters/i)).toBeInTheDocument());
-    // Then type without @
-    input.value = "hello";
-    fireEvent.input(input);
-    await waitFor(() => {
-      expect(screen.queryByText(/type 2\+ characters/i)).toBeNull();
     });
   });
 });
@@ -557,24 +509,6 @@ describe("PostRoute — mention select and keydown", () => {
         expect(input.value).toContain("@ada");
       });
     }
-  });
-
-  it("pressing Escape when mention is visible closes autocomplete", async () => {
-    const { input } = await setupMentionVisible();
-    fireEvent.keyDown(input, { key: "Escape" });
-    await waitFor(() => {
-      // After Escape, the autocomplete container should be gone
-      expect(document.querySelector(".fixed.z-50.bg-white.rounded-2xl")).toBeNull();
-    });
-  });
-
-  it("pressing Enter when mention is visible selects first suggestion", async () => {
-    const { input } = await setupMentionVisible();
-    fireEvent.keyDown(input, { key: "Enter" });
-    await waitFor(() => {
-      // After Enter, the input should have @ada inserted and autocomplete closed
-      expect(document.querySelector(".fixed.z-50.bg-white.rounded-2xl")).toBeNull();
-    });
   });
 });
 

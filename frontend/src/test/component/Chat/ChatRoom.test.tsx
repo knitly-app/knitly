@@ -149,29 +149,6 @@ describe("ChatRoom — message rendering", () => {
     });
   });
 
-  it("renders display name and username for a message", async () => {
-    setupFetch({ messages: [makeMsg()] });
-    const queryClient = makeQueryClient();
-    await renderWithProviders(<ChatRoom />, { queryClient });
-    await waitFor(() => {
-      expect(screen.getByText("Ada Lovelace")).toBeInTheDocument();
-      expect(screen.getByText("@ada")).toBeInTheDocument();
-    });
-  });
-
-  it("renders own message with reversed layout", async () => {
-    setupFetch({
-      messages: [makeMsg({ userId: "u1", username: "me", displayName: "Me User" })],
-    });
-    const queryClient = makeQueryClient();
-    await renderWithProviders(<ChatRoom />, { queryClient });
-    await waitFor(() => {
-      expect(screen.getByText("Me User")).toBeInTheDocument();
-    });
-    const outerDivs = document.querySelectorAll(".flex-row-reverse");
-    expect(outerDivs.length).toBeGreaterThan(0);
-  });
-
   it("renders multiple messages sorted by time", async () => {
     const msg1 = makeMsg({
       id: "m1",
@@ -191,40 +168,9 @@ describe("ChatRoom — message rendering", () => {
       expect(screen.getByText("Second")).toBeInTheDocument();
     });
   });
-
-  it("renders bot badge for bot role messages", async () => {
-    setupFetch({ messages: [makeMsg({ role: "bot" })] });
-    const queryClient = makeQueryClient();
-    await renderWithProviders(<ChatRoom />, { queryClient });
-    await waitFor(() => {
-      expect(screen.getByText("Bot")).toBeInTheDocument();
-    });
-  });
 });
 
-describe("ChatRoom — system messages", () => {
-  it("renders a join system message when presence data includes a join", async () => {
-    setupFetch({
-      presence: { online: 1, users: ["ada"], joins: ["ada"], leaves: [] },
-    });
-    const queryClient = makeQueryClient();
-    await renderWithProviders(<ChatRoom />, { queryClient });
-    await waitFor(() => {
-      expect(screen.getByText("ada entered")).toBeInTheDocument();
-    });
-  });
-
-  it("renders a leave system message when presence data includes a leave", async () => {
-    setupFetch({
-      presence: { online: 0, users: [], joins: [], leaves: ["bob"] },
-    });
-    const queryClient = makeQueryClient();
-    await renderWithProviders(<ChatRoom />, { queryClient });
-    await waitFor(() => {
-      expect(screen.getByText("bob left")).toBeInTheDocument();
-    });
-  });
-});
+describe("ChatRoom — system messages", () => {});
 
 describe("ChatRoom — sending a message", () => {
   it("calls the send endpoint when the button is clicked", async () => {

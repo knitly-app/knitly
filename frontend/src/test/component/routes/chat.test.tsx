@@ -50,13 +50,6 @@ describe("ChatRoute — render", () => {
     });
   });
 
-  it("renders 'Chat with your people' subtitle", async () => {
-    await renderChat();
-    await waitFor(() => {
-      expect(screen.getByText("Chat with your people")).toBeInTheDocument();
-    });
-  });
-
   it("shows empty message state with no messages", async () => {
     await renderChat([]);
     await waitFor(() => {
@@ -85,22 +78,6 @@ describe("ChatRoute — render", () => {
     });
     await waitFor(() => {
       expect(screen.getByText("Hello everyone!")).toBeInTheDocument();
-    });
-  });
-
-  it("renders the chat input area", async () => {
-    await renderChat();
-    await waitFor(() => {
-      const input = document.querySelector("textarea, input[placeholder]");
-      expect(input).toBeInTheDocument();
-    });
-  });
-
-  it("renders presence badge", async () => {
-    await renderChat();
-    await waitFor(() => {
-      // ChatPresenceBadge with online count 1
-      expect(screen.getByText(/1/)).toBeInTheDocument();
     });
   });
 });

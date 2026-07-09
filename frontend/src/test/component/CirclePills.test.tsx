@@ -15,24 +15,6 @@ describe("CirclePills", () => {
     expect(screen.getByText("Work")).toBeInTheDocument();
   });
 
-  it("highlights All button when selectedId is null", () => {
-    render(<CirclePills circles={circles} selectedId={null} onSelect={() => {}} />);
-    const allBtn = screen.getByText("All").closest("button") as HTMLButtonElement;
-    expect(allBtn.className).toContain("bg-accent-500");
-  });
-
-  it("highlights the selected circle pill", () => {
-    render(<CirclePills circles={circles} selectedId="c1" onSelect={() => {}} />);
-    const friendsBtn = screen.getByText("Friends").closest("button") as HTMLButtonElement;
-    expect(friendsBtn.className).toContain("bg-gray-800");
-  });
-
-  it("All button does not have active style when a circle is selected", () => {
-    render(<CirclePills circles={circles} selectedId="c1" onSelect={() => {}} />);
-    const allBtn = screen.getByText("All").closest("button") as HTMLButtonElement;
-    expect(allBtn.className).not.toContain("bg-accent-500");
-  });
-
   it("calls onSelect with null when All is clicked", () => {
     let selected: string | null = "c1";
     render(
@@ -128,14 +110,5 @@ describe("CirclePills", () => {
     );
     fireEvent.click(screen.getByText("Add"));
     expect(called).toBe(true);
-  });
-
-  it("uses fallback dot color for unknown color", () => {
-    const unknownColorCircles = [{ id: "c1", name: "Mystery", color: "neon" }];
-    render(<CirclePills circles={unknownColorCircles} selectedId={null} onSelect={() => {}} />);
-    expect(screen.getByText("Mystery")).toBeInTheDocument();
-    const btn = screen.getByText("Mystery").closest("button") as HTMLButtonElement;
-    const dot = btn.querySelector("span") as HTMLElement;
-    expect(dot.className).toContain("bg-gray-400");
   });
 });

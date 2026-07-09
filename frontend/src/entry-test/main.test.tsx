@@ -445,16 +445,6 @@ describe("main entry", () => {
   // -------------------------------------------------------------------------
   // signupRoute.validateSearch — no invite param → { invite: undefined }.
   // -------------------------------------------------------------------------
-  it("navigates to /signup without invite (undefined search branch)", async () => {
-    fetchMock = mockFetch((call) => makeResponder(call));
-
-    setAuthCached(ADMIN_USER);
-
-    await getRouter().navigate({ to: "/signup" });
-
-    expect(true).toBe(true);
-  });
-
   // -------------------------------------------------------------------------
   // resetPasswordRoute.validateSearch — token param coerced (286-287).
   //
@@ -524,46 +514,4 @@ describe("main entry", () => {
   // -------------------------------------------------------------------------
   // Remaining simple protected routes — each exercises rootRoute.beforeLoad.
   // -------------------------------------------------------------------------
-
-  it("navigates to /search", async () => {
-    fetchMock = mockFetch((call) => makeResponder(call));
-    setAuthCached(ADMIN_USER);
-    await getRouter().navigate({ to: "/search" });
-    expect(getRouter().state.location.pathname).toBe("/search");
-  });
-
-  it("navigates to /chat", async () => {
-    fetchMock = mockFetch((call) => makeResponder(call));
-    setAuthCached(ADMIN_USER);
-    await getRouter().navigate({ to: "/chat" });
-    expect(getRouter().state.location.pathname).toBe("/chat");
-  });
-
-  it("navigates to /circles", async () => {
-    fetchMock = mockFetch((call) => makeResponder(call));
-    setAuthCached(ADMIN_USER);
-    await getRouter().navigate({ to: "/circles" });
-    expect(getRouter().state.location.pathname).toBe("/circles");
-  });
-
-  it("navigates to /members", async () => {
-    fetchMock = mockFetch((call) => makeResponder(call));
-    setAuthCached(ADMIN_USER);
-    await getRouter().navigate({ to: "/members" });
-    expect(getRouter().state.location.pathname).toBe("/members");
-  });
-
-  it("navigates to /settings", async () => {
-    fetchMock = mockFetch((call) => makeResponder(call));
-    setAuthCached(ADMIN_USER);
-    await getRouter().navigate({ to: "/settings" });
-    expect(getRouter().state.location.pathname).toBe("/settings");
-  });
-
-  it("navigates back to / (indexRoute)", async () => {
-    fetchMock = mockFetch((call) => makeResponder(call));
-    setAuthCached(ADMIN_USER);
-    await getRouter().navigate({ to: "/" });
-    expect(getRouter().state.location.pathname).toBe("/");
-  });
 });

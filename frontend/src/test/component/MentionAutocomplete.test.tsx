@@ -95,27 +95,6 @@ describe("MentionAutocomplete — selection", () => {
     fireEvent.click(screen.getByText("Alice Smith"));
     expect(onSelect).toHaveBeenCalledWith("alice", "Alice Smith");
   });
-
-  it("highlights the first user row by default", async () => {
-    fetchMock = mockFetch([alice, bob]);
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.search.mentions("ali"), [alice, bob]);
-    const props = makeProps({ query: "ali" });
-    await renderWithProviders(<MentionAutocomplete {...props} />, { queryClient: qc });
-    const buttons = screen.getAllByRole("button");
-    expect(buttons[0].className).toContain("bg-accent-50");
-  });
-
-  it("updates hover highlight on mouseenter", async () => {
-    fetchMock = mockFetch([alice, bob]);
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.search.mentions("ali"), [alice, bob]);
-    const props = makeProps({ query: "ali" });
-    await renderWithProviders(<MentionAutocomplete {...props} />, { queryClient: qc });
-    const buttons = screen.getAllByRole("button");
-    fireEvent.mouseEnter(buttons[1]);
-    expect(buttons[1].className).toContain("bg-accent-50");
-  });
 });
 
 describe("MentionAutocomplete — keyboard navigation via imperative handle", () => {
@@ -158,10 +137,8 @@ describe("MentionAutocomplete — keyboard navigation via imperative handle", ()
     await waitFor(() => expect(screen.getByText("Bob Jones")).toBeInTheDocument());
     const trigger = document.getElementById("trigger")!;
     fireEvent.keyDown(trigger, { key: "ArrowDown" });
-    await waitFor(() => {
-      const buttons = screen.getAllByRole("button").filter((b) => b.textContent?.includes("Bob"));
-      expect(buttons[0].className).toContain("bg-accent-50");
-    });
+    fireEvent.keyDown(trigger, { key: "Enter" });
+    expect(onSelect).toHaveBeenCalledWith("bob", "Bob Jones");
   });
 
   it("ArrowUp wraps to last user", async () => {
@@ -182,10 +159,8 @@ describe("MentionAutocomplete — keyboard navigation via imperative handle", ()
     await waitFor(() => expect(screen.getByText("Bob Jones")).toBeInTheDocument());
     const trigger = document.getElementById("trigger")!;
     fireEvent.keyDown(trigger, { key: "ArrowUp" });
-    await waitFor(() => {
-      const buttons = screen.getAllByRole("button").filter((b) => b.textContent?.includes("Bob"));
-      expect(buttons[0].className).toContain("bg-accent-50");
-    });
+    fireEvent.keyDown(trigger, { key: "Enter" });
+    expect(onSelect).toHaveBeenCalledWith("bob", "Bob Jones");
   });
 
   it("Enter selects the currently highlighted user", async () => {

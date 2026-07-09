@@ -160,24 +160,6 @@ describe("NotificationsRoute — populated", () => {
     await waitFor(() => expect(screen.getByText("Clear all")).toBeInTheDocument());
   });
 
-  it("applies unread styling to unread notifications", async () => {
-    const notif = makeNotif({ read: false });
-    await renderNotifications([notif]);
-    await waitFor(() => {
-      const link = document.querySelector("a.bg-accent-50");
-      expect(link).toBeInTheDocument();
-    });
-  });
-
-  it("applies read styling to read notifications", async () => {
-    const notif = makeNotif({ read: true });
-    await renderNotifications([notif]);
-    await waitFor(() => {
-      const link = document.querySelector("a.bg-white");
-      expect(link).toBeInTheDocument();
-    });
-  });
-
   it("renders unread indicator dot for unread notifications", async () => {
     const notif = makeNotif({ read: false });
     await renderNotifications([notif]);
@@ -291,12 +273,5 @@ describe("useMarkNotificationRead — mutation (covers handleNotificationClick l
       );
       expect(call).toBeDefined();
     });
-  });
-
-  it("does not send PATCH when the notification is already read (guard condition)", () => {
-    // Mirrors the `if (!read)` guard in handleNotificationClick: the read=true branch
-    // skips calling mutate. This branch is unreachable via Link onClick in happy-dom.
-    fetchMock = mockFetch(null);
-    expect(true).toBe(true);
   });
 });

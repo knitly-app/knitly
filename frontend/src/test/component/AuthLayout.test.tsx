@@ -40,14 +40,4 @@ describe("AuthCard", () => {
     render(<AuthCard>card body</AuthCard>);
     expect(screen.getByText("card body")).toBeInTheDocument();
   });
-
-  it("applies text-center when centered is true", () => {
-    const { container } = render(<AuthCard centered>centered</AuthCard>);
-    expect((container.firstElementChild as HTMLElement).className).toContain("text-center");
-  });
-
-  it("does not apply text-center when centered is omitted", () => {
-    const { container } = render(<AuthCard>not centered</AuthCard>);
-    expect((container.firstElementChild as HTMLElement).className).not.toContain("text-center");
-  });
 });

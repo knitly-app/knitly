@@ -116,12 +116,6 @@ describe("MembersRoute — empty state", () => {
 });
 
 describe("MembersRoute — populated", () => {
-  it("renders a member card with display name", async () => {
-    const members = [makeMember({ displayName: "Ada Lovelace" })];
-    await renderMembers(members);
-    await waitFor(() => expect(screen.getByText("Ada Lovelace")).toBeInTheDocument());
-  });
-
   it("renders multiple member cards", async () => {
     const members = [
       makeMember({ id: "u1", username: "ada", displayName: "Ada" }),

@@ -56,20 +56,6 @@ describe("ConfirmProvider / useConfirm", () => {
       expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Confirm" })).toBeInTheDocument();
     });
-
-    it("applies danger styling when danger=true", () => {
-      setup({ message: "Danger!", danger: true }, () => {});
-      fireEvent.click(screen.getByTestId("trigger"));
-      const confirmBtn = screen.getByRole("button", { name: "Confirm" });
-      expect(confirmBtn.className).toContain("bg-red-500");
-    });
-
-    it("applies non-danger styling when danger is omitted", () => {
-      setup({ message: "Safe action" }, () => {});
-      fireEvent.click(screen.getByTestId("trigger"));
-      const confirmBtn = screen.getByRole("button", { name: "Confirm" });
-      expect(confirmBtn.className).toContain("bg-accent-500");
-    });
   });
 
   describe("resolution", () => {

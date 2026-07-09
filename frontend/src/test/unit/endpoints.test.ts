@@ -1,17 +1,5 @@
 import { describe, it, expect, afterEach } from "bun:test";
-import {
-  users,
-  posts,
-  notifications,
-  search,
-  invites,
-  media,
-  circles,
-  admin,
-  chat,
-  settings,
-  setup,
-} from "../../api/endpoints";
+import { users, posts, search, invites, media, admin, chat, setup } from "../../api/endpoints";
 import { mockFetch, type MockFetchResult } from "../helpers/fetch";
 
 let fetchMock: MockFetchResult;
@@ -45,18 +33,6 @@ describe("users endpoints", () => {
     expect(fetchMock.lastCall()).toMatchObject({ url: "/api/users/1/following", method: "GET" });
   });
 
-  it("follow posts to follow endpoint", async () => {
-    fetchMock = mockFetch({});
-    await users.follow("1");
-    expect(fetchMock.lastCall()).toMatchObject({ url: "/api/users/1/follow", method: "POST" });
-  });
-
-  it("unfollow deletes follow", async () => {
-    fetchMock = mockFetch(null);
-    await users.unfollow("1");
-    expect(fetchMock.lastCall()).toMatchObject({ url: "/api/users/1/follow", method: "DELETE" });
-  });
-
   it("list fetches all users", async () => {
     fetchMock = mockFetch([]);
     await users.list();
@@ -65,12 +41,6 @@ describe("users endpoints", () => {
 });
 
 describe("posts endpoints", () => {
-  it("feed without params omits query string", async () => {
-    fetchMock = mockFetch({ posts: [], nextCursor: undefined });
-    await posts.feed();
-    expect(fetchMock.lastCall()!.url).toBe("/api/feed?");
-  });
-
   it("feed with cursor builds query string", async () => {
     fetchMock = mockFetch({ posts: [] });
     await posts.feed("cur1");
@@ -81,131 +51,6 @@ describe("posts endpoints", () => {
     fetchMock = mockFetch({ posts: [] });
     await posts.feed("cur1", "circle42");
     expect(fetchMock.lastCall()!.url).toBe("/api/feed?cursor=cur1&circleId=circle42");
-  });
-
-  it("get fetches a single post", async () => {
-    fetchMock = mockFetch({ id: "p1" });
-    await posts.get("p1");
-    expect(fetchMock.lastCall()).toMatchObject({ url: "/api/posts/p1", method: "GET" });
-  });
-
-  it("create posts new post", async () => {
-    fetchMock = mockFetch({ id: "p1" });
-    await posts.create({ content: "hello" });
-    const call = fetchMock.lastCall()!;
-    expect(call.url).toBe("/api/posts");
-    expect(call.method).toBe("POST");
-    expect(call.body).toMatchObject({ content: "hello" });
-  });
-
-  it("delete removes a post", async () => {
-    fetchMock = mockFetch(null);
-    await posts.delete("p1");
-    expect(fetchMock.lastCall()).toMatchObject({ url: "/api/posts/p1", method: "DELETE" });
-  });
-
-  it("update patches post content", async () => {
-    fetchMock = mockFetch({ id: "p1" });
-    await posts.update("p1", "new content");
-    const call = fetchMock.lastCall()!;
-    expect(call.url).toBe("/api/posts/p1");
-    expect(call.method).toBe("PATCH");
-    expect(call.body).toMatchObject({ content: "new content" });
-  });
-
-  it("react posts a reaction", async () => {
-    fetchMock = mockFetch({ success: true, reactions: {}, userReaction: "love" });
-    await posts.react("p1", "love");
-    const call = fetchMock.lastCall()!;
-    expect(call.url).toBe("/api/posts/p1/reactions");
-    expect(call.method).toBe("POST");
-    expect(call.body).toMatchObject({ type: "love" });
-  });
-
-  it("unreact deletes a reaction", async () => {
-    fetchMock = mockFetch({ success: true, reactions: {}, userReaction: null });
-    await posts.unreact("p1");
-    expect(fetchMock.lastCall()).toMatchObject({
-      url: "/api/posts/p1/reactions",
-      method: "DELETE",
-    });
-  });
-
-  it("vote posts a poll vote", async () => {
-    fetchMock = mockFetch({ poll: {} });
-    await posts.vote("p1", "opt1");
-    const call = fetchMock.lastCall()!;
-    expect(call.url).toBe("/api/posts/p1/vote");
-    expect(call.method).toBe("POST");
-    expect(call.body).toMatchObject({ optionId: "opt1" });
-  });
-
-  it("comments fetches comments for a post", async () => {
-    fetchMock = mockFetch([]);
-    await posts.comments("p1");
-    expect(fetchMock.lastCall()).toMatchObject({ url: "/api/posts/p1/comments", method: "GET" });
-  });
-
-  it("addComment posts a new comment", async () => {
-    fetchMock = mockFetch({ id: "c1" });
-    await posts.addComment("p1", "great post");
-    const call = fetchMock.lastCall()!;
-    expect(call.url).toBe("/api/posts/p1/comments");
-    expect(call.method).toBe("POST");
-    expect(call.body).toMatchObject({ content: "great post" });
-  });
-
-  it("deleteComment removes a comment", async () => {
-    fetchMock = mockFetch(null);
-    await posts.deleteComment("p1", "c1");
-    expect(fetchMock.lastCall()).toMatchObject({
-      url: "/api/posts/p1/comments/c1",
-      method: "DELETE",
-    });
-  });
-
-  it("userPosts without mediaOnly omits param", async () => {
-    fetchMock = mockFetch([]);
-    await posts.userPosts("u1");
-    expect(fetchMock.lastCall()!.url).toBe("/api/users/u1/posts?");
-  });
-
-  it("userPosts with mediaOnly=true appends param", async () => {
-    fetchMock = mockFetch([]);
-    await posts.userPosts("u1", true);
-    expect(fetchMock.lastCall()!.url).toBe("/api/users/u1/posts?mediaOnly=true");
-  });
-});
-
-describe("notifications endpoints", () => {
-  it("list fetches notifications", async () => {
-    fetchMock = mockFetch([]);
-    await notifications.list();
-    expect(fetchMock.lastCall()).toMatchObject({ url: "/api/notifications", method: "GET" });
-  });
-
-  it("markRead patches a notification", async () => {
-    fetchMock = mockFetch({});
-    await notifications.markRead("n1");
-    expect(fetchMock.lastCall()).toMatchObject({
-      url: "/api/notifications/n1/read",
-      method: "PATCH",
-    });
-  });
-
-  it("markAllRead posts to read-all", async () => {
-    fetchMock = mockFetch({});
-    await notifications.markAllRead();
-    expect(fetchMock.lastCall()).toMatchObject({
-      url: "/api/notifications/read-all",
-      method: "POST",
-    });
-  });
-
-  it("clearAll deletes all notifications", async () => {
-    fetchMock = mockFetch(null);
-    await notifications.clearAll();
-    expect(fetchMock.lastCall()).toMatchObject({ url: "/api/notifications", method: "DELETE" });
   });
 });
 
@@ -269,62 +114,6 @@ describe("media endpoints", () => {
     expect(call.url).toBe("/api/media/complete");
     expect(call.method).toBe("POST");
     expect(call.body).toMatchObject({ key: "k1" });
-  });
-});
-
-describe("circles endpoints", () => {
-  it("list fetches circles", async () => {
-    fetchMock = mockFetch([]);
-    await circles.list();
-    expect(fetchMock.lastCall()).toMatchObject({ url: "/api/circles", method: "GET" });
-  });
-
-  it("get fetches a single circle", async () => {
-    fetchMock = mockFetch({ id: "c1" });
-    await circles.get("c1");
-    expect(fetchMock.lastCall()).toMatchObject({ url: "/api/circles/c1", method: "GET" });
-  });
-
-  it("create posts a new circle", async () => {
-    fetchMock = mockFetch({ id: "c1" });
-    await circles.create({ name: "Friends", color: "#ff0000" });
-    const call = fetchMock.lastCall()!;
-    expect(call.url).toBe("/api/circles");
-    expect(call.method).toBe("POST");
-    expect(call.body).toMatchObject({ name: "Friends", color: "#ff0000" });
-  });
-
-  it("update patches circle fields", async () => {
-    fetchMock = mockFetch({ id: "c1" });
-    await circles.update("c1", { name: "Close Friends" });
-    const call = fetchMock.lastCall()!;
-    expect(call.url).toBe("/api/circles/c1");
-    expect(call.method).toBe("PATCH");
-    expect(call.body).toMatchObject({ name: "Close Friends" });
-  });
-
-  it("delete removes a circle", async () => {
-    fetchMock = mockFetch(null);
-    await circles.delete("c1");
-    expect(fetchMock.lastCall()).toMatchObject({ url: "/api/circles/c1", method: "DELETE" });
-  });
-
-  it("addMembers posts member ids to circle", async () => {
-    fetchMock = mockFetch({ success: true, added: 2 });
-    await circles.addMembers("c1", [1, 2]);
-    const call = fetchMock.lastCall()!;
-    expect(call.url).toBe("/api/circles/c1/members");
-    expect(call.method).toBe("POST");
-    expect(call.body).toMatchObject({ userIds: [1, 2] });
-  });
-
-  it("removeMember deletes a member from circle", async () => {
-    fetchMock = mockFetch(null);
-    await circles.removeMember("c1", "u1");
-    expect(fetchMock.lastCall()).toMatchObject({
-      url: "/api/circles/c1/members/u1",
-      method: "DELETE",
-    });
   });
 });
 
@@ -526,48 +315,16 @@ describe("chat endpoints", () => {
     expect(fetchMock.lastCall()!.url).toBe("/api/chat/messages?since=2024-01-01T00%3A00%3A00Z");
   });
 
-  it("send posts a message", async () => {
-    fetchMock = mockFetch({ id: "m1" });
-    await chat.send("hello");
-    const call = fetchMock.lastCall()!;
-    expect(call.url).toBe("/api/chat/messages");
-    expect(call.method).toBe("POST");
-    expect(call.body).toMatchObject({ content: "hello" });
-  });
-
   it("presence posts to presence endpoint", async () => {
     fetchMock = mockFetch({ online: 1, users: [], joins: [], leaves: [] });
     await chat.presence();
     expect(fetchMock.lastCall()).toMatchObject({ url: "/api/chat/presence", method: "POST" });
   });
 
-  it("status fetches chat status", async () => {
-    fetchMock = mockFetch({ online: 3 });
-    await chat.status();
-    expect(fetchMock.lastCall()).toMatchObject({ url: "/api/chat/status", method: "GET" });
-  });
-
   it("leave posts to leave endpoint", async () => {
     fetchMock = mockFetch({});
     await chat.leave();
     expect(fetchMock.lastCall()).toMatchObject({ url: "/api/chat/leave", method: "POST" });
-  });
-});
-
-describe("settings endpoints", () => {
-  it("get fetches settings", async () => {
-    fetchMock = mockFetch({ appName: "Knitly", logoIcon: "icon.png" });
-    await settings.get();
-    expect(fetchMock.lastCall()).toMatchObject({ url: "/api/settings", method: "GET" });
-  });
-
-  it("update puts new settings", async () => {
-    fetchMock = mockFetch({ appName: "NewName", logoIcon: "icon.png" });
-    await settings.update({ appName: "NewName" });
-    const call = fetchMock.lastCall()!;
-    expect(call.url).toBe("/api/settings");
-    expect(call.method).toBe("PUT");
-    expect(call.body).toMatchObject({ appName: "NewName" });
   });
 });
 

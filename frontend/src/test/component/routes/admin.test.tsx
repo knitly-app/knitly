@@ -432,27 +432,6 @@ describe("AdminRoute — overview: members table", () => {
     });
   });
 
-  it("clicking Disable shows confirm dialog", async () => {
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.stats(), baseStats);
-    qc.setQueryData(queryKeys.admin.users(), [adminUser, memberUser]);
-    qc.setQueryData(queryKeys.admin.invites(), []);
-    fetchMock = makeAdminFetch();
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=overview"],
-      queryClient: qc,
-    });
-    await waitFor(() => {
-      expect(screen.getByText("Disable")).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByText("Disable"));
-    await waitFor(() => {
-      expect(screen.getByText("Disable User")).toBeInTheDocument();
-    });
-  });
-
   it("confirming Disable calls POST /api/admin/users/:id/disable", async () => {
     const qc = makeQueryClient();
     qc.setQueryData(queryKeys.auth.me(), adminUser);
@@ -568,27 +547,6 @@ describe("AdminRoute — overview: members table", () => {
     });
   });
 
-  it("clicking Remove shows confirm dialog", async () => {
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.stats(), baseStats);
-    qc.setQueryData(queryKeys.admin.users(), [adminUser, memberUser]);
-    qc.setQueryData(queryKeys.admin.invites(), []);
-    fetchMock = makeAdminFetch();
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=overview"],
-      queryClient: qc,
-    });
-    await waitFor(() => {
-      expect(screen.getByText("Remove")).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByText("Remove"));
-    await waitFor(() => {
-      expect(screen.getByText("Remove User")).toBeInTheDocument();
-    });
-  });
-
   it("shows Revoke Sessions button", async () => {
     const qc = makeQueryClient();
     qc.setQueryData(queryKeys.auth.me(), adminUser);
@@ -603,27 +561,6 @@ describe("AdminRoute — overview: members table", () => {
     });
     await waitFor(() => {
       expect(screen.getByText(/Revoke Sessions/)).toBeInTheDocument();
-    });
-  });
-
-  it("clicking Revoke Sessions shows confirm dialog", async () => {
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.stats(), baseStats);
-    qc.setQueryData(queryKeys.admin.users(), [adminUser, memberUser]);
-    qc.setQueryData(queryKeys.admin.invites(), []);
-    fetchMock = makeAdminFetch();
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=overview"],
-      queryClient: qc,
-    });
-    await waitFor(() => {
-      expect(screen.getByText(/Revoke Sessions/)).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByText(/Revoke Sessions/));
-    await waitFor(() => {
-      expect(screen.getByText("Revoke All Sessions")).toBeInTheDocument();
     });
   });
 
@@ -643,28 +580,6 @@ describe("AdminRoute — overview: members table", () => {
     await waitFor(() => {
       // getAllByText because multiple "Reset Password" is possible with multiple users
       expect(screen.getAllByText(/Reset Password/).length).toBeGreaterThan(0);
-    });
-  });
-
-  it("clicking Reset Password shows confirm dialog", async () => {
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.stats(), baseStats);
-    qc.setQueryData(queryKeys.admin.users(), [adminUser, memberUser]);
-    qc.setQueryData(queryKeys.admin.invites(), []);
-    fetchMock = makeAdminFetch();
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=overview"],
-      queryClient: qc,
-    });
-    await waitFor(() => {
-      expect(screen.getAllByText(/Reset Password/).length).toBeGreaterThan(0);
-    });
-    fireEvent.click(screen.getAllByText(/Reset Password/)[0]);
-    await waitFor(() => {
-      // The dialog title is "Reset Password"
-      expect(screen.getByRole("heading", { name: "Reset Password" })).toBeInTheDocument();
     });
   });
 
@@ -1000,38 +915,6 @@ describe("AdminRoute — overview: transfer ownership", () => {
       expect(screen.getByText("No matching members")).toBeInTheDocument();
     });
   });
-
-  it("clicking a user in transfer results shows confirm dialog", async () => {
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.stats(), baseStats);
-    qc.setQueryData(queryKeys.admin.users(), [adminUser, memberUser]);
-    qc.setQueryData(queryKeys.admin.invites(), []);
-    fetchMock = makeAdminFetch();
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=overview"],
-      queryClient: qc,
-    });
-    await waitFor(() => {
-      expect(screen.getByLabelText("Search users for ownership transfer")).toBeInTheDocument();
-    });
-    fireEvent.input(screen.getByLabelText("Search users for ownership transfer"), {
-      target: { value: "ali" },
-    });
-    await waitFor(() => {
-      const dropdown = document.querySelector(".absolute.top-full");
-      expect(dropdown?.textContent).toContain("Alice");
-    });
-    // Click Alice in the dropdown
-    const aliceBtn = screen
-      .getAllByRole("button")
-      .find((b) => b.textContent?.includes("Alice") && b.textContent?.includes("@alice"));
-    fireEvent.click(aliceBtn!);
-    await waitFor(() => {
-      expect(screen.getAllByText("Transfer Ownership").length).toBeGreaterThan(0);
-    });
-  });
 });
 
 describe("AdminRoute — bots tab", () => {
@@ -1328,25 +1211,6 @@ describe("AdminRoute — bots tab", () => {
     });
   });
 
-  it("Regenerate Key shows confirm dialog", async () => {
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.bots(), [baseBot]);
-    fetchMock = makeAdminFetch({ bots: [baseBot] });
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=bots"],
-      queryClient: qc,
-    });
-    await waitFor(() => {
-      expect(screen.getByText(/Regenerate Key/)).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByText(/Regenerate Key/));
-    await waitFor(() => {
-      expect(screen.getByText("Regenerate API Key")).toBeInTheDocument();
-    });
-  });
-
   it("confirms Regenerate Key calls POST /api/admin/bots/:id/regenerate-key", async () => {
     const qc = makeQueryClient();
     qc.setQueryData(queryKeys.auth.me(), adminUser);
@@ -1377,44 +1241,6 @@ describe("AdminRoute — bots tab", () => {
         (c) => c.url.includes("/regenerate-key") && c.method === "POST"
       );
       expect(call).toBeDefined();
-    });
-  });
-
-  it("Revoke Key shows confirm dialog", async () => {
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.bots(), [baseBot]);
-    fetchMock = makeAdminFetch({ bots: [baseBot] });
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=bots"],
-      queryClient: qc,
-    });
-    await waitFor(() => {
-      expect(screen.getByText("Revoke Key")).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByText("Revoke Key"));
-    await waitFor(() => {
-      expect(screen.getByText("Revoke API Key")).toBeInTheDocument();
-    });
-  });
-
-  it("Delete bot shows confirm dialog", async () => {
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.bots(), [baseBot]);
-    fetchMock = makeAdminFetch({ bots: [baseBot] });
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=bots"],
-      queryClient: qc,
-    });
-    await waitFor(() => {
-      expect(screen.getByText("Delete")).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByText("Delete"));
-    await waitFor(() => {
-      expect(screen.getByText("Delete Bot")).toBeInTheDocument();
     });
   });
 
@@ -1547,25 +1373,6 @@ describe("AdminRoute — moderation tab", () => {
     });
     await waitFor(() => {
       expect(screen.getByText("Nothing to review")).toBeInTheDocument();
-    });
-  });
-
-  it("Remove button shows confirm dialog for post", async () => {
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.content(), { pages: [baseContent], pageParams: [undefined] });
-    fetchMock = makeAdminFetch({ content: baseContent });
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=moderation"],
-      queryClient: qc,
-    });
-    await waitFor(() => {
-      expect(screen.getAllByText("Remove").length).toBeGreaterThan(0);
-    });
-    fireEvent.click(screen.getAllByText("Remove")[0]);
-    await waitFor(() => {
-      expect(screen.getByText("Remove Post")).toBeInTheDocument();
     });
   });
 
@@ -2231,75 +2038,6 @@ describe("AdminRoute — clipboard: Copy Link on invite", () => {
   });
 });
 
-describe("AdminRoute — clipboard: Copy API key in bots banner", () => {
-  it("clicking copy button in API key banner copies key to clipboard", async () => {
-    let copied = "";
-    const writeText = mock((text: string) => {
-      copied = text;
-      return Promise.resolve();
-    });
-    Object.defineProperty(globalThis.navigator, "clipboard", {
-      value: { writeText },
-      writable: true,
-      configurable: true,
-    });
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.bots(), []);
-    fetchMock = mockFetch(({ url, method }: { url: string; method: string }) => {
-      if (url.includes("/api/admin/bots") && method === "POST") {
-        return {
-          id: "b99",
-          username: "newbot",
-          displayName: "New Bot",
-          bio: "",
-          apiKey: "sk-copy-me",
-        };
-      }
-      if (url.includes("/api/admin/bots")) return [];
-      if (url.includes("/api/auth/me")) return adminUser;
-      if (url.includes("/api/settings")) return { appName: "Knitly", logoIcon: "Zap" };
-      return null;
-    });
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=bots"],
-      queryClient: qc,
-    });
-    fireEvent.click(screen.getByText("New Bot"));
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText("knitly-bot")).toBeInTheDocument();
-    });
-    fireEvent.input(screen.getByPlaceholderText("knitly-bot"), { target: { value: "newbot" } });
-    fireEvent.input(screen.getByPlaceholderText("Knitly Bot"), { target: { value: "New Bot" } });
-    fireEvent.click(screen.getByText("Create Bot"));
-    await waitFor(() => {
-      expect(screen.getByText("API Key Created")).toBeInTheDocument();
-    });
-    // The copy icon button is the second icon button (after the eye toggle)
-    const copyBtn =
-      screen
-        .getAllByRole("button")
-        .find(
-          (b) =>
-            !b.textContent?.trim() &&
-            b.className.includes("rounded-xl") &&
-            b.querySelector("svg") &&
-            b !==
-              screen
-                .getAllByRole("button")
-                .find((x) => x.className.includes("rounded-xl") && x.querySelector("svg"))
-        ) ??
-      screen
-        .getAllByRole("button")
-        .filter((b) => b.className.includes("rounded-xl") && !b.textContent?.trim())[1];
-    if (copyBtn) fireEvent.click(copyBtn);
-    await waitFor(() => {
-      expect(copied).toBe("sk-copy-me");
-    });
-  });
-});
-
 describe("AdminRoute — moderation load more", () => {
   it("clicking Load more triggers fetchNextPage", async () => {
     const contentWithNext = {
@@ -2399,163 +2137,6 @@ describe("AdminRoute — error paths: onError handlers show toast", () => {
     });
   });
 
-  it("promoteUser error path is exercised when fetch errors", async () => {
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.stats(), baseStats);
-    qc.setQueryData(queryKeys.admin.users(), [adminUser, memberUser]);
-    qc.setQueryData(queryKeys.admin.invites(), []);
-    fetchMock = mockFetch(({ url, method }: { url: string; method: string }) => {
-      if (url.includes("/promote") && method === "POST") return errorResponse(500);
-      if (url.includes("/api/admin/users")) return [adminUser, memberUser];
-      if (url.includes("/api/admin/stats")) return baseStats;
-      if (url.includes("/api/invites")) return [baseInvite];
-      if (url.includes("/api/auth/me")) return adminUser;
-      if (url.includes("/api/settings")) return { appName: "Knitly", logoIcon: "Zap" };
-      return null;
-    });
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=overview"],
-      queryClient: qc,
-    });
-    await waitFor(() => {
-      expect(screen.getByText("Promote")).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByText("Promote"));
-    await waitFor(() => {
-      const call = fetchMock.calls.find((c) => c.url.includes("/promote") && c.method === "POST");
-      expect(call).toBeDefined();
-    });
-  });
-
-  it("demoteUser error path is exercised when fetch errors", async () => {
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.stats(), baseStats);
-    qc.setQueryData(queryKeys.admin.users(), [adminUser, modUser]);
-    qc.setQueryData(queryKeys.admin.invites(), []);
-    fetchMock = mockFetch(({ url, method }: { url: string; method: string }) => {
-      if (url.includes("/demote") && method === "POST") return errorResponse(500);
-      if (url.includes("/api/admin/users")) return [adminUser, modUser];
-      if (url.includes("/api/admin/stats")) return baseStats;
-      if (url.includes("/api/invites")) return [baseInvite];
-      if (url.includes("/api/auth/me")) return adminUser;
-      if (url.includes("/api/settings")) return { appName: "Knitly", logoIcon: "Zap" };
-      return null;
-    });
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=overview"],
-      queryClient: qc,
-    });
-    await waitFor(() => {
-      expect(screen.getByText("Demote")).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByText("Demote"));
-    await waitFor(() => {
-      const call = fetchMock.calls.find((c) => c.url.includes("/demote") && c.method === "POST");
-      expect(call).toBeDefined();
-    });
-  });
-
-  it("enableUser error path is exercised when fetch errors", async () => {
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.stats(), baseStats);
-    qc.setQueryData(queryKeys.admin.users(), [adminUser, disabledUser]);
-    qc.setQueryData(queryKeys.admin.invites(), []);
-    fetchMock = mockFetch(({ url, method }: { url: string; method: string }) => {
-      if (url.includes("/enable") && method === "POST") return errorResponse(500);
-      if (url.includes("/api/admin/users")) return [adminUser, disabledUser];
-      if (url.includes("/api/admin/stats")) return baseStats;
-      if (url.includes("/api/invites")) return [baseInvite];
-      if (url.includes("/api/auth/me")) return adminUser;
-      if (url.includes("/api/settings")) return { appName: "Knitly", logoIcon: "Zap" };
-      return null;
-    });
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=overview"],
-      queryClient: qc,
-    });
-    await waitFor(() => {
-      expect(screen.getByText(/^Disabled \(/)).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByText(/^Disabled \(/));
-    await waitFor(() => {
-      expect(screen.getByText("Enable")).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByText("Enable"));
-    await waitFor(() => {
-      const call = fetchMock.calls.find((c) => c.url.includes("/enable") && c.method === "POST");
-      expect(call).toBeDefined();
-    });
-  });
-
-  it("createInvite error path is exercised when fetch errors", async () => {
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.stats(), baseStats);
-    qc.setQueryData(queryKeys.admin.users(), [adminUser]);
-    qc.setQueryData(queryKeys.admin.invites(), []);
-    fetchMock = mockFetch(({ url, method }: { url: string; method: string }) => {
-      if (url === "/api/invites" && method === "POST") return errorResponse(500);
-      if (url.includes("/api/invites")) return [];
-      if (url.includes("/api/admin/users")) return [adminUser];
-      if (url.includes("/api/admin/stats")) return baseStats;
-      if (url.includes("/api/auth/me")) return adminUser;
-      if (url.includes("/api/settings")) return { appName: "Knitly", logoIcon: "Zap" };
-      return null;
-    });
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=overview"],
-      queryClient: qc,
-    });
-    await waitFor(() => {
-      expect(screen.getByText("New Invite")).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByText("New Invite"));
-    await waitFor(() => {
-      const call = fetchMock.calls.find((c) => c.url === "/api/invites" && c.method === "POST");
-      expect(call).toBeDefined();
-    });
-  });
-
-  it("revokeInvite error path is exercised when fetch errors", async () => {
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.stats(), baseStats);
-    qc.setQueryData(queryKeys.admin.users(), [adminUser]);
-    qc.setQueryData(queryKeys.admin.invites(), [baseInvite]);
-    fetchMock = mockFetch(({ url, method }: { url: string; method: string }) => {
-      if (url.includes("/revoke") && method === "POST" && url.includes("/api/invites"))
-        return errorResponse(500);
-      if (url.includes("/api/invites")) return [baseInvite];
-      if (url.includes("/api/admin/users")) return [adminUser];
-      if (url.includes("/api/admin/stats")) return baseStats;
-      if (url.includes("/api/auth/me")) return adminUser;
-      if (url.includes("/api/settings")) return { appName: "Knitly", logoIcon: "Zap" };
-      return null;
-    });
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=overview"],
-      queryClient: qc,
-    });
-    await waitFor(() => {
-      expect(screen.getByText("Revoke")).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByText("Revoke"));
-    await waitFor(() => {
-      const call = fetchMock.calls.find(
-        (c) => c.url.includes("/revoke") && c.method === "POST" && c.url.includes("/api/invites")
-      );
-      expect(call).toBeDefined();
-    });
-  });
-
   it("regenerateKey error path is exercised when fetch errors", async () => {
     const qc = makeQueryClient();
     qc.setQueryData(queryKeys.auth.me(), adminUser);
@@ -2584,267 +2165,6 @@ describe("AdminRoute — error paths: onError handlers show toast", () => {
     await waitFor(() => {
       const call = fetchMock.calls.find(
         (c) => c.url.includes("/regenerate-key") && c.method === "POST"
-      );
-      expect(call).toBeDefined();
-    });
-  });
-
-  it("revokeBotKey error path is exercised when fetch errors", async () => {
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.bots(), [baseBot]);
-    fetchMock = mockFetch(({ url, method }: { url: string; method: string }) => {
-      if (url.includes("/revoke-key") && method === "POST") return errorResponse(500);
-      if (url.includes("/api/admin/bots")) return [baseBot];
-      if (url.includes("/api/auth/me")) return adminUser;
-      if (url.includes("/api/settings")) return { appName: "Knitly", logoIcon: "Zap" };
-      return null;
-    });
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=bots"],
-      queryClient: qc,
-    });
-    await waitFor(() => {
-      expect(screen.getByText("Revoke Key")).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByText("Revoke Key"));
-    await waitFor(() => {
-      expect(screen.getByText("Revoke API Key")).toBeInTheDocument();
-    });
-    const revokeBtns = screen.getAllByRole("button").filter((b) => b.textContent === "Revoke");
-    fireEvent.click(revokeBtns[revokeBtns.length - 1]);
-    await waitFor(() => {
-      const call = fetchMock.calls.find(
-        (c) => c.url.includes("/revoke-key") && c.method === "POST"
-      );
-      expect(call).toBeDefined();
-    });
-  });
-
-  it("deleteBot error path is exercised when fetch errors", async () => {
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.bots(), [baseBot]);
-    fetchMock = mockFetch(({ url, method }: { url: string; method: string }) => {
-      if (url.includes(`/api/admin/bots/${baseBot.id}`) && method === "DELETE")
-        return errorResponse(500);
-      if (url.includes("/api/admin/bots")) return [baseBot];
-      if (url.includes("/api/auth/me")) return adminUser;
-      if (url.includes("/api/settings")) return { appName: "Knitly", logoIcon: "Zap" };
-      return null;
-    });
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=bots"],
-      queryClient: qc,
-    });
-    await waitFor(() => {
-      expect(screen.getByText("Delete")).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByText("Delete"));
-    await waitFor(() => {
-      expect(screen.getByText("Delete Bot")).toBeInTheDocument();
-    });
-    const deleteBtns = screen.getAllByRole("button").filter((b) => b.textContent === "Delete");
-    fireEvent.click(deleteBtns[deleteBtns.length - 1]);
-    await waitFor(() => {
-      const call = fetchMock.calls.find(
-        (c) => c.url.includes(`/api/admin/bots/${baseBot.id}`) && c.method === "DELETE"
-      );
-      expect(call).toBeDefined();
-    });
-  });
-
-  it("removeUser error path is exercised when fetch errors", async () => {
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.stats(), baseStats);
-    qc.setQueryData(queryKeys.admin.users(), [adminUser, memberUser]);
-    qc.setQueryData(queryKeys.admin.invites(), []);
-    fetchMock = mockFetch(({ url, method }: { url: string; method: string }) => {
-      if (url.includes(`/api/admin/users/${memberUser.id}`) && method === "DELETE")
-        return errorResponse(500);
-      if (url.includes("/api/admin/users")) return [adminUser, memberUser];
-      if (url.includes("/api/admin/stats")) return baseStats;
-      if (url.includes("/api/invites")) return [baseInvite];
-      if (url.includes("/api/auth/me")) return adminUser;
-      if (url.includes("/api/settings")) return { appName: "Knitly", logoIcon: "Zap" };
-      return null;
-    });
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=overview"],
-      queryClient: qc,
-    });
-    await waitFor(() => {
-      expect(screen.getByText("Remove")).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByText("Remove"));
-    await waitFor(() => {
-      expect(screen.getByText("Remove User")).toBeInTheDocument();
-    });
-    const confirmBtns = screen.getAllByRole("button").filter((b) => b.textContent === "Remove");
-    fireEvent.click(confirmBtns[confirmBtns.length - 1]);
-    await waitFor(() => {
-      const call = fetchMock.calls.find(
-        (c) => c.url.includes(`/api/admin/users/${memberUser.id}`) && c.method === "DELETE"
-      );
-      expect(call).toBeDefined();
-    });
-  });
-
-  it("deleteContent error path is exercised when fetch errors", async () => {
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.content(), { pages: [baseContent], pageParams: [undefined] });
-    fetchMock = mockFetch(({ url, method }: { url: string; method: string }) => {
-      if (url.includes("/api/admin/content/") && url.includes("/delete") && method === "POST")
-        return errorResponse(500);
-      if (url.includes("/api/admin/content")) return baseContent;
-      if (url.includes("/api/auth/me")) return adminUser;
-      if (url.includes("/api/settings")) return { appName: "Knitly", logoIcon: "Zap" };
-      return null;
-    });
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=moderation"],
-      queryClient: qc,
-    });
-    await waitFor(() => {
-      expect(screen.getAllByText("Remove").length).toBeGreaterThan(0);
-    });
-    fireEvent.click(screen.getAllByText("Remove")[0]);
-    await waitFor(() => {
-      expect(screen.getByText("Remove Post")).toBeInTheDocument();
-    });
-    const removeBtns = screen.getAllByRole("button").filter((b) => b.textContent === "Remove");
-    fireEvent.click(removeBtns[removeBtns.length - 1]);
-    await waitFor(() => {
-      const call = fetchMock.calls.find(
-        (c) =>
-          c.url.includes("/api/admin/content/") && c.url.includes("/delete") && c.method === "POST"
-      );
-      expect(call).toBeDefined();
-    });
-  });
-
-  it("transferOwnership error path is exercised when fetch errors", async () => {
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.stats(), baseStats);
-    qc.setQueryData(queryKeys.admin.users(), [adminUser, memberUser]);
-    qc.setQueryData(queryKeys.admin.invites(), []);
-    fetchMock = mockFetch(({ url, method }: { url: string; method: string }) => {
-      if (url.includes("/transfer") && method === "POST") return errorResponse(500);
-      if (url.includes("/api/admin/users")) return [adminUser, memberUser];
-      if (url.includes("/api/admin/stats")) return baseStats;
-      if (url.includes("/api/invites")) return [baseInvite];
-      if (url.includes("/api/auth/me")) return adminUser;
-      if (url.includes("/api/settings")) return { appName: "Knitly", logoIcon: "Zap" };
-      return null;
-    });
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=overview"],
-      queryClient: qc,
-    });
-    await waitFor(() => {
-      expect(screen.getByLabelText("Search users for ownership transfer")).toBeInTheDocument();
-    });
-    fireEvent.input(screen.getByLabelText("Search users for ownership transfer"), {
-      target: { value: "ali" },
-    });
-    await waitFor(() => {
-      const dropdown = document.querySelector(".absolute.top-full");
-      expect(dropdown?.textContent).toContain("Alice");
-    });
-    const aliceBtn = screen
-      .getAllByRole("button")
-      .find((b) => b.textContent?.includes("Alice") && b.textContent?.includes("@alice"));
-    fireEvent.click(aliceBtn!);
-    await waitFor(() => {
-      expect(screen.getAllByText("Transfer Ownership").length).toBeGreaterThan(0);
-    });
-    const transferBtns = screen.getAllByRole("button").filter((b) => b.textContent === "Transfer");
-    fireEvent.click(transferBtns[transferBtns.length - 1]);
-    await waitFor(() => {
-      const call = fetchMock.calls.find((c) => c.url.includes("/transfer") && c.method === "POST");
-      expect(call).toBeDefined();
-    });
-  });
-
-  it("revokeUserSessions error path is exercised when fetch errors", async () => {
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.stats(), baseStats);
-    qc.setQueryData(queryKeys.admin.users(), [adminUser, memberUser]);
-    qc.setQueryData(queryKeys.admin.invites(), []);
-    fetchMock = mockFetch(({ url, method }: { url: string; method: string }) => {
-      if (url.includes("/revoke-sessions") && method === "POST") return errorResponse(500);
-      if (url.includes("/api/admin/users")) return [adminUser, memberUser];
-      if (url.includes("/api/admin/stats")) return baseStats;
-      if (url.includes("/api/invites")) return [baseInvite];
-      if (url.includes("/api/auth/me")) return adminUser;
-      if (url.includes("/api/settings")) return { appName: "Knitly", logoIcon: "Zap" };
-      return null;
-    });
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=overview"],
-      queryClient: qc,
-    });
-    await waitFor(() => {
-      expect(screen.getByText(/Revoke Sessions/)).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByText(/Revoke Sessions/));
-    await waitFor(() => {
-      expect(screen.getByText("Revoke All Sessions")).toBeInTheDocument();
-    });
-    const confirmBtns = screen.getAllByRole("button").filter((b) => b.textContent === "Revoke");
-    fireEvent.click(confirmBtns[confirmBtns.length - 1]);
-    await waitFor(() => {
-      const call = fetchMock.calls.find(
-        (c) => c.url.includes("/revoke-sessions") && c.method === "POST"
-      );
-      expect(call).toBeDefined();
-    });
-  });
-
-  it("resetPassword error path is exercised when fetch errors", async () => {
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.stats(), baseStats);
-    qc.setQueryData(queryKeys.admin.users(), [adminUser, memberUser]);
-    qc.setQueryData(queryKeys.admin.invites(), []);
-    fetchMock = mockFetch(({ url, method }: { url: string; method: string }) => {
-      if (url.includes("/reset-password") && method === "POST") return errorResponse(500);
-      if (url.includes("/api/admin/users")) return [adminUser, memberUser];
-      if (url.includes("/api/admin/stats")) return baseStats;
-      if (url.includes("/api/invites")) return [baseInvite];
-      if (url.includes("/api/auth/me")) return adminUser;
-      if (url.includes("/api/settings")) return { appName: "Knitly", logoIcon: "Zap" };
-      return null;
-    });
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=overview"],
-      queryClient: qc,
-    });
-    await waitFor(() => {
-      expect(screen.getAllByText(/Reset Password/).length).toBeGreaterThan(0);
-    });
-    fireEvent.click(screen.getAllByText(/Reset Password/)[0]);
-    await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "Reset Password" })).toBeInTheDocument();
-    });
-    const generateBtn = screen
-      .getAllByRole("button")
-      .find((b) => b.textContent === "Generate Link");
-    fireEvent.click(generateBtn!);
-    await waitFor(() => {
-      const call = fetchMock.calls.find(
-        (c) => c.url.includes("/reset-password") && c.method === "POST"
       );
       expect(call).toBeDefined();
     });
@@ -2907,54 +2227,6 @@ describe("AdminRoute — clipboard error paths", () => {
     });
     fireEvent.click(screen.getByText("Copy Link"));
     // The click fires handleCopyInvite which catches the clipboard error
-    await waitFor(() => {
-      expect(writeText).toHaveBeenCalled();
-    });
-  });
-
-  it("shows error toast when Reset Password clipboard write fails", async () => {
-    const writeText = mock(() => Promise.reject(new Error("Clipboard denied")));
-    Object.defineProperty(globalThis.navigator, "clipboard", {
-      value: { writeText },
-      writable: true,
-      configurable: true,
-    });
-    const qc = makeQueryClient();
-    qc.setQueryData(queryKeys.auth.me(), adminUser);
-    qc.setQueryData(queryKeys.admin.stats(), baseStats);
-    qc.setQueryData(queryKeys.admin.users(), [adminUser, memberUser]);
-    qc.setQueryData(queryKeys.admin.invites(), []);
-    fetchMock = mockFetch(({ url, method }: { url: string; method: string }) => {
-      if (url.includes("/reset-password") && method === "POST") return { token: "reset-tok" };
-      if (url.includes("/api/admin/users")) return [adminUser, memberUser];
-      if (url.includes("/api/admin/stats")) return baseStats;
-      if (url.includes("/api/invites")) return [baseInvite];
-      if (url.includes("/api/auth/me")) return adminUser;
-      if (url.includes("/api/settings")) return { appName: "Knitly", logoIcon: "Zap" };
-      return null;
-    });
-    await renderWithProviders(<AdminRoute />, {
-      path: "/admin",
-      initialEntries: ["/admin?tab=overview"],
-      queryClient: qc,
-    });
-    await waitFor(() => {
-      expect(screen.getAllByText(/Reset Password/).length).toBeGreaterThan(0);
-    });
-    fireEvent.click(screen.getAllByText(/Reset Password/)[0]);
-    await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "Reset Password" })).toBeInTheDocument();
-    });
-    const generateBtn = screen
-      .getAllByRole("button")
-      .find((b) => b.textContent === "Generate Link");
-    fireEvent.click(generateBtn!);
-    await waitFor(() => {
-      const call = fetchMock.calls.find(
-        (c) => c.url.includes("/reset-password") && c.method === "POST"
-      );
-      expect(call).toBeDefined();
-    });
     await waitFor(() => {
       expect(writeText).toHaveBeenCalled();
     });

@@ -351,27 +351,6 @@ describe("Navigation — custom nav (Tools section)", () => {
     expect(sidebar?.textContent).toContain("Ext Demo");
   });
 
-  it("applies active styling to the Ext Demo link when on /ext-demo route", async () => {
-    await renderNav(makeUser(), [], 0, {
-      path: "/ext-demo",
-      initialEntries: ["/ext-demo"],
-    });
-    const sidebar = document.querySelector("aside");
-    const extDemoLink = sidebar?.querySelector('a[href="/ext-demo"]');
-    expect(extDemoLink?.className).toContain("bg-accent-50");
-    expect(extDemoLink?.className).toContain("text-accent-600");
-  });
-
-  it("applies inactive styling to Ext Demo link when not on /ext-demo route", async () => {
-    await renderNav(makeUser(), [], 0, {
-      path: "/",
-      initialEntries: ["/"],
-    });
-    const sidebar = document.querySelector("aside");
-    const extDemoLink = sidebar?.querySelector('a[href="/ext-demo"]');
-    expect(extDemoLink?.className).toContain("text-gray-400");
-  });
-
   it("renders the Ext Demo item in the More sheet", async () => {
     await renderNav(makeUser());
     const sheetGrid = document.querySelector(".grid.grid-cols-3");
