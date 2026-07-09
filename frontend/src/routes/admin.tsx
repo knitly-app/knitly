@@ -60,6 +60,7 @@ export function AdminRoute() {
   const [newBotBio, setNewBotBio] = useState('')
   const [createdApiKey, setCreatedApiKey] = useState<string | null>(null)
   const [showApiKey, setShowApiKey] = useState(false)
+  const [resetLink, setResetLink] = useState<{ url: string; username: string } | null>(null)
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: queryKeys.admin.stats(),
@@ -283,19 +284,24 @@ export function AdminRoute() {
   })
 
   const resetPassword = useMutation({
-    mutationFn: admin.resetPassword,
-    onSuccess: async (data) => {
-      const url = `${window.location.origin}/reset-password?token=${data.token}`
-      try {
-        await navigator.clipboard.writeText(url)
-        toast.success('Reset link copied!')
-      } catch {
-        toast.error('Failed to copy reset link')
-      }
+    mutationFn: ({ userId }: { userId: string; username: string }) => admin.resetPassword(userId),
+    onSuccess: (data, { username }) => {
+      setResetLink({ url: `${window.location.origin}/reset-password?token=${data.token}`, username })
       void queryClient.invalidateQueries({ queryKey: queryKeys.admin.audit() })
     },
     onError: () => toast.error('Failed to generate reset link'),
   })
+
+  const handleCopyResetLink = (url: string) => {
+    void (async () => {
+      try {
+        await navigator.clipboard.writeText(url)
+        toast.success('Reset link copied')
+      } catch {
+        toast.error('Clipboard unavailable — copy the link manually')
+      }
+    })()
+  }
 
   const handleCopyInvite = (token: string) => {
     void (async () => {
@@ -374,10 +380,10 @@ export function AdminRoute() {
     confirmThenMutate(
       {
         title: 'Reset Password',
-        message: `This will generate a one-time password reset link for @${username}. The link will be copied to your clipboard.`,
+        message: `This will generate a one-time password reset link for @${username}.`,
         confirmText: 'Generate Link',
       },
-      () => resetPassword.mutate(userId)
+      () => resetPassword.mutate({ userId, username })
     )
 
   const handleRegenerateKey = (botId: string, username: string) =>
@@ -1227,6 +1233,47 @@ export function AdminRoute() {
 
       {currentTab === 'customize' && (
         <CustomizeTab />
+      )}
+
+      {resetLink && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setResetLink(null)}
+          />
+          <div className="relative bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl animate-scale-up">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="p-3 rounded-2xl bg-accent-50">
+                <Key size={24} className="text-accent-500" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-lg">Reset link ready</h3>
+                <p className="text-gray-500 mt-1">
+                  Send this link to @{resetLink.username}. It can be used once, expires in 24
+                  hours, and won't be shown again.
+                </p>
+              </div>
+            </div>
+            <code className="block bg-gray-50 px-4 py-3 rounded-2xl text-sm font-mono text-gray-900 border border-gray-200 select-all break-all">
+              {resetLink.url}
+            </code>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => handleCopyResetLink(resetLink.url)}
+                className="flex-1 py-3 px-4 rounded-2xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors inline-flex items-center justify-center gap-2"
+              >
+                <Copy size={16} />
+                Copy
+              </button>
+              <button
+                onClick={() => setResetLink(null)}
+                className="flex-1 py-3 px-4 rounded-2xl font-bold bg-accent-500 text-white hover:bg-accent-600 transition-colors"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

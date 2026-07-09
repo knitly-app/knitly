@@ -1795,6 +1795,51 @@ describe("AdminRoute — confirm flows: Reset Password confirmed", () => {
       );
       expect(call).toBeDefined();
     });
+    // link must be shown on screen, not just copied to clipboard
+    await waitFor(() => {
+      expect(screen.getByText(/reset-password\?token=reset-tok/)).toBeInTheDocument();
+    });
+  });
+
+  it("shows the reset link on screen even when clipboard is unavailable", async () => {
+    Object.defineProperty(globalThis.navigator, "clipboard", {
+      value: undefined,
+      writable: true,
+      configurable: true,
+    });
+    const qc = makeQueryClient();
+    qc.setQueryData(queryKeys.auth.me(), adminUser);
+    qc.setQueryData(queryKeys.admin.stats(), baseStats);
+    qc.setQueryData(queryKeys.admin.users(), [adminUser, memberUser]);
+    qc.setQueryData(queryKeys.admin.invites(), []);
+    fetchMock = mockFetch(({ url, method }: { url: string; method: string }) => {
+      if (url.includes("/reset-password") && method === "POST") return { token: "reset-tok" };
+      if (url.includes("/api/admin/users")) return [adminUser, memberUser];
+      if (url.includes("/api/admin/stats")) return baseStats;
+      if (url.includes("/api/invites")) return [baseInvite];
+      if (url.includes("/api/auth/me")) return adminUser;
+      if (url.includes("/api/settings")) return { appName: "Knitly", logoIcon: "Zap" };
+      return null;
+    });
+    await renderWithProviders(<AdminRoute />, {
+      path: "/admin",
+      initialEntries: ["/admin?tab=overview"],
+      queryClient: qc,
+    });
+    await waitFor(() => {
+      expect(screen.getAllByText(/Reset Password/).length).toBeGreaterThan(0);
+    });
+    fireEvent.click(screen.getAllByText(/Reset Password/)[0]);
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Reset Password" })).toBeInTheDocument();
+    });
+    const generateBtn = screen
+      .getAllByRole("button")
+      .find((b) => b.textContent === "Generate Link");
+    fireEvent.click(generateBtn!);
+    await waitFor(() => {
+      expect(screen.getByText(/reset-password\?token=reset-tok/)).toBeInTheDocument();
+    });
   });
 });
 
