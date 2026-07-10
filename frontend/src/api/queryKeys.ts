@@ -35,6 +35,7 @@ export const queryKeys = {
   chat: {
     messages: () => ['chat', 'messages'] as const,
     messagesAccumulated: () => ['chat', 'messages', 'accumulated'] as const,
+    systemMessages: () => ['chat', 'system-messages'] as const,
     presence: () => ['chat', 'presence'] as const,
     status: () => ['chat', 'status'] as const,
   },

@@ -5,6 +5,7 @@ import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useChatMessages, useChatStatus, useChatPresenceHeartbeat } from "../../hooks/useChat";
 import { makeQueryClient } from "../helpers/render";
 import { mockFetch, type MockFetchResult } from "../helpers/fetch";
+import { queryKeys } from "../../api/queryKeys";
 
 let fetchMock: MockFetchResult;
 afterEach(() => fetchMock?.restore());
@@ -182,32 +183,34 @@ describe("useChatMessages", () => {
     expect(result.current.systemMessages[0].username).toBe("ada");
   });
 
-  it("executes stale-message pruning callback registered by the cleanup interval", async () => {
-    const intercepted: (() => void)[] = [];
-    const originalSetInterval = globalThis.setInterval;
-    globalThis.setInterval = ((cb: () => void, ms: number) => {
-      if (ms === 10000) {
-        intercepted.push(cb);
-        return 9999 as unknown as ReturnType<typeof setInterval>;
-      }
-      return originalSetInterval(cb, ms);
-    }) as typeof setInterval;
-
+  it("prunes system messages older than the 30s TTL on the next presence refetch", async () => {
+    const queryClient = makeQueryClient();
+    let presenceCallCount = 0;
     fetchMock = mockFetch(({ url }) => {
-      if (url.includes("/chat/presence")) return presenceResponse;
+      if (url.includes("/chat/presence")) {
+        presenceCallCount++;
+        return presenceCallCount === 1
+          ? { online: 1, users: ["ada"], joins: ["ada"], leaves: [] }
+          : { online: 1, users: ["ada"], joins: [], leaves: [] };
+      }
       return { messages: [] };
     });
 
-    const { unmount } = renderWithClient(() => useChatMessages());
-    await waitFor(() => expect(intercepted.length).toBeGreaterThan(0));
+    const originalNow = Date.now;
+    try {
+      Date.now = () => 1000;
+      const { result } = renderWithClient(() => useChatMessages(), queryClient);
+      await waitFor(() => expect(result.current.systemMessages).toHaveLength(1));
 
-    await act(() => {
-      for (const cb of intercepted) cb();
-    });
+      Date.now = () => 1000 + 30001;
+      await act(async () => {
+        await queryClient.refetchQueries({ queryKey: queryKeys.chat.presence() });
+      });
 
-    unmount();
-    globalThis.setInterval = originalSetInterval;
-    expect(intercepted.length).toBeGreaterThan(0);
+      await waitFor(() => expect(result.current.systemMessages).toHaveLength(0));
+    } finally {
+      Date.now = originalNow;
+    }
   });
 });
 

@@ -1,17 +1,25 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'preact/hooks'
-import { chat, type ChatMessage } from '../api/endpoints'
+import { useEffect, useRef } from 'preact/hooks'
+import { chat, type ChatMessage, type ChatPresenceResponse } from '../api/endpoints'
 import { queryKeys } from '../api/queryKeys'
+
+const SYSTEM_MESSAGE_TTL_MS = 30000
+
+type SystemMessage = { id: string; type: 'join' | 'leave'; username: string; timestamp: number }
 
 export function useChatMessages() {
   const queryClient = useQueryClient()
-  const [systemMessages, setSystemMessages] = useState<{ id: string; type: 'join' | 'leave'; username: string; timestamp: number }[]>([])
   const lastIdRef = useRef('0')
-  const previousUsersRef = useRef<Set<string>>(new Set())
 
   const accumulatedQuery = useQuery({
     queryKey: queryKeys.chat.messagesAccumulated(),
     queryFn: () => [] as ChatMessage[],
+    staleTime: Infinity,
+  })
+
+  const systemMessagesQuery = useQuery({
+    queryKey: queryKeys.chat.systemMessages(),
+    queryFn: () => [] as SystemMessage[],
     staleTime: Infinity,
   })
 
@@ -37,36 +45,31 @@ export function useChatMessages() {
 
   const presenceQuery = useQuery({
     queryKey: queryKeys.chat.presence(),
-    queryFn: chat.presence,
+    queryFn: async () => {
+      const previousUsers = new Set(
+        queryClient.getQueryData<ChatPresenceResponse>(queryKeys.chat.presence())?.users ?? []
+      )
+      const result = await chat.presence()
+      const now = Date.now()
+      const cutoff = now - SYSTEM_MESSAGE_TTL_MS
+
+      const newEntries: SystemMessage[] = [
+        ...result.joins
+          .filter((username) => !previousUsers.has(username))
+          .map((username) => ({ id: `join-${now}-${username}`, type: 'join' as const, username, timestamp: now })),
+        ...result.leaves.map((username) => ({ id: `leave-${now}-${username}`, type: 'leave' as const, username, timestamp: now })),
+      ]
+
+      queryClient.setQueryData<SystemMessage[]>(queryKeys.chat.systemMessages(), (prev = []) =>
+        [...prev, ...newEntries].filter((m) => m.timestamp > cutoff)
+      )
+
+      return result
+    },
     refetchInterval: 30000,
   })
 
-  useEffect(() => {
-    if (presenceQuery.data) {
-      const currentUsers = new Set(presenceQuery.data.users)
-      const now = Date.now()
-
-      for (const username of presenceQuery.data.joins) {
-        if (!previousUsersRef.current.has(username)) {
-          setSystemMessages((prev) => [...prev, { id: `join-${now}-${username}`, type: 'join', username, timestamp: now }])
-        }
-      }
-
-      for (const username of presenceQuery.data.leaves) {
-        setSystemMessages((prev) => [...prev, { id: `leave-${now}-${username}`, type: 'leave', username, timestamp: now }])
-      }
-
-      previousUsersRef.current = currentUsers
-    }
-  }, [presenceQuery.data])
-
-  useEffect(() => {
-    const cleanup = setInterval(() => {
-      const cutoff = Date.now() - 30000
-      setSystemMessages((prev) => prev.filter((m) => m.timestamp > cutoff))
-    }, 10000)
-    return () => clearInterval(cleanup)
-  }, [])
+  const systemMessages = systemMessagesQuery.data ?? []
 
   const sendMutation = useMutation({
     mutationFn: chat.send,
