@@ -39,10 +39,10 @@ Friction is a feature. The goal is intimacy, not scale.
 ## Features
 
 ### Moments
-- Text posts with photos (up to 6 images) or video (30s max, 720p)
+- Text posts with photos (up to 6 images) or video (60s max, 720p)
 - Chronological feed (no algorithm)
 - Reactions (love, haha, hugs, celebrate)
-- Comments with markdown support
+- Comments with bold/italic formatting and @mentions
 - Edit/delete your own content
 - Image lightbox with gallery navigation
 - @mentions
@@ -50,7 +50,10 @@ Friction is a feature. The goal is intimacy, not scale.
 ### Profiles
 - Bio, avatar, header/cover image
 - Location and website links
-- Posts and media tabs
+- Posts tab and a media-only grid tab
+- Self-service forgot/reset password
+- Change email with confirmation token
+- Delete account (with a cancellation window)
 
 ### Circles
 - Create private groups within your network
@@ -78,11 +81,13 @@ Friction is a feature. The goal is intimacy, not scale.
 
 ### Admin
 - Generate and revoke invite links
-- User management (disable, promote, remove)
+- User management: disable/enable, promote/demote, transfer ownership, delete
+- Bot accounts: create, list, regenerate/revoke API key — bots authenticate with a `knitly_`-prefixed Bearer key
+- Instance stats
 - Content moderation (delete posts/comments)
 - Audit log for accountability
+- Session revocation and on-screen password-reset links for members
 - Customize app name and logo
-- Backup and restore database
 
 ---
 
