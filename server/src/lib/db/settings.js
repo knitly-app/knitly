@@ -16,13 +16,15 @@ export const settingsQueries = {
   getAllSettings() {
     const appName = this.getSetting("appName") || "Knitly";
     const logoIcon = this.getSetting("logoIcon") || "Zap";
-    return { appName, logoIcon };
+    const circlesEnabled = this.getSetting("circlesEnabled") !== "false";
+    return { appName, logoIcon, circlesEnabled };
   },
 
   setSettings(updates) {
     const tx = db.transaction((data) => {
       if (data.appName !== undefined) this.setSetting("appName", data.appName);
       if (data.logoIcon !== undefined) this.setSetting("logoIcon", data.logoIcon);
+      if (data.circlesEnabled !== undefined) this.setSetting("circlesEnabled", String(data.circlesEnabled));
     });
     tx(updates);
   },

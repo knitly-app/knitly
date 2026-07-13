@@ -21,7 +21,7 @@ settingsRouter.get("/", (c) => {
 
 settingsRouter.put("/", ensureSession, requireRole("admin"), async (c) => {
   const body = await c.req.json().catch(() => ({}));
-  const { appName, logoIcon } = body;
+  const { appName, logoIcon, circlesEnabled } = body;
 
   if (appName !== undefined) {
     if (typeof appName !== "string" || appName.length > 50) {
@@ -35,7 +35,11 @@ settingsRouter.put("/", ensureSession, requireRole("admin"), async (c) => {
     }
   }
 
-  dbUtils.setSettings({ appName, logoIcon });
+  if (circlesEnabled !== undefined && typeof circlesEnabled !== "boolean") {
+    return c.json({ error: "circlesEnabled must be a boolean" }, 400);
+  }
+
+  dbUtils.setSettings({ appName, logoIcon, circlesEnabled });
   const settings = dbUtils.getAllSettings();
   return c.json(settings);
 });

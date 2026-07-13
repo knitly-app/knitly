@@ -16,19 +16,26 @@ const SUCCESS_MESSAGE_DURATION_MS = 2000;
 export function CustomizeTab() {
   const appName = useAppSettings((s) => s.appName);
   const logoIcon = useAppSettings((s) => s.logoIcon);
+  const circlesEnabled = useAppSettings((s) => s.circlesEnabled);
   const isFetching = useAppSettings((s) => s.isFetching);
   const isSaving = useAppSettings((s) => s.isSaving);
   const updateSettings = useAppSettings((s) => s.updateSettings);
 
   const [localAppName, setLocalAppName] = useState(() => appName);
   const [localLogoIcon, setLocalLogoIcon] = useState<LogoIconName>(() => logoIcon);
+  const [localCirclesEnabled, setLocalCirclesEnabled] = useState(() => circlesEnabled);
   const [saveStatus, setSaveStatus] = useState<"success" | "error" | null>(null);
 
-  const hasUnsavedChanges = localAppName !== appName || localLogoIcon !== logoIcon;
+  const hasUnsavedChanges =
+    localAppName !== appName || localLogoIcon !== logoIcon || localCirclesEnabled !== circlesEnabled;
 
   const handleSave = async () => {
     setSaveStatus(null);
-    const result = await updateSettings({ appName: localAppName, logoIcon: localLogoIcon });
+    const result = await updateSettings({
+      appName: localAppName,
+      logoIcon: localLogoIcon,
+      circlesEnabled: localCirclesEnabled,
+    });
     if (result.success) {
       setSaveStatus("success");
       setTimeout(() => setSaveStatus(null), SUCCESS_MESSAGE_DURATION_MS);
@@ -40,6 +47,7 @@ export function CustomizeTab() {
   const handleReset = () => {
     setLocalAppName(appName);
     setLocalLogoIcon(logoIcon);
+    setLocalCirclesEnabled(circlesEnabled);
     setSaveStatus(null);
   };
 
@@ -105,6 +113,35 @@ export function CustomizeTab() {
           </div>
           <p className="text-xs text-gray-400 mt-2">
             This icon appears in the header.
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Circles</label>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={localCirclesEnabled}
+              aria-label="Enable circles"
+              onClick={() => setLocalCirclesEnabled(!localCirclesEnabled)}
+              className={`relative h-7 w-12 rounded-full transition-colors ${
+                localCirclesEnabled ? "bg-accent-500" : "bg-gray-200"
+              }`}
+            >
+              <span
+                className={`absolute top-1 left-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                  localCirclesEnabled ? "translate-x-5" : ""
+                }`}
+              />
+            </button>
+            <span className="text-sm text-gray-600">
+              {localCirclesEnabled ? "Enabled" : "Disabled"}
+            </span>
+          </div>
+          <p className="text-xs text-gray-400 mt-2">
+            Let members share Moments with specific groups. When off, everything is shared with
+            everyone; posts already scoped to a circle keep their original audience.
           </p>
         </div>
 

@@ -1,9 +1,15 @@
-import { useNavigate } from '@tanstack/react-router'
+import { Navigate, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-preact'
 import { CircleManager } from '../components/CircleManager'
+import { useAppSettings } from '../hooks/useAppSettings'
 
 export function CirclesRoute() {
   const navigate = useNavigate()
+  const circlesEnabled = useAppSettings((s) => s.circlesEnabled)
+
+  if (!circlesEnabled) {
+    return <Navigate to="/" />
+  }
 
   return (
     <div className="w-full max-w-2xl mx-auto py-4 md:py-8 px-4 md:px-0">

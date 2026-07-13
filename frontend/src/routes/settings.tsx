@@ -17,6 +17,7 @@ export function SettingsRoute() {
   const toast = useToast()
   const { data: circles } = useCircles()
   const appName = useAppSettings((s) => s.appName)
+  const circlesEnabled = useAppSettings((s) => s.circlesEnabled)
   const [draft, setDraft] = useState<{
     displayName?: string
     username?: string
@@ -284,30 +285,32 @@ export function SettingsRoute() {
         </div>
       </div>
 
-      <div className="bg-white rounded-4xl shadow-sm border border-gray-50 mb-6 overflow-hidden">
-        <Link
-          to="/circles"
-          className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors"
-        >
-          <div className="w-10 h-10 rounded-full bg-accent-100 flex items-center justify-center">
-            <Users size={20} className="text-accent-600" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-bold text-gray-900">Circles</h3>
-            <p className="text-sm text-gray-400">
-              Manage groups for sharing Moments
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {circles && circles.length > 0 && (
-              <span className="px-2 py-1 bg-accent-100 text-accent-700 text-xs font-bold rounded-full">
-                {circles.length}
-              </span>
-            )}
-            <ChevronRight size={20} className="text-gray-400" />
-          </div>
-        </Link>
-      </div>
+      {circlesEnabled && (
+        <div className="bg-white rounded-4xl shadow-sm border border-gray-50 mb-6 overflow-hidden">
+          <Link
+            to="/circles"
+            className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="w-10 h-10 rounded-full bg-accent-100 flex items-center justify-center">
+              <Users size={20} className="text-accent-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-gray-900">Circles</h3>
+              <p className="text-sm text-gray-400">
+                Manage groups for sharing Moments
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {circles && circles.length > 0 && (
+                <span className="px-2 py-1 bg-accent-100 text-accent-700 text-xs font-bold rounded-full">
+                  {circles.length}
+                </span>
+              )}
+              <ChevronRight size={20} className="text-gray-400" />
+            </div>
+          </Link>
+        </div>
+      )}
 
       {user && <SecuritySection />}
 

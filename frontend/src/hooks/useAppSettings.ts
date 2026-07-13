@@ -14,6 +14,7 @@ interface AppSettingsState extends AppSettings {
 export const useAppSettings = create<AppSettingsState>((set, get) => ({
   appName: DEFAULT_APP_SETTINGS.appName,
   logoIcon: DEFAULT_APP_SETTINGS.logoIcon,
+  circlesEnabled: DEFAULT_APP_SETTINGS.circlesEnabled,
   isLoaded: false,
   isFetching: false,
   isSaving: false,
