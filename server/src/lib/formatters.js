@@ -22,7 +22,7 @@ export function formatUserProfile(user) {
 }
 
 export function formatAdminUser(user) {
-  return { ...formatUser(user), disabledAt: user.disabled_at || null };
+  return { ...formatUser(user, { includeEmail: true }), disabledAt: user.disabled_at || null };
 }
 
 export function formatComment(comment) {

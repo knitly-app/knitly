@@ -23,6 +23,7 @@ const memberUser: User = {
   id: "u2",
   username: "alice",
   displayName: "Alice",
+  email: "alice@example.com",
   createdAt: "2024-01-01",
   role: "member",
 };
@@ -300,6 +301,7 @@ describe("AdminRoute — overview: members table", () => {
     });
     await waitFor(() => {
       expect(screen.getByText("Alice")).toBeInTheDocument();
+      expect(screen.getByText("alice@example.com")).toBeInTheDocument();
     });
   });
 

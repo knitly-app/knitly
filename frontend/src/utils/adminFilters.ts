@@ -41,6 +41,7 @@ export function filterInvites<T extends AdminInvite>(invites: T[], filter: Invit
 export interface AdminMember {
   username?: string
   displayName?: string
+  email?: string
   role?: string
   disabledAt?: string | null
 }
@@ -70,6 +71,7 @@ export function filterMembers<T extends AdminMember>(members: T[], filter: Membe
     if (!q) return true
     const name = member.displayName?.toLowerCase() ?? ''
     const username = member.username?.toLowerCase() ?? ''
-    return name.includes(q) || username.includes(q)
+    const email = member.email?.toLowerCase() ?? ''
+    return name.includes(q) || username.includes(q) || email.includes(q)
   })
 }

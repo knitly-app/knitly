@@ -62,6 +62,10 @@ describe("formatAdminUser", () => {
     expect(formatAdminUser(baseUserRow).disabledAt).toBeNull();
     expect(formatAdminUser({ ...baseUserRow, disabled_at: "2026-02-02" }).disabledAt).toBe("2026-02-02");
   });
+
+  it("includes email for admins", () => {
+    expect(formatAdminUser({ ...baseUserRow, email: "a@b.com" }).email).toBe("a@b.com");
+  });
 });
 
 describe("formatComment", () => {

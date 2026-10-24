@@ -53,7 +53,7 @@ describe("filterInvites", () => {
 });
 
 const members: AdminMember[] = [
-  { username: "alice", displayName: "Alice", role: "admin", disabledAt: null },
+  { username: "alice", displayName: "Alice", email: "alice@example.com", role: "admin", disabledAt: null },
   { username: "mod", displayName: "Mod Person", role: "moderator", disabledAt: null },
   { username: "banned", displayName: "Banned Guy", role: "member", disabledAt: past },
 ];
@@ -74,5 +74,9 @@ describe("filterMembers", () => {
   it("matches displayName and username (case-insensitive, trimmed)", () => {
     expect(filterMembers(members, "all", " ALICE ").map((m) => m.username)).toEqual(["alice"]);
     expect(filterMembers(members, "all", "person").map((m) => m.username)).toEqual(["mod"]);
+  });
+
+  it("matches email (case-insensitive)", () => {
+    expect(filterMembers(members, "all", "alice@example").map((m) => m.username)).toEqual(["alice"]);
   });
 });

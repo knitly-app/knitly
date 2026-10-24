@@ -476,6 +476,9 @@ export function AdminOverview({ currentUser }: { currentUser: User | null }) {
                         )}
                       </div>
                       <p className="text-sm text-gray-400 truncate">@{member.username}</p>
+                      {member.email && (
+                        <p className="text-xs text-gray-400 truncate">{member.email}</p>
+                      )}
                     </div>
                   </Link>
 
