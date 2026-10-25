@@ -11,7 +11,8 @@ import { useAppSettings } from '../hooks/useAppSettings'
 import type { LucideIcon } from 'lucide-preact'
 
 interface CustomNavItem {
-  to: string
+  to?: string
+  href?: string
   label: string
   icon: LucideIcon
 }
@@ -128,20 +129,39 @@ export function Navigation() {
 
           <div className="grid grid-cols-3 gap-2 px-4 pb-10 pt-1">
             {moreSheetItems.map((item) => {
-              const active = isActive(item.to)
+              const href = 'href' in item ? item.href : undefined
+              const to = 'to' in item ? item.to : undefined
+              const active = to ? isActive(to) : false
               const Icon = item.icon
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to as never}
-                  params={'params' in item ? (item.params as never) : undefined}
-                  onClick={() => setMoreOpen(false)}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-2xl transition-colors cursor-pointer ${
-                    active ? 'bg-accent-50 text-accent-600' : 'text-gray-500 hover:bg-gray-50'
-                  }`}
-                >
+              const className = `flex flex-col items-center gap-2 p-4 rounded-2xl transition-colors cursor-pointer ${
+                active ? 'bg-accent-50 text-accent-600' : 'text-gray-500 hover:bg-gray-50'
+              }`
+              const content = (
+                <>
                   <Icon size={22} strokeWidth={active ? 2.5 : 2} aria-hidden="true" />
                   <span className="text-xs font-medium leading-tight text-center">{item.label}</span>
+                </>
+              )
+              return href ? (
+                <a
+                  key={href}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setMoreOpen(false)}
+                  className={className}
+                >
+                  {content}
+                </a>
+              ) : (
+                <Link
+                  key={to}
+                  to={to as never}
+                  params={'params' in item ? (item.params as never) : undefined}
+                  onClick={() => setMoreOpen(false)}
+                  className={className}
+                >
+                  {content}
                 </Link>
               )
             })}
@@ -205,20 +225,32 @@ export function Navigation() {
             </div>
             <div className="space-y-1 w-full">
               {loadedCustomNavItems.map((item) => {
-                const active = isActive(item.to)
+                const active = item.to ? isActive(item.to) : false
                 const Icon = item.icon
-                return (
-                  <Link
-                    key={item.to}
-                    to={item.to as never}
-                    className={`w-full flex items-center justify-center lg:justify-start space-x-4 p-3 rounded-2xl transition-all ${
-                      active ? 'bg-accent-50 text-accent-600' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
-                    }`}
-                  >
+                const className = `w-full flex items-center justify-center lg:justify-start space-x-4 p-3 rounded-2xl transition-all ${
+                  active ? 'bg-accent-50 text-accent-600' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
+                }`
+                const content = (
+                  <>
                     <Icon size={22} strokeWidth={active ? 2.5 : 2} aria-hidden="true" />
                     <span className={`hidden lg:inline font-medium text-sm ${active ? 'text-accent-600' : 'text-gray-600'}`}>
                       {item.label}
                     </span>
+                  </>
+                )
+                return item.href ? (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={className}
+                  >
+                    {content}
+                  </a>
+                ) : (
+                  <Link key={item.to} to={item.to as never} className={className}>
+                    {content}
                   </Link>
                 )
               })}

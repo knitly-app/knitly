@@ -240,15 +240,15 @@ describe("Navigation — mobile More sheet open/close", () => {
   it("sheet grid renders the correct number of links for a regular user", async () => {
     await renderNav(makeUser({ role: "member" }));
     const sheetLinks = document.querySelectorAll(".grid.grid-cols-3 a");
-    // Profile, Members, Ext Demo (custom), Settings = 4 links
-    expect(sheetLinks.length).toBe(4);
+    // Profile, Members, Ext Demo, Ext Link (custom), Settings = 5 links
+    expect(sheetLinks.length).toBe(5);
   });
 
   it("sheet grid renders an extra Admin link for admin users", async () => {
     await renderNav(makeUser({ role: "admin" }));
     const sheetLinks = document.querySelectorAll(".grid.grid-cols-3 a");
-    // Profile, Members, Admin, Ext Demo (custom), Settings = 5 links
-    expect(sheetLinks.length).toBe(5);
+    // Profile, Members, Admin, Ext Demo, Ext Link (custom), Settings = 6 links
+    expect(sheetLinks.length).toBe(6);
   });
 });
 
@@ -355,5 +355,24 @@ describe("Navigation — custom nav (Tools section)", () => {
     await renderNav(makeUser());
     const sheetGrid = document.querySelector(".grid.grid-cols-3");
     expect(sheetGrid?.textContent).toContain("Ext Demo");
+  });
+});
+
+describe("Navigation — custom external link", () => {
+  it("renders an external nav item as a new-tab anchor in the sidebar", async () => {
+    await renderNav(makeUser());
+    const sidebar = document.querySelector("aside");
+    const link = sidebar?.querySelector('a[href="https://example.com"]');
+    expect(link).not.toBeNull();
+    expect(link?.getAttribute("target")).toBe("_blank");
+    expect(link?.getAttribute("rel")).toContain("noopener");
+  });
+
+  it("renders the external nav item in the More sheet as a new-tab anchor", async () => {
+    await renderNav(makeUser());
+    const sheetGrid = document.querySelector(".grid.grid-cols-3");
+    const link = sheetGrid?.querySelector('a[href="https://example.com"]');
+    expect(link).not.toBeNull();
+    expect(link?.getAttribute("target")).toBe("_blank");
   });
 });
