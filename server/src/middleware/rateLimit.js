@@ -11,9 +11,19 @@ setInterval(() => {
   }
 }, CLEANUP_INTERVAL);
 
+// Proxies (Caddy, nginx) append the real client IP to x-forwarded-for,
+// so the last entry is the trustworthy one — the first is attacker-controllable.
 function getClientIP(c) {
+  const forwarded = c.req.header("x-forwarded-for");
+  if (forwarded) {
+    const entries = forwarded
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+    if (entries.length > 0) return entries[entries.length - 1];
+  }
+
   return (
-    c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
     c.req.header("x-real-ip") ||
     c.req.raw?.socket?.remoteAddress ||
     "unknown"

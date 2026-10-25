@@ -164,31 +164,29 @@ describe('rateLimit middleware', () => {
       expect(ctx._headers['X-RateLimit-Remaining']).toBe('4')
     })
 
-    it('handles comma-separated x-forwarded-for', async () => {
-      const ip = `multi-forward-${Date.now()}`
-      const headers = {}
-      const ctx = {
-        req: {
-          header: (name) => {
-            if (name === 'x-forwarded-for') return `${ip}, 10.0.0.1, 192.168.1.1`
-            return null
+    it('uses the last x-forwarded-for entry (proxy-appended client IP)', async () => {
+      const realIp = `multi-forward-${Date.now()}`
+
+      function createForwardedContext(xff) {
+        const headers = {}
+        return {
+          req: {
+            header: (name) => (name === 'x-forwarded-for' ? xff : null),
+            raw: { socket: { remoteAddress: '127.0.0.1' } }
           },
-          raw: { socket: { remoteAddress: '127.0.0.1' } }
-        },
-        header: (name, value) => { headers[name] = value },
-        json: (body, status) => ({ body, status }),
-        _headers: headers
+          header: (name, value) => { headers[name] = value },
+          json: (body, status) => ({ body, status }),
+          _headers: headers
+        }
       }
 
-      let nextCalled = false
-      await authRateLimit(ctx, async () => { nextCalled = true })
-
-      expect(nextCalled).toBe(true)
-
+      // Different spoofed first entries, same real (last) entry → one bucket
       for (let i = 0; i < 5; i++) {
+        const ctx = createForwardedContext(`10.0.0.${i}, ${realIp}`)
         await authRateLimit(ctx, async () => {})
       }
 
+      const ctx = createForwardedContext(`10.9.9.9, ${realIp}`)
       const result = await authRateLimit(ctx, async () => {})
       expect(result.status).toBe(429)
     })
