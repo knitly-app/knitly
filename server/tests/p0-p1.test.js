@@ -1082,7 +1082,7 @@ describe("Account Management", () => {
 
   describe("Confirm Email", () => {
     test("valid token updates email", async () => {
-      const { userAId, sessionA } = await seedTwoUsers();
+      const { userAId } = await seedTwoUsers();
 
       const token = crypto.randomUUID();
       const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
