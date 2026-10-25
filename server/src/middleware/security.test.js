@@ -15,7 +15,7 @@ describe('securityHeaders middleware', () => {
     await securityHeaders(ctx, async () => {})
 
     expect(ctx._headers['Content-Security-Policy']).toBe(
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'"
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'"
     )
   })
 

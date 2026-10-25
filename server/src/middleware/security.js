@@ -3,7 +3,7 @@ export async function securityHeaders(c, next) {
 
   c.header(
     "Content-Security-Policy",
-    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'"
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'"
   );
   c.header("X-Content-Type-Options", "nosniff");
   c.header("X-Frame-Options", "DENY");
