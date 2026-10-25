@@ -147,7 +147,7 @@ bun --cwd server run seed      # creates one admin user
 bun --cwd server run seed:dev  # with test data (20 users)
 ```
 
-Override admin credentials:
+Admin credentials are required (no defaults — the script exits if either is missing):
 
 ```bash
 ADMIN_EMAIL=you@example.com ADMIN_PASSWORD=yourpass bun --cwd server run seed

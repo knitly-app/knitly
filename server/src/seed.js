@@ -3,12 +3,19 @@ import { hashPassword } from "./lib/security.js";
 import { logInfo, logError } from "./lib/logging.js";
 
 async function seed() {
+  const email = process.env.ADMIN_EMAIL;
+  const password = process.env.ADMIN_PASSWORD;
+
+  if (!email || !password) {
+    logError("ADMIN_EMAIL and ADMIN_PASSWORD are required (no defaults).");
+    logError("Usage: ADMIN_EMAIL=you@example.com ADMIN_PASSWORD=yourpass bun --cwd server run seed");
+    process.exit(1);
+  }
+
   logInfo("Seeding database...");
 
-  const email = process.env.ADMIN_EMAIL || "admin@example.com";
   const username = process.env.ADMIN_USERNAME || "admin";
   const displayName = process.env.ADMIN_DISPLAY_NAME || "Admin";
-  const password = process.env.ADMIN_PASSWORD || "changeme123";
 
   const existingAdmin = dbUtils.getUserByEmail(email);
   if (existingAdmin) {
