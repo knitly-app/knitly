@@ -204,6 +204,33 @@ describe("Custom extensions - route mounting", () => {
   });
 });
 
+describe("assertSafeRemoteUrl (SSRF allowlist)", () => {
+  test("allows Replicate output hosts", async () => {
+    const { assertSafeRemoteUrl } = await import("../../../custom/server/image-gen/routes.js");
+    expect(() => assertSafeRemoteUrl("https://out-assets.replicate.delivery/files/abc.webp", "image")).not.toThrow();
+    expect(() => assertSafeRemoteUrl("https://replicate.delivery/files/abc.mp4", "video")).not.toThrow();
+  });
+
+  test("rejects non-HTTPS URLs", async () => {
+    const { assertSafeRemoteUrl } = await import("../../../custom/server/image-gen/routes.js");
+    expect(() => assertSafeRemoteUrl("http://out-assets.replicate.delivery/files/abc.webp", "image")).toThrow();
+  });
+
+  test("rejects other hosts and IP literals", async () => {
+    const { assertSafeRemoteUrl } = await import("../../../custom/server/image-gen/routes.js");
+    expect(() => assertSafeRemoteUrl("https://evil.com/abc.webp", "image")).toThrow();
+    expect(() => assertSafeRemoteUrl("https://127.0.0.1/abc.webp", "image")).toThrow();
+    expect(() => assertSafeRemoteUrl("https://[::1]/abc.webp", "image")).toThrow();
+  });
+
+  test("rejects lookalike and DNS-rebinding hosts", async () => {
+    const { assertSafeRemoteUrl } = await import("../../../custom/server/image-gen/routes.js");
+    expect(() => assertSafeRemoteUrl("https://evilreplicate.delivery/abc.webp", "image")).toThrow();
+    expect(() => assertSafeRemoteUrl("https://out-assets.replicate.delivery.evil.com/abc.webp", "image")).toThrow();
+    expect(() => assertSafeRemoteUrl("https://127.0.0.1.nip.io/abc.webp", "image")).toThrow();
+  });
+});
+
 describe("isMediaUrlReferenced", () => {
   test("returns false when no posts reference the URL", () => {
     expect(dbUtils.isMediaUrlReferenced("nonexistent-image.webp")).toBe(false);
